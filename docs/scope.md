@@ -4,7 +4,7 @@ Current scope date: June 2, 2026
 
 ## 1. Project Summary
 
-TalentForge AI is a FastAPI-based recruitment intelligence and HRMS foundation. The current implemented product focuses on hiring workflows: candidates can register, browse jobs, and apply with PDF resumes; HR and managers can manage or review recruitment data; AI analysis helps recruiters evaluate candidate-job fit and generate interview preparation material.
+TalentForge AI is a FastAPI-based recruitment intelligence and HRMS foundation. The current implemented product now covers the core hiring-to-employee lifecycle: candidates can register, browse jobs, and apply with PDF resumes; HR can hire candidates into employee records; employees can access a portal for profile, attendance, leave, skill development, and HR support; HR and managers can review recruitment and workforce data.
 
 The app is served as a single FastAPI service:
 
@@ -27,6 +27,16 @@ The app is served as a single FastAPI service:
 - Added scripts for schema initialization, privileged user bootstrap, and SQLite-to-Postgres migration.
 - Updated README and deployment documentation.
 - Added regression tests for auth, RBAC, jobs, candidate applications, AI analysis, rankings, and resume lab logic.
+- Completed the pre-Day-3 technical audit and stabilization report.
+- Hardened JWT role validation against the current database role.
+- Added production secret validation for non-test deployments.
+- Restricted employee profile API access to HR/admin because employee records may contain sensitive compensation data.
+- Added regression tests for stale JWT role claims and employee endpoint access.
+- Implemented Day 3 Candidate to Employee conversion and Employee Portal.
+- Added attendance check-in/check-out and attendance history.
+- Added employee leave request submission and HR/manager approval workflow.
+- Added lightweight skill gap analysis and HR Assistant with deterministic fallback behavior.
+- Added frontend employee dashboard, attendance, leave, skill development, and HR assistant views.
 
 ## 3. Users And Roles
 
@@ -38,7 +48,7 @@ Public registration creates candidate users only. Privileged users are created o
 | hr | Create/update/delete jobs, view candidates, view all applications, re-run AI analysis, rank candidates for jobs |
 | manager | View candidates, view all applications, re-run AI analysis, rank candidates for jobs |
 | admin | Bypasses backend role checks and can access protected backend routes |
-| employee | Stored as a supported role and reserved for future HRMS modules |
+| employee | Employee dashboard, profile, attendance, leave requests, skill gap analysis, HR Assistant |
 
 ## 4. Authentication And RBAC Scope
 
@@ -51,6 +61,9 @@ Implemented:
 - Login response includes `role` and `has_resume`.
 - Backend authorization through `require_roles(...)`.
 - Admin bypass behavior in `require_roles(...)`.
+- JWT role claims are checked against valid roles and must match the user's current database role.
+- Stale tokens are rejected after a user's role changes; users must log in again to receive a fresh role claim.
+- Non-SQLite, non-debug deployments reject weak or placeholder `SECRET_KEY` values.
 
 Important behavior:
 
@@ -131,6 +144,9 @@ Admin behavior:
 - Admin is allowed by backend role checks.
 - Frontend shows an employee metric card only for admin users.
 - Employee APIs are read-only shells at this stage.
+- Admin reaches employee APIs through the backend admin bypass.
+- HR can convert hired candidates into employee profiles.
+- Managers can review and decide leave requests, but cannot access sensitive employee profile records.
 
 ## 7. Job Posting Scope
 
@@ -189,6 +205,7 @@ Implemented operations:
 | `GET /api/applications` | hr, manager, admin | All applications |
 | `POST /api/applications/{application_id}/analyze` | hr, manager, admin | Re-run AI analysis |
 | `GET /api/applications/rankings/{job_id}` | hr, manager, admin | Rank applicants for a job |
+| `POST /api/applications/{application_id}/hire` | hr, admin | Convert candidate application into employee profile |
 
 ## 9. AI Recruitment Analysis Scope
 
@@ -317,14 +334,34 @@ Implemented endpoints:
 
 | Endpoint | Role Scope | Description |
 | --- | --- | --- |
-| `GET /api/employees` | hr, manager, admin | List employee records |
-| `GET /api/employees/{employee_id}` | hr, manager, admin | View one employee record |
+| `GET /api/employees` | hr, admin | List employee records |
+| `GET /api/employees/{employee_id}` | hr, admin | View one employee record |
+| `GET /api/employees/me` | employee, admin | View own employee profile |
+| `GET /api/employees/dashboard` | employee, admin | Employee dashboard summary |
+| `POST /api/employees/attendance/check-in` | employee, admin | Check in for today's attendance |
+| `POST /api/employees/attendance/check-out` | employee, admin | Check out for today's attendance |
+| `GET /api/employees/attendance` | employee, admin | View own attendance history |
+| `POST /api/employees/leave` | employee, admin | Submit a leave request |
+| `GET /api/employees/leave/me` | employee, admin | View own leave requests |
+| `GET /api/employees/leave` | hr, manager, admin | View leave requests |
+| `POST /api/employees/leave/{leave_id}/decision` | hr, manager, admin | Approve or reject leave |
+| `GET /api/employees/skill-gap/me` | employee, admin | View latest skill gap analysis |
+| `POST /api/employees/skill-gap/me/analyze` | employee, admin | Generate skill gap analysis |
+| `POST /api/employees/assistant` | employee, admin | Ask lightweight HR Assistant |
 
 Current status:
 
-- Employee functionality is a shell for future HRMS expansion.
-- No frontend CRUD workflow exists yet.
-- No employee onboarding, attendance, payroll, leave, or performance modules are implemented yet.
+- Employee functionality is now a working Day 3 MVP.
+- Employee records are created from hired candidate applications.
+- No standalone employee CRUD workflow exists yet.
+- Payroll and performance modules are not implemented yet.
+- Managers cannot access employee profile records in the current backend design.
+
+Implemented employee lifecycle models:
+
+- `AttendanceRecord`
+- `LeaveRequest`
+- `SkillGapAnalysis`
 
 ## 13. Frontend Scope
 
@@ -348,13 +385,21 @@ Implemented frontend behaviors:
 - AI analysis modal.
 - Re-analysis action.
 - Job-specific ranking panel.
+- Hire candidate action.
+- Employee directory for HR/admin.
+- Leave request review for HR/manager.
+- Employee dashboard.
+- Employee attendance check-in/check-out.
+- Employee leave submission.
+- Employee skill gap analysis.
+- Employee HR Assistant.
 - Refresh and logout controls.
 
 Frontend role routing:
 
 - Candidate users land on candidate dashboard.
 - HR, manager, and admin users land on management dashboard.
-- Employee users receive a placeholder message because employee workflows are future scope.
+- Employee users land on the employee dashboard and cannot access management views.
 
 ## 14. Database Scope
 
@@ -377,6 +422,9 @@ Implemented tables:
 - `candidate_applications`
 - `application_ai_analyses`
 - `employees`
+- `attendance_records`
+- `leave_requests`
+- `skill_gap_analyses`
 
 Migration approach:
 
@@ -452,12 +500,22 @@ Covered by tests:
 - Candidate registration and login.
 - Login response role.
 - Public registration role escalation rejection.
+- Rejection of stale JWT role claims after database role changes.
 - HR job management.
 - Candidate read-only job access.
+- HR-only employee profile access, with manager denial.
 - Candidate application flow.
 - RBAC enforcement for candidates and HR.
 - AI application analysis persistence.
 - Candidate ranking.
+- Candidate to employee conversion.
+- Employee login after hire.
+- Employee dashboard access.
+- Employee attendance check-in/check-out.
+- Employee leave request and HR approval.
+- Skill gap fallback analysis.
+- HR Assistant fallback answer.
+- Employee RBAC denial for candidates/managers.
 - Resume parser section extraction.
 - Resume text repair.
 - Resume analysis validation.
@@ -466,7 +524,13 @@ Covered by tests:
 Current passing result:
 
 ```text
-15 passed, 1 warning
+19 passed, 16 warnings
+```
+
+Last verified command:
+
+```bash
+.\.venv\Scripts\python.exe -m pytest tests/ -v
 ```
 
 ## 18. Legacy And Available Modules
@@ -501,6 +565,9 @@ Implemented:
 - JWT tokens include user id, username, role, and expiry.
 - Protected API routes require bearer auth.
 - Role escalation through public registration is blocked.
+- JWT role claims must match a valid current database role.
+- Weak/default JWT secrets are rejected for non-SQLite, non-debug deployments.
+- Employee profile endpoints are limited to HR/admin.
 - Temporary uploaded PDFs are deleted after parsing.
 - Broken local proxy environment variables are cleared at startup when they point to known-dead local proxy ports.
 
@@ -512,11 +579,13 @@ Current security limitations:
 - No audit log for privileged actions.
 - No admin UI for role changes.
 - Admin bypass is broad by design and should be monitored before production expansion.
+- Users must log in again after role changes because stale JWTs are rejected.
 
 ## 20. Known Limitations
 
-- Employee module is read-only and skeletal.
+- Employee module is MVP-grade and focused on the critical Day 3 workflow.
 - Manager role can review applications but cannot manage jobs.
+- Manager role cannot access employee profile records.
 - Admin-specific frontend controls are minimal.
 - No dedicated admin user-management UI yet.
 - No Alembic migrations; schema changes rely on lightweight startup helpers.
@@ -526,16 +595,82 @@ Current security limitations:
 - Candidate application upload supports text-extractable PDFs only, not scanned-image resumes.
 - No file storage service is used; resumes are parsed and temporary files are removed.
 - No email notifications.
-- No candidate status update endpoint for HR yet.
+- No generic candidate status update endpoint beyond hiring workflow yet.
 - No analytics export or reporting module yet.
+- Attendance has no geolocation, biometric verification, or advanced reporting.
+- Leave workflow has approve/reject but no policy accrual engine.
+- Skill gap and HR Assistant are lightweight and fallback-first.
 
-## 21. Suggested Next Scope
+## 21. Pre-Day-3 Audit Status
+
+Completed audit document:
+
+- `docs/pre-day-3-technical-audit.md`
+
+Audit scores:
+
+| Area | Score |
+| --- | --- |
+| Architecture health | 84 / 100 |
+| Security health | 88 / 100 |
+| Maintainability | 80 / 100 |
+
+Audit result:
+
+- TalentForge is ready to begin Day 3.
+- No Must Fix Before Day 3 blockers remain after the stabilization pass.
+- Legacy Jobify-era interview, job-feed, and resume optimization code remains unmounted or dormant and should not be exposed unless intentionally productized.
+- Lightweight startup migrations are acceptable for the current scope, but Day 3 schema growth should be handled carefully.
+
+Files changed by the audit/stabilization pass:
+
+- `src/config.py`
+- `src/api/dependencies.py`
+- `src/api/routes/employees.py`
+- `tests/test_api.py`
+- `docs/pre-day-3-technical-audit.md`
+
+Recommended future cleanup candidates:
+
+- Empty stubs: `agents/skill_matcher.py`, `tasks/match_task.py`
+- Dormant interview route and agents/tasks
+- Legacy job-feed/search modules
+- Old Jobify migration docs and screenshots
+
+## 22. Day 3 Implementation Status
+
+Priority decision:
+
+- Candidate to Employee conversion and Employee Portal were implemented first.
+- Attendance and Leave were prioritized over advanced AI depth.
+- Skill Gap Analysis and HR Assistant were implemented as lightweight, fallback-safe MVP features.
+
+Completed Day 3 workflow:
+
+1. Candidate applies to a job.
+2. AI analysis and ranking remain available.
+3. HR hires the candidate from the applications workflow.
+4. Employee profile is created.
+5. Candidate user's role changes to `employee`.
+6. Employee logs in again with the same credentials.
+7. Employee dashboard is available.
+8. Employee can check in and check out.
+9. Employee can submit leave requests.
+10. HR/manager can approve or reject leave requests.
+11. Employee can run skill gap analysis.
+12. Employee can ask HR Assistant questions.
+
+Completion report:
+
+- `docs/day3-completion-report.md`
+
+## 23. Suggested Next Scope
 
 High priority:
 
 - Add admin-only user role management endpoint and UI.
 - Add HR application status update workflow.
-- Add employee CRUD and onboarding workflow.
+- Add employee CRUD and onboarding workflow refinements.
 - Add better frontend resume upload/profile management.
 - Add production-grade audit logging for privileged actions.
 
@@ -550,15 +685,15 @@ Medium priority:
 
 Future HRMS modules:
 
-- Employee onboarding
-- Attendance
-- Leave management
+- Employee onboarding refinement
+- Attendance analytics
+- Leave policy/accrual management
 - Payroll
 - Performance reviews
 - Department/team management
 - HR analytics dashboards
 
-## 22. Acceptance Criteria For Current Scope
+## 24. Acceptance Criteria For Current Scope
 
 The current scope is considered complete when:
 
@@ -572,5 +707,11 @@ The current scope is considered complete when:
 - HR can create jobs and view submitted applications.
 - AI analysis is persisted for applications.
 - Ranking endpoint returns ordered applicants for a job.
+- Employee profile APIs reject managers and allow HR/admin.
+- Stale JWT role claims are rejected after role changes.
+- HR can hire a candidate and create an employee record.
+- Hired employee can log in and access employee dashboard.
+- Employee can check in, check out, and view attendance history.
+- Employee can submit leave and HR/manager can approve or reject it.
+- Employee can run skill gap analysis and use HR Assistant.
 - Test suite passes with `pytest tests/ -v`.
-
