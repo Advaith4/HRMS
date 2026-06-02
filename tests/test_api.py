@@ -14,7 +14,7 @@ from src.main import app
 import src.api.routes.applications as applications_route
 import src.services.recruitment_ai as recruitment_ai
 from src.database.connection import create_db_and_tables, engine
-from src.models import User
+from src.models import Employee, User
 
 create_db_and_tables()
 client = TestClient(app)
@@ -91,6 +91,61 @@ def test_hr_can_manage_jobs_candidate_can_only_read():
 
     deleted = client.delete(f"/api/jobs/{job_id}", headers=hr_headers)
     assert deleted.status_code == 200
+
+
+def test_stale_jwt_role_claim_is_rejected():
+    username = f"stale_role_{uuid.uuid4().hex[:8]}"
+    stale_token = _register(username, "candidate")
+
+    with Session(engine) as session:
+        user = session.exec(select(User).where(User.username == username)).one()
+        user.role = "hr"
+        session.add(user)
+        session.commit()
+
+    stale_response = client.get("/api/candidates", headers={"Authorization": f"Bearer {stale_token}"})
+    assert stale_response.status_code == 401
+
+    fresh_login = client.post("/api/auth/login", json={"username": username, "password": "Pass123!"})
+    assert fresh_login.status_code == 200
+    fresh_response = client.get(
+        "/api/candidates",
+        headers={"Authorization": f"Bearer {fresh_login.json()['access_token']}"},
+    )
+    assert fresh_response.status_code == 200
+
+
+def test_employee_profiles_are_hr_or_admin_only():
+    hr_token = _register(f"hr_{uuid.uuid4().hex[:8]}", "hr")
+    manager_token = _register(f"manager_{uuid.uuid4().hex[:8]}", "manager")
+    employee_username = f"employee_{uuid.uuid4().hex[:8]}"
+
+    with Session(engine) as session:
+        employee_user = User(
+            username=employee_username,
+            hashed_password="not-used",
+            role="employee",
+        )
+        session.add(employee_user)
+        session.commit()
+        session.refresh(employee_user)
+        session.add(
+            Employee(
+                user_id=employee_user.id,
+                employee_code=f"EMP-{uuid.uuid4().hex[:6]}",
+                department="People",
+                designation="Coordinator",
+                salary=50000,
+            )
+        )
+        session.commit()
+
+    manager_response = client.get("/api/employees", headers={"Authorization": f"Bearer {manager_token}"})
+    assert manager_response.status_code == 403
+
+    hr_response = client.get("/api/employees", headers={"Authorization": f"Bearer {hr_token}"})
+    assert hr_response.status_code == 200
+    assert any(employee["username"] == employee_username for employee in hr_response.json())
 
 
 def test_candidate_application_flow_and_rbac(monkeypatch):

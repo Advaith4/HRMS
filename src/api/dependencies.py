@@ -8,7 +8,7 @@ from sqlmodel import Session, select
 
 from src.database.connection import get_session
 from src.core.security import decode_token
-from src.models import User
+from src.models import USER_ROLES, User
 
 _bearer = HTTPBearer(auto_error=False)
 
@@ -30,7 +30,16 @@ def _resolve_current_user(
         return None
 
     stmt = select(User).where(User.id == user_id)
-    return session.exec(stmt).first()
+    user = session.exec(stmt).first()
+    if user is None:
+        return None
+
+    token_role = str(payload.get("role") or "").lower()
+    user_role = (user.role or "candidate").lower()
+    if token_role not in USER_ROLES or user_role not in USER_ROLES or token_role != user_role:
+        return None
+
+    return user
 
 
 def get_current_user(

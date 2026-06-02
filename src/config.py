@@ -1,4 +1,4 @@
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
@@ -43,5 +43,21 @@ class Settings(BaseSettings):
         if normalized in {"0", "false", "no", "off", "release", "prod", "production"}:
             return False
         return False
+
+    @model_validator(mode="after")
+    def validate_production_secret(self):
+        weak_values = {
+            "",
+            "change-me-in-production-min-32-chars!!",
+            "replace-with-a-random-32-plus-character-secret",
+        }
+        database_url = (self.DATABASE_URL or "").strip().lower()
+        sqlite_mode = database_url.startswith("sqlite")
+        if not self.DEBUG and not sqlite_mode:
+            if self.SECRET_KEY in weak_values or len(self.SECRET_KEY.strip()) < 32:
+                raise RuntimeError(
+                    "SECRET_KEY must be set to a random 32+ character value for non-test deployments."
+                )
+        return self
 
 settings = Settings()

@@ -13,7 +13,7 @@ router = APIRouter(prefix="/api/employees", tags=["employees"])
 @router.get("")
 def list_employees(
     session: Session = Depends(get_session),
-    current_user: User = Depends(require_roles("hr", "manager")),
+    current_user: User = Depends(require_roles("hr")),
 ):
     employees = session.exec(select(Employee).order_by(Employee.id.desc())).all()
     return [_employee_payload(session, employee) for employee in employees]
@@ -23,7 +23,7 @@ def list_employees(
 def get_employee(
     employee_id: int,
     session: Session = Depends(get_session),
-    current_user: User = Depends(require_roles("hr", "manager")),
+    current_user: User = Depends(require_roles("hr")),
 ):
     employee = session.get(Employee, employee_id)
     if not employee:
