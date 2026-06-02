@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TalentForge AI</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main id="auth-view" class="auth-layout">
+        <section class="auth-panel">
+            <div class="brand-mark">
+                <span class="brand-icon"><i class="fa-solid fa-briefcase"></i></span>
+                <span>TalentForge AI</span>
+            </div>
+            <h1 id="auth-title">Sign in</h1>
+            <p id="auth-subtitle">Access your hiring workspace.</p>
+
+            <form id="auth-form" class="form-stack">
+                <label>
+                    Username
+                    <input id="auth-username" type="text" autocomplete="username" required minlength="3" maxlength="50">
+                </label>
+                <label>
+                    Password
+                    <input id="auth-password" type="password" autocomplete="current-password" required minlength="1" maxlength="128">
+                </label>
+                <label id="role-field" class="hidden">
+                    Role
+                    <select id="auth-role">
+                        <option value="candidate">Candidate</option>
+                        <option value="employee">Employee</option>
+                        <option value="hr">HR</option>
+                        <option value="manager">Manager</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </label>
+                <button id="auth-submit" class="primary-btn" type="submit">
+                    <i class="fa-solid fa-right-to-bracket"></i>
+                    <span>Login</span>
+                </button>
+            </form>
+
+            <button id="toggle-auth-mode" class="link-btn" type="button">Create an account</button>
+            <p id="auth-message" class="message"></p>
+        </section>
+    </main>
+
+    <main id="app-view" class="app-layout hidden">
+        <aside class="sidebar">
+            <div class="brand-mark compact">
+                <span class="brand-icon"><i class="fa-solid fa-briefcase"></i></span>
+                <span>TalentForge AI</span>
+            </div>
+            <div class="user-chip">
+                <span id="current-username">User</span>
+                <strong id="current-role">candidate</strong>
+            </div>
+            <nav id="nav" class="nav-stack"></nav>
+            <button id="logout-btn" class="ghost-btn" type="button">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                <span>Logout</span>
+            </button>
+        </aside>
+
+        <section class="content-shell">
+            <header class="topbar">
+                <div>
+                    <p id="section-eyebrow">Dashboard</p>
+                    <h2 id="section-title">Dashboard</h2>
+                </div>
+                <button id="refresh-btn" class="ghost-btn" type="button">
+                    <i class="fa-solid fa-rotate-right"></i>
+                    <span>Refresh</span>
+                </button>
+            </header>
+
+            <section id="candidate-dashboard" class="view-section hidden">
+                <div class="metric-grid">
+                    <article class="metric-card">
+                        <span>Total Jobs Available</span>
+                        <strong id="candidate-total-jobs">0</strong>
+                    </article>
+                    <article class="metric-card">
+                        <span>Applications Submitted</span>
+                        <strong id="candidate-total-applications">0</strong>
+                    </article>
+                </div>
+            </section>
+
+            <section id="candidate-jobs" class="view-section hidden">
+                <div id="candidate-job-list" class="list-grid"></div>
+            </section>
+
+            <section id="candidate-job-details" class="view-section hidden">
+                <article class="detail-panel">
+                    <button id="back-to-jobs" class="link-btn" type="button">
+                        <i class="fa-solid fa-arrow-left"></i>
+                        Back to jobs
+                    </button>
+                    <h3 id="job-detail-title"></h3>
+                    <p id="job-detail-meta" class="muted"></p>
+                    <p id="job-detail-description"></p>
+                    <dl class="detail-list">
+                        <dt>Required Skills</dt>
+                        <dd id="job-detail-skills"></dd>
+                        <dt>Experience</dt>
+                        <dd id="job-detail-experience"></dd>
+                        <dt>Salary Range</dt>
+                        <dd id="job-detail-salary"></dd>
+                    </dl>
+                    <form id="apply-form" class="apply-box">
+                        <label>
+                            Resume PDF
+                            <input id="apply-resume" type="file" accept="application/pdf" required>
+                        </label>
+                        <button class="primary-btn" type="submit">
+                            <i class="fa-solid fa-upload"></i>
+                            <span>Apply To Job</span>
+                        </button>
+                    </form>
+                </article>
+            </section>
+
+            <section id="candidate-applications" class="view-section hidden">
+                <div id="my-applications-list" class="table-wrap"></div>
+            </section>
+
+            <section id="management-dashboard" class="view-section hidden">
+                <div class="metric-grid">
+                    <article class="metric-card">
+                        <span>Total Jobs</span>
+                        <strong id="mgmt-total-jobs">0</strong>
+                    </article>
+                    <article class="metric-card">
+                        <span>Total Candidates</span>
+                        <strong id="mgmt-total-candidates">0</strong>
+                    </article>
+                    <article class="metric-card">
+                        <span>Total Applications</span>
+                        <strong id="mgmt-total-applications">0</strong>
+                    </article>
+                    <article id="admin-employee-card" class="metric-card hidden">
+                        <span>Total Employees</span>
+                        <strong id="admin-total-employees">0</strong>
+                    </article>
+                </div>
+            </section>
+
+            <section id="management-jobs" class="view-section hidden">
+                <form id="job-form" class="editor-panel">
+                    <input id="job-id" type="hidden">
+                    <div class="form-grid">
+                        <label>
+                            Job Title
+                            <input id="job-title" type="text" required maxlength="200">
+                        </label>
+                        <label>
+                            Department
+                            <input id="job-department" type="text" maxlength="120">
+                        </label>
+                        <label>
+                            Required Skills
+                            <input id="job-skills" type="text" maxlength="2000">
+                        </label>
+                        <label>
+                            Experience Required
+                            <input id="job-experience" type="text" maxlength="120">
+                        </label>
+                        <label>
+                            Salary Range
+                            <input id="job-salary" type="text" maxlength="120">
+                        </label>
+                    </div>
+                    <label>
+                        Description
+                        <textarea id="job-description" rows="5" required maxlength="20000"></textarea>
+                    </label>
+                    <div class="button-row">
+                        <button class="primary-btn" type="submit">
+                            <i class="fa-solid fa-floppy-disk"></i>
+                            <span id="job-form-action">Create Job</span>
+                        </button>
+                        <button id="clear-job-form" class="ghost-btn" type="button">Clear</button>
+                    </div>
+                </form>
+                <div id="management-job-list" class="list-grid"></div>
+            </section>
+
+            <section id="management-candidates" class="view-section hidden">
+                <div id="candidate-list" class="table-wrap"></div>
+            </section>
+
+            <section id="management-applications" class="view-section hidden">
+                <div id="applications-list" class="table-wrap"></div>
+            </section>
+
+            <p id="app-message" class="message"></p>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+services:
+  - type: web
+    name: jobify
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+
+    healthCheckPath: /api/health
+
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+
+      - key: DEBUG
+        value: false
+
+      - key: AUTO_CREATE_DB_SCHEMA
+        value: true
+
+      - key: DATABASE_URL
+        fromDatabase:
+          name: jobify-db
+          property: connectionString
+
+      - key: GROQ_API_KEY
+        sync: false
+
+      - key: JOOBLE_API_KEY
+        sync: false
+
+      - key: JOOBLE_API_BASE_URL
+        value: https://in.jooble.org/api/{api_key}
+
+      - key: RAPIDAPI_KEY
+        sync: false
+
+      - key: MODEL_NAME
+        value: llama-3.1-8b-instant
+
+databases:
+  - name: jobify-db
+    type: postgres
+    plan: starter
