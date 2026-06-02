@@ -259,3 +259,151 @@ def test_application_ai_analysis_and_ranking(monkeypatch):
     assert rankings.status_code == 200
     assert rankings.json()["rankings"][0]["rank"] == 1
     assert rankings.json()["rankings"][0]["analysis"]["fit_score"] == 82
+
+
+def test_day3_candidate_hire_to_employee_portal_flow(monkeypatch):
+    monkeypatch.setattr(
+        applications_route,
+        "extract_text_from_pdf",
+        lambda path: (
+            "Summary\nBackend developer.\nSkills\nPython, FastAPI, SQL, Docker\n"
+            "Projects\nBuilt employee lifecycle workflow APIs."
+        ),
+    )
+    monkeypatch.setattr(
+        recruitment_ai,
+        "_run_crewai_analysis",
+        lambda resume_text, job: {
+            "fit_score": 90,
+            "recommendation": "Strongly Recommended",
+            "summary": "Excellent fit.",
+            "strengths": ["Strong Python and FastAPI experience."],
+            "weaknesses": [],
+            "missing_skills": [],
+            "observations": ["Ready for hiring workflow."],
+            "interview_prep": {
+                "technical_questions": ["Explain your FastAPI architecture."],
+                "behavioral_questions": ["Describe ownership."],
+                "probing_areas": ["API depth"],
+            },
+        },
+    )
+
+    candidate_username = f"candidate_{uuid.uuid4().hex[:8]}"
+    candidate_token = _register(candidate_username, "candidate")
+    hr_token = _register(f"hr_{uuid.uuid4().hex[:8]}", "hr")
+    candidate_headers = {"Authorization": f"Bearer {candidate_token}"}
+    hr_headers = {"Authorization": f"Bearer {hr_token}"}
+
+    created = client.post(
+        "/api/jobs",
+        headers=hr_headers,
+        json={
+            "title": "Backend Developer",
+            "description": "Build TalentForge HRMS APIs.",
+            "required_skills": "Python, FastAPI, SQL",
+            "department": "Engineering",
+        },
+    )
+    assert created.status_code == 201, created.text
+    job_id = created.json()["id"]
+
+    applied = client.post(
+        "/api/applications/apply",
+        headers=candidate_headers,
+        data={"job_id": str(job_id)},
+        files={"file": ("resume.pdf", b"%PDF-1.4 fake pdf", "application/pdf")},
+    )
+    assert applied.status_code == 201, applied.text
+    application_id = applied.json()["application"]["id"]
+
+    hired = client.post(
+        f"/api/applications/{application_id}/hire",
+        headers=hr_headers,
+        json={"department": "Engineering", "designation": "Backend Developer", "salary": 75000},
+    )
+    assert hired.status_code == 201, hired.text
+    assert hired.json()["application"]["status"] == "Hired"
+    assert hired.json()["employee"]["designation"] == "Backend Developer"
+    assert "Python" in hired.json()["employee"]["skills"]
+
+    stale_candidate = client.get("/api/applications/me", headers=candidate_headers)
+    assert stale_candidate.status_code == 401
+
+    login = client.post("/api/auth/login", json={"username": candidate_username, "password": "Pass123!"})
+    assert login.status_code == 200
+    assert login.json()["role"] == "employee"
+    employee_headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+    denied_management = client.get("/api/applications", headers=employee_headers)
+    assert denied_management.status_code == 403
+
+    dashboard = client.get("/api/employees/dashboard", headers=employee_headers)
+    assert dashboard.status_code == 200
+    assert dashboard.json()["employee"]["employee_code"]
+
+    check_in = client.post("/api/employees/attendance/check-in", headers=employee_headers)
+    assert check_in.status_code == 201
+    assert check_in.json()["attendance"]["status"] == "Checked In"
+
+    check_out = client.post("/api/employees/attendance/check-out", headers=employee_headers)
+    assert check_out.status_code == 200
+    assert check_out.json()["attendance"]["status"] == "Completed"
+
+    leave = client.post(
+        "/api/employees/leave",
+        headers=employee_headers,
+        json={
+            "leave_type": "Annual",
+            "start_date": "2026-06-10",
+            "end_date": "2026-06-11",
+            "reason": "Family event",
+        },
+    )
+    assert leave.status_code == 201, leave.text
+    leave_id = leave.json()["leave"]["id"]
+
+    leave_list = client.get("/api/employees/leave", headers=hr_headers)
+    assert leave_list.status_code == 200
+    assert any(item["id"] == leave_id for item in leave_list.json())
+
+    decision = client.post(
+        f"/api/employees/leave/{leave_id}/decision",
+        headers=hr_headers,
+        json={"status": "Approved", "manager_note": "Enjoy your leave."},
+    )
+    assert decision.status_code == 200
+    assert decision.json()["leave"]["status"] == "Approved"
+
+    skill_gap = client.post(
+        "/api/employees/skill-gap/me/analyze",
+        headers=employee_headers,
+        json={"role_expectations": "Python FastAPI SQL Kubernetes"},
+    )
+    assert skill_gap.status_code == 200
+    assert "Kubernetes".lower() in [item.lower() for item in skill_gap.json()["analysis"]["missing_skills"]]
+
+    assistant = client.post(
+        "/api/employees/assistant",
+        headers=employee_headers,
+        json={"question": "How do I apply for leave?"},
+    )
+    assert assistant.status_code == 200
+    assert "leave" in assistant.json()["answer"].lower()
+
+
+def test_candidates_and_managers_cannot_use_employee_self_service():
+    candidate_token = _register(f"candidate_{uuid.uuid4().hex[:8]}", "candidate")
+    manager_token = _register(f"manager_{uuid.uuid4().hex[:8]}", "manager")
+
+    candidate_response = client.get(
+        "/api/employees/dashboard",
+        headers={"Authorization": f"Bearer {candidate_token}"},
+    )
+    assert candidate_response.status_code == 403
+
+    manager_response = client.post(
+        "/api/employees/attendance/check-in",
+        headers={"Authorization": f"Bearer {manager_token}"},
+    )
+    assert manager_response.status_code == 403

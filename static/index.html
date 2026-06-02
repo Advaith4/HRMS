@@ -135,6 +135,10 @@
                         <span>Total Employees</span>
                         <strong id="admin-total-employees">0</strong>
                     </article>
+                    <article class="metric-card">
+                        <span>Pending Leave</span>
+                        <strong id="mgmt-pending-leave">0</strong>
+                    </article>
                 </div>
             </section>
 
@@ -195,6 +199,116 @@
                     <div id="rankings-list" class="ranking-list"></div>
                 </div>
                 <div id="applications-list" class="table-wrap"></div>
+            </section>
+
+            <section id="management-employees" class="view-section hidden">
+                <div id="employee-list" class="table-wrap"></div>
+            </section>
+
+            <section id="management-leave" class="view-section hidden">
+                <div id="management-leave-list" class="table-wrap"></div>
+            </section>
+
+            <section id="employee-dashboard" class="view-section hidden">
+                <div class="metric-grid">
+                    <article class="metric-card">
+                        <span>Attendance Today</span>
+                        <strong id="employee-attendance-status">-</strong>
+                    </article>
+                    <article class="metric-card">
+                        <span>Pending Leave</span>
+                        <strong id="employee-pending-leave">0</strong>
+                    </article>
+                    <article class="metric-card">
+                        <span>Skill Gaps</span>
+                        <strong id="employee-skill-gap-count">0</strong>
+                    </article>
+                </div>
+                <article class="detail-panel stack-panel">
+                    <h3 id="employee-profile-name">Employee Profile</h3>
+                    <dl class="detail-list">
+                        <dt>Employee Code</dt>
+                        <dd id="employee-profile-code">-</dd>
+                        <dt>Department</dt>
+                        <dd id="employee-profile-department">-</dd>
+                        <dt>Designation</dt>
+                        <dd id="employee-profile-designation">-</dd>
+                        <dt>Skills</dt>
+                        <dd id="employee-profile-skills">-</dd>
+                    </dl>
+                </article>
+            </section>
+
+            <section id="employee-attendance" class="view-section hidden">
+                <div class="editor-panel">
+                    <div class="button-row">
+                        <button id="check-in-btn" class="primary-btn" type="button">
+                            <i class="fa-solid fa-right-to-bracket"></i>
+                            <span>Check In</span>
+                        </button>
+                        <button id="check-out-btn" class="ghost-btn" type="button">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                            <span>Check Out</span>
+                        </button>
+                    </div>
+                </div>
+                <div id="attendance-history" class="table-wrap"></div>
+            </section>
+
+            <section id="employee-leave" class="view-section hidden">
+                <form id="leave-form" class="editor-panel">
+                    <div class="form-grid">
+                        <label>
+                            Leave Type
+                            <input id="leave-type" type="text" maxlength="60" value="General">
+                        </label>
+                        <label>
+                            Start Date
+                            <input id="leave-start" type="date" required>
+                        </label>
+                        <label>
+                            End Date
+                            <input id="leave-end" type="date" required>
+                        </label>
+                    </div>
+                    <label>
+                        Reason
+                        <textarea id="leave-reason" rows="3" maxlength="2000"></textarea>
+                    </label>
+                    <button class="primary-btn" type="submit">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <span>Submit Leave</span>
+                    </button>
+                </form>
+                <div id="my-leave-list" class="table-wrap"></div>
+            </section>
+
+            <section id="employee-skills" class="view-section hidden">
+                <form id="skill-gap-form" class="editor-panel">
+                    <label>
+                        Role Expectations
+                        <textarea id="skill-role-expectations" rows="4" maxlength="2000"></textarea>
+                    </label>
+                    <button class="primary-btn" type="submit">
+                        <i class="fa-solid fa-chart-line"></i>
+                        <span>Analyze Skill Gap</span>
+                    </button>
+                </form>
+                <div id="skill-gap-result"></div>
+            </section>
+
+            <section id="employee-assistant" class="view-section hidden">
+                <form id="assistant-form" class="editor-panel">
+                    <label>
+                        Ask HR Assistant
+                        <textarea id="assistant-question" rows="4" required maxlength="1000"></textarea>
+                    </label>
+                    <button class="primary-btn" type="submit">
+                        <i class="fa-solid fa-comments"></i>
+                        <span>Ask</span>
+                    </button>
+                </form>
+                <article id="assistant-answer" class="detail-panel hidden"></article>
             </section>
 
             <section id="analysis-modal" class="modal-layer hidden">

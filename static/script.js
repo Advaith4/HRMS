@@ -9,6 +9,10 @@ const state = {
     selectedJob: null,
     rankings: [],
     currentView: "",
+    employeeDashboard: null,
+    attendance: [],
+    leaveRequests: [],
+    skillGap: null,
 };
 
 const authView = document.getElementById("auth-view");
@@ -25,14 +29,19 @@ const sectionTitle = document.getElementById("section-title");
 const sectionEyebrow = document.getElementById("section-eyebrow");
 
 const candidateViews = ["candidate-dashboard", "candidate-jobs", "candidate-job-details", "candidate-applications"];
-const managementViews = ["management-dashboard", "management-jobs", "management-candidates", "management-applications"];
-const allViews = [...candidateViews, ...managementViews];
+const managementViews = ["management-dashboard", "management-jobs", "management-candidates", "management-applications", "management-employees", "management-leave"];
+const employeeViews = ["employee-dashboard", "employee-attendance", "employee-leave", "employee-skills", "employee-assistant"];
+const allViews = [...candidateViews, ...managementViews, ...employeeViews];
 
 function isManagementRole(role) {
     return ["hr", "manager", "admin"].includes(role);
 }
 
 function isJobManager(role) {
+    return ["hr", "admin"].includes(role);
+}
+
+function isEmployeeManager(role) {
     return ["hr", "admin"].includes(role);
 }
 
@@ -140,6 +149,8 @@ document.getElementById("refresh-btn").addEventListener("click", () => loadCurre
 document.getElementById("back-to-jobs").addEventListener("click", () => showView("candidate-jobs"));
 document.getElementById("close-analysis-modal").addEventListener("click", closeAnalysisModal);
 document.getElementById("load-rankings-btn").addEventListener("click", loadRankings);
+document.getElementById("check-in-btn").addEventListener("click", checkIn);
+document.getElementById("check-out-btn").addEventListener("click", checkOut);
 
 function showAuth() {
     authView.classList.remove("hidden");
@@ -162,11 +173,13 @@ async function bootApp() {
         await showView("candidate-dashboard");
     } else if (isManagementRole(state.user.role)) {
         await showView("management-dashboard");
+    } else if (state.user.role === "employee") {
+        await showView("employee-dashboard");
     } else {
-        sectionTitle.textContent = "Employee Dashboard";
+        sectionTitle.textContent = "Unsupported Role";
         sectionEyebrow.textContent = "Dashboard";
         allViews.forEach(id => document.getElementById(id).classList.add("hidden"));
-        setMessage(appMessage, "Employee functionality is reserved for a future phase.", "success");
+        setMessage(appMessage, "No workspace is configured for this role.", "error");
     }
 }
 
@@ -185,6 +198,16 @@ function buildNav() {
         if (isJobManager(role)) items.push(["management-jobs", "Jobs Management", "fa-pen-to-square"]);
         items.push(["management-candidates", "Candidates List", "fa-users"]);
         items.push(["management-applications", "Applications List", "fa-folder-open"]);
+        if (isEmployeeManager(role)) items.push(["management-employees", "Employees", "fa-id-badge"]);
+        items.push(["management-leave", "Leave Requests", "fa-calendar-check"]);
+    }
+
+    if (role === "employee") {
+        items.push(["employee-dashboard", "Dashboard", "fa-gauge"]);
+        items.push(["employee-attendance", "Attendance", "fa-clock"]);
+        items.push(["employee-leave", "Leave", "fa-calendar-days"]);
+        items.push(["employee-skills", "Skill Development", "fa-chart-line"]);
+        items.push(["employee-assistant", "HR Assistant", "fa-comments"]);
     }
 
     nav.innerHTML = items.map(([view, label, icon]) => `
@@ -216,6 +239,13 @@ async function showView(viewId) {
         "management-jobs": ["Jobs", "Jobs Management"],
         "management-candidates": ["Candidates", "Candidates List"],
         "management-applications": ["Applications", "Applications List"],
+        "management-employees": ["Employees", "Employee Directory"],
+        "management-leave": ["Leave", "Leave Requests"],
+        "employee-dashboard": ["Dashboard", "Employee Dashboard"],
+        "employee-attendance": ["Attendance", "Attendance"],
+        "employee-leave": ["Leave", "Leave Requests"],
+        "employee-skills": ["Skills", "Skill Development"],
+        "employee-assistant": ["Assistant", "HR Assistant"],
     };
     const [eyebrow, title] = labels[viewId] || ["Dashboard", "Dashboard"];
     sectionEyebrow.textContent = eyebrow;
@@ -233,6 +263,12 @@ async function loadCurrentView() {
         if (state.currentView === "management-jobs") await loadManagementJobs();
         if (state.currentView === "management-candidates") await loadCandidates();
         if (state.currentView === "management-applications") await loadApplications();
+        if (state.currentView === "management-employees") await loadEmployees();
+        if (state.currentView === "management-leave") await loadManagementLeave();
+        if (state.currentView === "employee-dashboard") await loadEmployeeDashboard();
+        if (state.currentView === "employee-attendance") await loadAttendance();
+        if (state.currentView === "employee-leave") await loadMyLeave();
+        if (state.currentView === "employee-skills") await loadSkillGap();
     } catch (error) {
         setMessage(appMessage, error.message, "error");
     }
@@ -289,21 +325,75 @@ document.getElementById("apply-form").addEventListener("submit", async event => 
     }
 });
 
+document.getElementById("leave-form").addEventListener("submit", async event => {
+    event.preventDefault();
+    const payload = {
+        leave_type: document.getElementById("leave-type").value.trim() || "General",
+        start_date: document.getElementById("leave-start").value,
+        end_date: document.getElementById("leave-end").value,
+        reason: document.getElementById("leave-reason").value.trim(),
+    };
+    try {
+        await api("/api/employees/leave", { method: "POST", body: JSON.stringify(payload) });
+        document.getElementById("leave-form").reset();
+        document.getElementById("leave-type").value = "General";
+        setMessage(appMessage, "Leave request submitted.", "success");
+        await loadMyLeave();
+    } catch (error) {
+        setMessage(appMessage, error.message, "error");
+    }
+});
+
+document.getElementById("skill-gap-form").addEventListener("submit", async event => {
+    event.preventDefault();
+    const payload = {
+        role_expectations: document.getElementById("skill-role-expectations").value.trim(),
+    };
+    try {
+        const data = await api("/api/employees/skill-gap/me/analyze", { method: "POST", body: JSON.stringify(payload) });
+        state.skillGap = data.analysis;
+        renderSkillGap(data.analysis);
+        setMessage(appMessage, "Skill gap analysis refreshed.", "success");
+    } catch (error) {
+        setMessage(appMessage, error.message, "error");
+    }
+});
+
+document.getElementById("assistant-form").addEventListener("submit", async event => {
+    event.preventDefault();
+    const payload = {
+        question: document.getElementById("assistant-question").value.trim(),
+    };
+    try {
+        const data = await api("/api/employees/assistant", { method: "POST", body: JSON.stringify(payload) });
+        const answer = document.getElementById("assistant-answer");
+        answer.classList.remove("hidden");
+        answer.innerHTML = `<h3>Answer</h3><p>${sanitize(data.answer)}</p><p class="muted">Source: ${sanitize(data.source || "fallback")}</p>`;
+    } catch (error) {
+        setMessage(appMessage, error.message, "error");
+    }
+});
+
 async function loadMyApplications() {
     state.applications = await api("/api/applications/me");
     document.getElementById("my-applications-list").innerHTML = renderApplicationsTable(state.applications, false);
 }
 
 async function loadManagementDashboard() {
-    const calls = [api("/api/jobs"), api("/api/candidates"), api("/api/applications")];
-    if (state.user.role === "admin") calls.push(api("/api/employees"));
-    const [jobs, candidates, applications, employees = []] = await Promise.all(calls);
+    const [jobs, candidates, applications, leaveRequests] = await Promise.all([
+        api("/api/jobs"),
+        api("/api/candidates"),
+        api("/api/applications"),
+        api("/api/employees/leave"),
+    ]);
+    const employees = isEmployeeManager(state.user.role) ? await api("/api/employees") : [];
     document.getElementById("mgmt-total-jobs").textContent = jobs.length;
     document.getElementById("mgmt-total-candidates").textContent = candidates.length;
     document.getElementById("mgmt-total-applications").textContent = applications.length;
     const employeeCard = document.getElementById("admin-employee-card");
-    employeeCard.classList.toggle("hidden", state.user.role !== "admin");
+    employeeCard.classList.toggle("hidden", !isEmployeeManager(state.user.role));
     document.getElementById("admin-total-employees").textContent = employees.length;
+    document.getElementById("mgmt-pending-leave").textContent = leaveRequests.filter(item => item.status === "Pending").length;
 }
 
 async function loadManagementJobs() {
@@ -418,6 +508,19 @@ async function loadApplications() {
     bindApplicationActions();
 }
 
+async function loadEmployees() {
+    state.employees = await api("/api/employees");
+    document.getElementById("employee-list").innerHTML = renderEmployeesTable(state.employees);
+}
+
+async function loadManagementLeave() {
+    state.leaveRequests = await api("/api/employees/leave");
+    document.getElementById("management-leave-list").innerHTML = renderLeaveTable(state.leaveRequests, true);
+    document.querySelectorAll("[data-leave-decision]").forEach(button => {
+        button.addEventListener("click", () => decideLeave(Number(button.dataset.leaveDecision), button.dataset.status));
+    });
+}
+
 function renderCandidatesTable(candidates) {
     if (!candidates.length) return `<p class="empty-state">No candidates registered yet.</p>`;
     return `
@@ -486,6 +589,9 @@ function renderApplicationsTable(applications, includeCandidate) {
                                 <div class="button-row">
                                     <button class="ghost-btn" type="button" data-view-analysis="${application.id}">View AI</button>
                                     <button class="ghost-btn" type="button" data-reanalyze="${application.id}">Re-analyze</button>
+                                    ${isJobManager(state.user.role) && application.status !== "Hired"
+                                        ? `<button class="primary-btn" type="button" data-hire="${application.id}">Hire</button>`
+                                        : ""}
                                 </div>
                             </td>
                         ` : ""}
@@ -516,6 +622,9 @@ function bindApplicationActions() {
     document.querySelectorAll("[data-reanalyze]").forEach(button => {
         button.addEventListener("click", () => reanalyzeApplication(Number(button.dataset.reanalyze)));
     });
+    document.querySelectorAll("[data-hire]").forEach(button => {
+        button.addEventListener("click", () => hireApplication(Number(button.dataset.hire)));
+    });
 }
 
 async function reanalyzeApplication(applicationId) {
@@ -526,6 +635,96 @@ async function reanalyzeApplication(applicationId) {
         document.getElementById("applications-list").innerHTML = renderApplicationsTable(state.applications, true);
         bindApplicationActions();
         setMessage(appMessage, "AI analysis refreshed.", "success");
+    } catch (error) {
+        setMessage(appMessage, error.message, "error");
+    }
+}
+
+async function hireApplication(applicationId) {
+    const application = state.applications.find(item => item.id === applicationId);
+    const job = state.jobs.find(item => item.id === application?.job_id);
+    const payload = {
+        department: job?.department || application?.department || "",
+        designation: application?.job_title || "",
+    };
+    try {
+        const data = await api(`/api/applications/${applicationId}/hire`, { method: "POST", body: JSON.stringify(payload) });
+        const index = state.applications.findIndex(item => item.id === applicationId);
+        if (index >= 0) state.applications[index] = data.application;
+        document.getElementById("applications-list").innerHTML = renderApplicationsTable(state.applications, true);
+        bindApplicationActions();
+        setMessage(appMessage, "Candidate hired and employee profile created. Ask the employee to log in again.", "success");
+    } catch (error) {
+        setMessage(appMessage, error.message, "error");
+    }
+}
+
+function renderEmployeesTable(employees) {
+    if (!employees.length) return `<p class="empty-state">No employees have been created yet.</p>`;
+    return `
+        <table>
+            <thead><tr><th>Name</th><th>Code</th><th>Department</th><th>Designation</th><th>Joining</th><th>Skills</th></tr></thead>
+            <tbody>
+                ${employees.map(employee => `
+                    <tr>
+                        <td>${sanitize(employee.username)}</td>
+                        <td>${sanitize(employee.employee_code)}</td>
+                        <td>${sanitize(employee.department || "-")}</td>
+                        <td>${sanitize(employee.designation || "-")}</td>
+                        <td>${formatDate(employee.joining_date)}</td>
+                        <td>${sanitize(employee.skills || "-")}</td>
+                    </tr>
+                `).join("")}
+            </tbody>
+        </table>
+    `;
+}
+
+function renderLeaveTable(items, managementMode) {
+    if (!items.length) return `<p class="empty-state">No leave requests found.</p>`;
+    return `
+        <table>
+            <thead>
+                <tr>
+                    ${managementMode ? "<th>Employee</th>" : ""}
+                    <th>Type</th><th>Dates</th><th>Status</th><th>Reason</th><th>Note</th>
+                    ${managementMode ? "<th>Actions</th>" : ""}
+                </tr>
+            </thead>
+            <tbody>
+                ${items.map(item => `
+                    <tr>
+                        ${managementMode ? `<td>${sanitize(item.username)}<br><span class="muted">${sanitize(item.employee_code)}</span></td>` : ""}
+                        <td>${sanitize(item.leave_type)}</td>
+                        <td>${formatDate(item.start_date)} - ${formatDate(item.end_date)}</td>
+                        <td><span class="recommendation">${sanitize(item.status)}</span></td>
+                        <td>${sanitize(item.reason || "-")}</td>
+                        <td>${sanitize(item.manager_note || "-")}</td>
+                        ${managementMode ? `
+                            <td>
+                                ${item.status === "Pending" ? `
+                                    <div class="button-row">
+                                        <button class="primary-btn" type="button" data-leave-decision="${item.id}" data-status="Approved">Approve</button>
+                                        <button class="ghost-btn danger-btn" type="button" data-leave-decision="${item.id}" data-status="Rejected">Reject</button>
+                                    </div>
+                                ` : "-"}
+                            </td>
+                        ` : ""}
+                    </tr>
+                `).join("")}
+            </tbody>
+        </table>
+    `;
+}
+
+async function decideLeave(leaveId, status) {
+    try {
+        await api(`/api/employees/leave/${leaveId}/decision`, {
+            method: "POST",
+            body: JSON.stringify({ status, manager_note: status === "Approved" ? "Approved by management." : "Rejected by management." }),
+        });
+        setMessage(appMessage, `Leave ${status.toLowerCase()}.`, "success");
+        await loadManagementLeave();
     } catch (error) {
         setMessage(appMessage, error.message, "error");
     }
@@ -607,11 +806,107 @@ function renderRankings(rankings) {
     `).join("");
 }
 
+async function loadEmployeeDashboard() {
+    state.employeeDashboard = await api("/api/employees/dashboard");
+    const data = state.employeeDashboard;
+    const employee = data.employee || {};
+    document.getElementById("employee-attendance-status").textContent = data.attendance_status?.status || "Not In";
+    document.getElementById("employee-pending-leave").textContent = data.leave_summary?.pending || 0;
+    document.getElementById("employee-skill-gap-count").textContent = data.skill_gap?.missing_skills?.length || 0;
+    document.getElementById("employee-profile-name").textContent = employee.username || "Employee Profile";
+    document.getElementById("employee-profile-code").textContent = employee.employee_code || "-";
+    document.getElementById("employee-profile-department").textContent = employee.department || "-";
+    document.getElementById("employee-profile-designation").textContent = employee.designation || "-";
+    document.getElementById("employee-profile-skills").textContent = employee.skills || "-";
+}
+
+async function loadAttendance() {
+    state.attendance = await api("/api/employees/attendance");
+    document.getElementById("attendance-history").innerHTML = renderAttendanceTable(state.attendance);
+}
+
+async function checkIn() {
+    try {
+        await api("/api/employees/attendance/check-in", { method: "POST" });
+        setMessage(appMessage, "Checked in.", "success");
+        await loadAttendance();
+    } catch (error) {
+        setMessage(appMessage, error.message, "error");
+    }
+}
+
+async function checkOut() {
+    try {
+        await api("/api/employees/attendance/check-out", { method: "POST" });
+        setMessage(appMessage, "Checked out.", "success");
+        await loadAttendance();
+    } catch (error) {
+        setMessage(appMessage, error.message, "error");
+    }
+}
+
+function renderAttendanceTable(records) {
+    if (!records.length) return `<p class="empty-state">No attendance history yet.</p>`;
+    return `
+        <table>
+            <thead><tr><th>Date</th><th>Check In</th><th>Check Out</th><th>Status</th></tr></thead>
+            <tbody>
+                ${records.map(record => `
+                    <tr>
+                        <td>${formatDate(record.work_date)}</td>
+                        <td>${formatDateTime(record.check_in)}</td>
+                        <td>${formatDateTime(record.check_out)}</td>
+                        <td>${sanitize(record.status)}</td>
+                    </tr>
+                `).join("")}
+            </tbody>
+        </table>
+    `;
+}
+
+async function loadMyLeave() {
+    state.leaveRequests = await api("/api/employees/leave/me");
+    document.getElementById("my-leave-list").innerHTML = renderLeaveTable(state.leaveRequests, false);
+}
+
+async function loadSkillGap() {
+    const data = await api("/api/employees/skill-gap/me");
+    state.skillGap = data.analysis || null;
+    renderSkillGap(state.skillGap);
+}
+
+function renderSkillGap(analysis) {
+    const container = document.getElementById("skill-gap-result");
+    if (!analysis) {
+        container.innerHTML = `<p class="empty-state">No skill gap analysis yet.</p>`;
+        return;
+    }
+    container.innerHTML = `
+        <article class="detail-panel">
+            <h3>Skill Gap Summary</h3>
+            <p>${sanitize(analysis.summary || "")}</p>
+            <div class="analysis-grid">
+                ${analysisList("Missing Skills", analysis.missing_skills)}
+                ${analysisList("Growth Areas", analysis.growth_areas)}
+                ${analysisList("Learning Suggestions", analysis.learning_suggestions)}
+            </div>
+            <p class="muted">Source: ${sanitize(analysis.source || "fallback")}</p>
+        </article>
+    `;
+}
+
 function formatDate(value) {
     if (!value) return "-";
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return "-";
     return date.toLocaleDateString();
+}
+
+function formatDateTime(value) {
+    if (!value) return "-";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "-";
+    return date.toLocaleString();
 }
 
 bootApp();

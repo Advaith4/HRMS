@@ -3,7 +3,8 @@ from datetime import date, datetime
 from sqlmodel import Field, SQLModel
 
 USER_ROLES = {"candidate", "employee", "hr", "manager", "admin"}
-APPLICATION_STATUSES = {"Applied", "Under Review", "Shortlisted", "Rejected", "Hired"}
+APPLICATION_STATUSES = {"Applied", "Under Review", "Shortlisted", "Selected", "Rejected", "Hired"}
+LEAVE_STATUSES = {"Pending", "Approved", "Rejected"}
 
 
 class User(SQLModel, table=True):
@@ -138,7 +139,7 @@ class ApplicationAIAnalysis(SQLModel, table=True):
 
 
 class Employee(SQLModel, table=True):
-    """Employee profile shell for future HRMS modules."""
+    """Employee profile created after a candidate is hired."""
     __tablename__ = "employees"
 
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -149,3 +150,54 @@ class Employee(SQLModel, table=True):
     salary: Optional[float] = None
     joining_date: Optional[date] = None
     skills: str = Field(default="")
+
+
+class AttendanceRecord(SQLModel, table=True):
+    """Daily employee attendance check-in/check-out record."""
+    __tablename__ = "attendance_records"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    employee_id: int = Field(foreign_key="employees.id", index=True)
+    user_id: int = Field(foreign_key="users.id", index=True)
+    work_date: date = Field(default_factory=date.today, index=True)
+    check_in: datetime = Field(default_factory=datetime.utcnow)
+    check_out: Optional[datetime] = None
+    status: str = Field(default="Checked In", max_length=30, index=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class LeaveRequest(SQLModel, table=True):
+    """Employee leave request with HR/manager decision state."""
+    __tablename__ = "leave_requests"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    employee_id: int = Field(foreign_key="employees.id", index=True)
+    user_id: int = Field(foreign_key="users.id", index=True)
+    leave_type: str = Field(default="General", max_length=60)
+    start_date: date = Field(index=True)
+    end_date: date = Field(index=True)
+    reason: str = Field(default="")
+    status: str = Field(default="Pending", max_length=30, index=True)
+    manager_note: Optional[str] = None
+    decided_by: Optional[int] = Field(default=None, foreign_key="users.id")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class SkillGapAnalysis(SQLModel, table=True):
+    """Latest employee skill gap analysis against role expectations."""
+    __tablename__ = "skill_gap_analyses"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    employee_id: int = Field(foreign_key="employees.id", index=True)
+    user_id: int = Field(foreign_key="users.id", index=True)
+    role_expectations: str = Field(default="")
+    missing_skills: str = Field(default="[]")
+    growth_areas: str = Field(default="[]")
+    learning_suggestions: str = Field(default="[]")
+    summary: str = Field(default="")
+    source: str = Field(default="fallback", max_length=40)
+    error_message: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
