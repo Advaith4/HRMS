@@ -27,6 +27,11 @@ The app is served as a single FastAPI service:
 - Added scripts for schema initialization, privileged user bootstrap, and SQLite-to-Postgres migration.
 - Updated README and deployment documentation.
 - Added regression tests for auth, RBAC, jobs, candidate applications, AI analysis, rankings, and resume lab logic.
+- Completed the pre-Day-3 technical audit and stabilization report.
+- Hardened JWT role validation against the current database role.
+- Added production secret validation for non-test deployments.
+- Restricted employee profile API access to HR/admin because employee records may contain sensitive compensation data.
+- Added regression tests for stale JWT role claims and employee endpoint access.
 
 ## 3. Users And Roles
 
@@ -51,6 +56,9 @@ Implemented:
 - Login response includes `role` and `has_resume`.
 - Backend authorization through `require_roles(...)`.
 - Admin bypass behavior in `require_roles(...)`.
+- JWT role claims are checked against valid roles and must match the user's current database role.
+- Stale tokens are rejected after a user's role changes; users must log in again to receive a fresh role claim.
+- Non-SQLite, non-debug deployments reject weak or placeholder `SECRET_KEY` values.
 
 Important behavior:
 
@@ -131,6 +139,7 @@ Admin behavior:
 - Admin is allowed by backend role checks.
 - Frontend shows an employee metric card only for admin users.
 - Employee APIs are read-only shells at this stage.
+- Admin reaches employee APIs through the backend admin bypass.
 
 ## 7. Job Posting Scope
 
@@ -317,14 +326,15 @@ Implemented endpoints:
 
 | Endpoint | Role Scope | Description |
 | --- | --- | --- |
-| `GET /api/employees` | hr, manager, admin | List employee records |
-| `GET /api/employees/{employee_id}` | hr, manager, admin | View one employee record |
+| `GET /api/employees` | hr, admin | List employee records |
+| `GET /api/employees/{employee_id}` | hr, admin | View one employee record |
 
 Current status:
 
 - Employee functionality is a shell for future HRMS expansion.
 - No frontend CRUD workflow exists yet.
 - No employee onboarding, attendance, payroll, leave, or performance modules are implemented yet.
+- Managers cannot access employee profile records in the current backend design.
 
 ## 13. Frontend Scope
 
@@ -452,8 +462,10 @@ Covered by tests:
 - Candidate registration and login.
 - Login response role.
 - Public registration role escalation rejection.
+- Rejection of stale JWT role claims after database role changes.
 - HR job management.
 - Candidate read-only job access.
+- HR-only employee profile access, with manager denial.
 - Candidate application flow.
 - RBAC enforcement for candidates and HR.
 - AI application analysis persistence.
@@ -466,7 +478,13 @@ Covered by tests:
 Current passing result:
 
 ```text
-15 passed, 1 warning
+17 passed, 1 warning
+```
+
+Last verified command:
+
+```bash
+.\.venv\Scripts\python.exe -m pytest tests/ -v
 ```
 
 ## 18. Legacy And Available Modules
@@ -501,6 +519,9 @@ Implemented:
 - JWT tokens include user id, username, role, and expiry.
 - Protected API routes require bearer auth.
 - Role escalation through public registration is blocked.
+- JWT role claims must match a valid current database role.
+- Weak/default JWT secrets are rejected for non-SQLite, non-debug deployments.
+- Employee profile endpoints are limited to HR/admin.
 - Temporary uploaded PDFs are deleted after parsing.
 - Broken local proxy environment variables are cleared at startup when they point to known-dead local proxy ports.
 
@@ -512,11 +533,13 @@ Current security limitations:
 - No audit log for privileged actions.
 - No admin UI for role changes.
 - Admin bypass is broad by design and should be monitored before production expansion.
+- Users must log in again after role changes because stale JWTs are rejected.
 
 ## 20. Known Limitations
 
 - Employee module is read-only and skeletal.
 - Manager role can review applications but cannot manage jobs.
+- Manager role cannot access employee profile records.
 - Admin-specific frontend controls are minimal.
 - No dedicated admin user-management UI yet.
 - No Alembic migrations; schema changes rely on lightweight startup helpers.
@@ -529,7 +552,43 @@ Current security limitations:
 - No candidate status update endpoint for HR yet.
 - No analytics export or reporting module yet.
 
-## 21. Suggested Next Scope
+## 21. Pre-Day-3 Audit Status
+
+Completed audit document:
+
+- `docs/pre-day-3-technical-audit.md`
+
+Audit scores:
+
+| Area | Score |
+| --- | --- |
+| Architecture health | 84 / 100 |
+| Security health | 88 / 100 |
+| Maintainability | 80 / 100 |
+
+Audit result:
+
+- TalentForge is ready to begin Day 3.
+- No Must Fix Before Day 3 blockers remain after the stabilization pass.
+- Legacy Jobify-era interview, job-feed, and resume optimization code remains unmounted or dormant and should not be exposed unless intentionally productized.
+- Lightweight startup migrations are acceptable for the current scope, but Day 3 schema growth should be handled carefully.
+
+Files changed by the audit/stabilization pass:
+
+- `src/config.py`
+- `src/api/dependencies.py`
+- `src/api/routes/employees.py`
+- `tests/test_api.py`
+- `docs/pre-day-3-technical-audit.md`
+
+Recommended future cleanup candidates:
+
+- Empty stubs: `agents/skill_matcher.py`, `tasks/match_task.py`
+- Dormant interview route and agents/tasks
+- Legacy job-feed/search modules
+- Old Jobify migration docs and screenshots
+
+## 22. Suggested Next Scope
 
 High priority:
 
@@ -558,7 +617,7 @@ Future HRMS modules:
 - Department/team management
 - HR analytics dashboards
 
-## 22. Acceptance Criteria For Current Scope
+## 23. Acceptance Criteria For Current Scope
 
 The current scope is considered complete when:
 
@@ -572,5 +631,6 @@ The current scope is considered complete when:
 - HR can create jobs and view submitted applications.
 - AI analysis is persisted for applications.
 - Ranking endpoint returns ordered applicants for a job.
+- Employee profile APIs reject managers and allow HR/admin.
+- Stale JWT role claims are rejected after role changes.
 - Test suite passes with `pytest tests/ -v`.
-
