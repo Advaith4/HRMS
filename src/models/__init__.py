@@ -114,6 +114,29 @@ class CandidateApplication(SQLModel, table=True):
     status: str = Field(default="Applied", max_length=30, index=True)
 
 
+class ApplicationAIAnalysis(SQLModel, table=True):
+    """AI recruitment intelligence output for a candidate application."""
+    __tablename__ = "application_ai_analyses"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    application_id: int = Field(foreign_key="candidate_applications.id", index=True, unique=True)
+    fit_score: int = Field(default=0)
+    recommendation: str = Field(default="Consider", max_length=40, index=True)
+    summary: str = Field(default="")
+    strengths: str = Field(default="[]")
+    weaknesses: str = Field(default="[]")
+    missing_skills: str = Field(default="[]")
+    observations: str = Field(default="[]")
+    technical_questions: str = Field(default="[]")
+    behavioral_questions: str = Field(default="[]")
+    probing_areas: str = Field(default="[]")
+    status: str = Field(default="pending", max_length=30, index=True)
+    error_message: Optional[str] = None
+    source: str = Field(default="fallback", max_length=40)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 class Employee(SQLModel, table=True):
     """Employee profile shell for future HRMS modules."""
     __tablename__ = "employees"

@@ -10,12 +10,16 @@ class Settings(BaseSettings):
 
     # --- AI Keys ---
     GROQ_API_KEY: str = ""
-    JOOBLE_API_KEY: str = ""
-    RAPIDAPI_KEY: str = ""
     MODEL_NAME: str = "llama-3.1-8b-instant"
 
     # --- Database ---
-    DATABASE_URL: str = "sqlite:///./jobify.db"
+    DATABASE_URL: str = ""
+    SUPABASE_URL: str = ""
+    SUPABASE_ANON_KEY: str = ""
+    SUPABASE_SERVICE_ROLE_KEY: str = ""
+    PGSSLMODE: str = "require"
+    DATABASE_CONNECT_TIMEOUT: int = 10
+    AUTO_CREATE_DB_SCHEMA: bool = True
 
     # --- JWT ---
     SECRET_KEY: str = "change-me-in-production-min-32-chars!!"

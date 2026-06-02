@@ -10,6 +10,12 @@ from sqlmodel import Session, select
 from src.api.dependencies import require_roles
 from src.database.connection import get_session
 from src.models import CandidateApplication, JobPosting, User
+from src.services.recruitment_ai import (
+    analysis_payload,
+    analyze_application,
+    application_payload,
+    rank_applications_for_job,
+)
 from utils.resume_parser import extract_text_from_pdf
 
 router = APIRouter(prefix="/api/applications", tags=["applications"])
@@ -39,11 +45,13 @@ async def apply_to_job(
     session.add(application)
     session.commit()
     session.refresh(application)
+    analysis = analyze_application(session, application.id)
 
     return {
         "success": True,
         "message": "Application submitted.",
-        "application": _application_payload(session, application),
+        "application": application_payload(session, application),
+        "ai_analysis": analysis_payload(analysis),
     }
 
 
@@ -57,7 +65,7 @@ def my_applications(
         .where(CandidateApplication.candidate_user_id == current_user.id)
         .order_by(CandidateApplication.application_date.desc())
     ).all()
-    return [_application_payload(session, application) for application in applications]
+    return [application_payload(session, application) for application in applications]
 
 
 @router.get("")
@@ -68,7 +76,32 @@ def list_applications(
     applications = session.exec(
         select(CandidateApplication).order_by(CandidateApplication.application_date.desc())
     ).all()
-    return [_application_payload(session, application) for application in applications]
+    return [application_payload(session, application) for application in applications]
+
+
+@router.post("/{application_id}/analyze")
+def reanalyze_application(
+    application_id: int,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_roles("hr", "manager")),
+):
+    application = session.get(CandidateApplication, application_id)
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+    analyze_application(session, application_id, force=True)
+    return {"success": True, "application": application_payload(session, application)}
+
+
+@router.get("/rankings/{job_id}")
+def get_job_rankings(
+    job_id: int,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_roles("hr", "manager")),
+):
+    job = session.get(JobPosting, job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return {"job": {"id": job.id, "title": job.title}, "rankings": rank_applications_for_job(session, job_id)}
 
 
 async def _extract_resume_text(file: UploadFile) -> str:
@@ -94,19 +127,3 @@ async def _extract_resume_text(file: UploadFile) -> str:
         await file.close()
         if os.path.exists(temp_path):
             os.remove(temp_path)
-
-
-def _application_payload(session: Session, application: CandidateApplication) -> dict[str, Any]:
-    job = session.get(JobPosting, application.job_id)
-    candidate = session.get(User, application.candidate_user_id)
-    return {
-        "id": application.id,
-        "candidate_user_id": application.candidate_user_id,
-        "candidate_username": candidate.username if candidate else "",
-        "job_id": application.job_id,
-        "job_title": job.title if job else "",
-        "department": job.department if job else "",
-        "resume_text": application.resume_text,
-        "application_date": application.application_date.isoformat() if application.application_date else None,
-        "status": application.status,
-    }

@@ -7,6 +7,7 @@ const state = {
     candidates: [],
     employees: [],
     selectedJob: null,
+    rankings: [],
     currentView: "",
 };
 
@@ -18,7 +19,6 @@ const authSubtitle = document.getElementById("auth-subtitle");
 const authSubmit = document.getElementById("auth-submit");
 const authMessage = document.getElementById("auth-message");
 const toggleAuthMode = document.getElementById("toggle-auth-mode");
-const roleField = document.getElementById("role-field");
 const nav = document.getElementById("nav");
 const appMessage = document.getElementById("app-message");
 const sectionTitle = document.getElementById("section-title");
@@ -107,7 +107,6 @@ function switchAuthMode() {
     authSubtitle.textContent = register ? "Create your Day 1 workspace access." : "Access your hiring workspace.";
     authSubmit.querySelector("span").textContent = register ? "Register" : "Login";
     toggleAuthMode.textContent = register ? "Already have an account" : "Create an account";
-    roleField.classList.toggle("hidden", !register);
     document.getElementById("auth-password").minLength = register ? 6 : 1;
     setMessage(authMessage);
 }
@@ -117,8 +116,7 @@ authForm.addEventListener("submit", async event => {
     setMessage(authMessage, "Working...");
     const username = document.getElementById("auth-username").value.trim();
     const password = document.getElementById("auth-password").value;
-    const role = document.getElementById("auth-role").value;
-    const payload = state.authMode === "register" ? { username, password, role } : { username, password };
+    const payload = { username, password };
     const path = state.authMode === "register" ? "/api/auth/register" : "/api/auth/login";
 
     try {
@@ -140,6 +138,8 @@ document.getElementById("logout-btn").addEventListener("click", () => {
 
 document.getElementById("refresh-btn").addEventListener("click", () => loadCurrentView());
 document.getElementById("back-to-jobs").addEventListener("click", () => showView("candidate-jobs"));
+document.getElementById("close-analysis-modal").addEventListener("click", closeAnalysisModal);
+document.getElementById("load-rankings-btn").addEventListener("click", loadRankings);
 
 function showAuth() {
     authView.classList.remove("hidden");
@@ -404,18 +404,25 @@ async function deleteJob(jobId) {
 async function loadCandidates() {
     state.candidates = await api("/api/candidates");
     document.getElementById("candidate-list").innerHTML = renderCandidatesTable(state.candidates);
+    document.querySelectorAll("[data-view-candidate]").forEach(button => {
+        button.addEventListener("click", () => openCandidateProfile(Number(button.dataset.viewCandidate)));
+    });
 }
 
 async function loadApplications() {
-    state.applications = await api("/api/applications");
+    const [applications, jobs] = await Promise.all([api("/api/applications"), api("/api/jobs")]);
+    state.applications = applications;
+    state.jobs = jobs;
+    renderRankingJobSelect();
     document.getElementById("applications-list").innerHTML = renderApplicationsTable(state.applications, true);
+    bindApplicationActions();
 }
 
 function renderCandidatesTable(candidates) {
     if (!candidates.length) return `<p class="empty-state">No candidates registered yet.</p>`;
     return `
         <table>
-            <thead><tr><th>Name</th><th>Location</th><th>Experience</th><th>Applications</th></tr></thead>
+            <thead><tr><th>Name</th><th>Location</th><th>Experience</th><th>Applications</th><th>Action</th></tr></thead>
             <tbody>
                 ${candidates.map(candidate => `
                     <tr>
@@ -423,11 +430,33 @@ function renderCandidatesTable(candidates) {
                         <td>${sanitize(candidate.location || "-")}</td>
                         <td>${sanitize(candidate.experience || "-")}</td>
                         <td>${candidate.application_count}</td>
+                        <td><button class="ghost-btn" type="button" data-view-candidate="${candidate.id}">View Profile</button></td>
                     </tr>
                 `).join("")}
             </tbody>
         </table>
     `;
+}
+
+async function openCandidateProfile(candidateId) {
+    try {
+        const candidate = await api(`/api/candidates/${candidateId}`);
+        const applications = Array.isArray(candidate.applications) ? candidate.applications : [];
+        document.getElementById("analysis-modal-content").innerHTML = `
+            <h3>${sanitize(candidate.username)}</h3>
+            <p class="muted">${sanitize(candidate.location || "-")} · ${sanitize(candidate.experience || "-")} · ${applications.length} applications</p>
+            ${applications.length
+                ? applications.map(application => `
+                    <section class="analysis-section">
+                        ${renderAnalysisDetail(application, application.ai_analysis || {})}
+                    </section>
+                `).join("")
+                : '<p class="empty-state">This candidate has not submitted any applications.</p>'}
+        `;
+        document.getElementById("analysis-modal").classList.remove("hidden");
+    } catch (error) {
+        setMessage(appMessage, error.message, "error");
+    }
 }
 
 function renderApplicationsTable(applications, includeCandidate) {
@@ -438,8 +467,10 @@ function renderApplicationsTable(applications, includeCandidate) {
                 <tr>
                     ${includeCandidate ? "<th>Candidate</th>" : ""}
                     <th>Job</th>
+                    ${includeCandidate ? "<th>AI Fit</th><th>Recommendation</th>" : ""}
                     <th>Status</th>
                     <th>Applied</th>
+                    ${includeCandidate ? "<th>Actions</th>" : ""}
                 </tr>
             </thead>
             <tbody>
@@ -447,13 +478,133 @@ function renderApplicationsTable(applications, includeCandidate) {
                     <tr>
                         ${includeCandidate ? `<td>${sanitize(application.candidate_username)}</td>` : ""}
                         <td>${sanitize(application.job_title)}</td>
+                        ${includeCandidate ? `<td>${renderScore(application.ai_analysis)}</td><td>${renderRecommendation(application.ai_analysis)}</td>` : ""}
                         <td>${sanitize(application.status)}</td>
                         <td>${formatDate(application.application_date)}</td>
+                        ${includeCandidate ? `
+                            <td>
+                                <div class="button-row">
+                                    <button class="ghost-btn" type="button" data-view-analysis="${application.id}">View AI</button>
+                                    <button class="ghost-btn" type="button" data-reanalyze="${application.id}">Re-analyze</button>
+                                </div>
+                            </td>
+                        ` : ""}
                     </tr>
                 `).join("")}
             </tbody>
         </table>
     `;
+}
+
+function renderScore(analysis) {
+    if (!analysis) return '<span class="score-badge">--</span>';
+    return `<span class="score-badge">${Number(analysis.fit_score || 0)}%</span>`;
+}
+
+function renderRecommendation(analysis) {
+    if (!analysis) return '<span class="recommendation">Pending</span>';
+    return `<span class="recommendation">${sanitize(analysis.recommendation || 'Consider')}</span>`;
+}
+
+function bindApplicationActions() {
+    document.querySelectorAll("[data-view-analysis]").forEach(button => {
+        button.addEventListener("click", () => {
+            const application = state.applications.find(item => item.id === Number(button.dataset.viewAnalysis));
+            if (application) openAnalysisModal(application);
+        });
+    });
+    document.querySelectorAll("[data-reanalyze]").forEach(button => {
+        button.addEventListener("click", () => reanalyzeApplication(Number(button.dataset.reanalyze)));
+    });
+}
+
+async function reanalyzeApplication(applicationId) {
+    try {
+        const data = await api(`/api/applications/${applicationId}/analyze`, { method: "POST" });
+        const index = state.applications.findIndex(item => item.id === applicationId);
+        if (index >= 0) state.applications[index] = data.application;
+        document.getElementById("applications-list").innerHTML = renderApplicationsTable(state.applications, true);
+        bindApplicationActions();
+        setMessage(appMessage, "AI analysis refreshed.", "success");
+    } catch (error) {
+        setMessage(appMessage, error.message, "error");
+    }
+}
+
+function openAnalysisModal(application) {
+    const analysis = application.ai_analysis;
+    document.getElementById("analysis-modal-content").innerHTML = analysis
+        ? renderAnalysisDetail(application, analysis)
+        : `<h3>No AI analysis yet</h3><p class="muted">Use Re-analyze to generate recruitment intelligence.</p>`;
+    document.getElementById("analysis-modal").classList.remove("hidden");
+}
+
+function closeAnalysisModal() {
+    document.getElementById("analysis-modal").classList.add("hidden");
+}
+
+function renderAnalysisDetail(application, analysis) {
+    const prep = analysis.interview_prep || {};
+    return `
+        <h3>${sanitize(application.candidate_username)} for ${sanitize(application.job_title)}</h3>
+        <p><span class="score-badge">${Number(analysis.fit_score || 0)}%</span> <span class="recommendation">${sanitize(analysis.recommendation || 'Consider')}</span></p>
+        <p>${sanitize(analysis.summary || '')}</p>
+        ${analysis.error_message ? `<p class="message error">${sanitize(analysis.error_message)}</p>` : ''}
+        <div class="analysis-grid">
+            ${analysisList('Strengths', analysis.strengths)}
+            ${analysisList('Weaknesses', analysis.weaknesses)}
+            ${analysisList('Missing Skills', analysis.missing_skills)}
+            ${analysisList('Observations', analysis.observations)}
+            ${analysisList('Technical Questions', prep.technical_questions)}
+            ${analysisList('Behavioral Questions', prep.behavioral_questions)}
+            ${analysisList('Areas To Probe', prep.probing_areas)}
+        </div>
+        <p class="muted">Source: ${sanitize(analysis.source || 'fallback')} · Status: ${sanitize(analysis.status || '')}</p>
+    `;
+}
+
+function analysisList(title, items = []) {
+    const safeItems = Array.isArray(items) ? items : [];
+    return `
+        <section class="analysis-section">
+            <h4>${sanitize(title)}</h4>
+            ${safeItems.length
+                ? `<ul>${safeItems.map(item => `<li>${sanitize(item)}</li>`).join("")}</ul>`
+                : '<p class="muted">No items generated.</p>'}
+        </section>
+    `;
+}
+
+function renderRankingJobSelect() {
+    const select = document.getElementById("ranking-job-select");
+    select.innerHTML = state.jobs.length
+        ? state.jobs.map(job => `<option value="${job.id}">${sanitize(job.title)}</option>`).join("")
+        : '<option value="">No jobs available</option>';
+}
+
+async function loadRankings() {
+    const jobId = document.getElementById("ranking-job-select").value;
+    if (!jobId) return;
+    try {
+        const data = await api(`/api/applications/rankings/${jobId}`);
+        state.rankings = data.rankings || [];
+        document.getElementById("rankings-list").innerHTML = renderRankings(state.rankings);
+    } catch (error) {
+        setMessage(appMessage, error.message, "error");
+    }
+}
+
+function renderRankings(rankings) {
+    if (!rankings.length) return '<p class="empty-state">No candidates have applied to this job yet.</p>';
+    return rankings.map(item => `
+        <article class="ranking-card">
+            <header>
+                <strong>#${item.rank} ${sanitize(item.candidate.username)}</strong>
+                <span>${renderScore(item.analysis)} ${renderRecommendation(item.analysis)}</span>
+            </header>
+            <p>${sanitize(item.analysis.summary || '')}</p>
+        </article>
+    `).join("");
 }
 
 function formatDate(value) {

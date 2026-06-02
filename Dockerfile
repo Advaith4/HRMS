@@ -13,7 +13,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 FROM python:3.10-slim
 
 # Non-root user for security
-RUN adduser --disabled-password --gecos '' jobify_user
+RUN adduser --disabled-password --gecos '' talentforge_user
 
 WORKDIR /app
 
@@ -26,13 +26,14 @@ COPY ./src ./src
 COPY ./agents ./agents
 COPY ./tasks ./tasks
 COPY ./utils ./utils
+COPY ./scripts ./scripts
 COPY ./crew.py ./crew.py
 COPY ./static ./static
 
 # Create writable data directory for resume uploads & crewai storage
-RUN mkdir -p /app/data && chown -R jobify_user:jobify_user /app
+RUN mkdir -p /app/data && chown -R talentforge_user:talentforge_user /app
 
-USER jobify_user
+USER talentforge_user
 
 EXPOSE 8000
 

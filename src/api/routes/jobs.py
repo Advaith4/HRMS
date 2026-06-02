@@ -7,7 +7,7 @@ from sqlmodel import Session, select
 
 from src.api.dependencies import require_roles
 from src.database.connection import get_session
-from src.models import JobPosting, User
+from src.models import CandidateApplication, JobPosting, User
 
 router = APIRouter(prefix="/api/jobs", tags=["jobs"])
 
@@ -102,6 +102,11 @@ def delete_job(
     job = session.get(JobPosting, job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
+    application = session.exec(
+        select(CandidateApplication).where(CandidateApplication.job_id == job_id)
+    ).first()
+    if application:
+        raise HTTPException(status_code=409, detail="Cannot delete a job with candidate applications")
     session.delete(job)
     session.commit()
     return {"success": True, "message": "Job deleted"}

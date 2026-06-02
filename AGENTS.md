@@ -1,7 +1,7 @@
-# Jobify AGENTS.md
+# TalentForge AI AGENTS.md
 
 ## Overview
-Jobify is a FastAPI backend app for resume analysis, job feed, and mock interviews. It uses CrewAI agents, SQLModel (SQLite/PostgreSQL), and static HTML/JS frontend. App entry is `src/main.py`.
+TalentForge AI is a FastAPI recruitment intelligence app. It uses CrewAI agents, SQLModel with Supabase PostgreSQL, and a static HTML/JS frontend. App entry is `src/main.py`.
 
 ## Dev Environment
 - **Python**: 3.10 (-repo uses `requirements.txt`, not `pyproject.toml`)
@@ -18,18 +18,18 @@ src/
   config.py            # Pydantic Settings (reads .env)
   resume_lab.py        # Resume parsing, analysis, fix logic (pure functions)
   database/connection.py # SQLModel engine + lightweight migration helpers
-  models/              # SQLModel tables: User, Resume, JobApplication, InterviewSession, CareerCoachMemory
-  api/routes/          # Auth, Resume, Jobs, Interview (FastAPI routers)
+  models/              # SQLModel tables for users, jobs, applications, employees, resumes, and AI analyses
+  api/routes/          # Auth, jobs, applications, candidates, employees, and dashboard routers
   core/security.py     # JWT + bcrypt
 agents/                # CrewAI agent definitions (calls into crew.py)
 tasks/                 # CrewAI task definitions
 utils/                 # Resume parser, job search, scorers
-crew.py                # Crew orchestration: job pipeline, resume analyzer, interview coach
+crew.py                # Reusable legacy Crew orchestration
 ```
 
 ## Key Conventions
 - **Imports**: Use absolute `from src.config ...` style (not `from .config`).
-- **Database**: SQLite by default (`DATABASE_URL=sqlite:///./jobify.db`). Postgres via `postgresql://`.
+- **Database**: Supabase PostgreSQL is required in normal operation. SQLite remains available only when explicitly configured for isolated regression tests and legacy migration tooling.
 - **Migrations**: Not Alembic. `src/database/connection.py` runs lightweight `ALTER TABLE` migrations at startup (idempotent).
 - **Auth**: JWT via `HTTPBearer` in `src/api/dependencies.py`. Tokens from `/api/auth/register` or `/api/auth/login`.
 - **Environment**: Load via `.env` (copied from `.env.example`).
@@ -37,7 +37,7 @@ crew.py                # Crew orchestration: job pipeline, resume analyzer, inte
 ## Testing
 - **Command**: `pytest tests/ -v` (from repo root)
 - **Key test files**:
-  - `tests/test_api.py`: Auth, file upload, feed integration tests (uses `TestClient`).
+  - `tests/test_api.py`: Auth, RBAC, job management, file upload, AI analysis, and ranking integration tests.
   - `tests/test_resume_lab.py`: Resume parsing, fix application, scoring logic.
 - Tests depend on FastAPI’s `TestClient` and a temporary DB.
 
@@ -56,18 +56,19 @@ curl -X POST http://127.0.0.1:8000/api/resume/analyze \
 ```
 
 ## CrewAI / LLM Flow
-- **Resume**: `analyze_resume` → `crew.py run_resume_analyzer` → uses `create_resume_optimizer` agent + `create_resume_analysis_task`.
-- **Jobs**: `run_job_crew` → infers roles from resume, fetches live jobs via `fetch_jobs_for_roles`, ranks them via CrewAI against the resume.
-- **Interview**: `run_interview_start` / `run_interview_answer` → orchestrates interviewer, evaluator, difficulty controller, and followup coach agents/tasks.
-- **Tailor**: `run_tailored_resume_rewriter` runs in a FastAPI `BackgroundTask` when a job is tracked.
+- **Recruitment analysis**: candidate application upload → PDF parsing → `src/services/recruitment_ai.py` → recruitment analyst CrewAI agent/task → persisted explainable score, recommendation, and interview preparation.
+- **Reliability**: deterministic recruitment scoring remains available when the LLM integration is unavailable.
+- **Legacy infrastructure**: older Jobify CrewAI modules remain available for reuse but are not exposed through TalentForge navigation.
 
 ## Environment Variables (from .env.example)
 ```
 GROQ_API_KEY=
-JOOBLE_API_KEY=
-JOOBLE_API_BASE_URL=https://in.jooble.org/api/{api_key}
-RAPIDAPI_KEY=
-DATABASE_URL=sqlite:///./jobify.db
+DATABASE_URL=postgresql://postgres.YOUR_PROJECT_REF:YOUR_PASSWORD@aws-0-YOUR_REGION.pooler.supabase.com:5432/postgres?sslmode=require
+PGSSLMODE=require
+DATABASE_CONNECT_TIMEOUT=10
+SUPABASE_URL=
+SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
 SECRET_KEY=
 AUTO_CREATE_DB_SCHEMA=true
 DEBUG=false
@@ -75,15 +76,15 @@ MODEL_NAME=llama-3.1-8b-instant
 ```
 
 ## Deployment
-- **Docker**: `docker build -t jobifyai .` then `docker run --env-file .env -p 8000:8000 jobifyai`
-- **Render**: `render.yaml` is provided. Sets `AUTO_CREATE_DB_SCHEMA=true` and pulls `DATABASE_URL` from a Render Postgres instance.
+- **Docker**: `docker build -t talentforge-ai .` then `docker run --env-file .env -p 8000:8000 talentforge-ai`
+- **Render**: `render.yaml` is provided. Configure `DATABASE_URL` with the Supabase PostgreSQL connection string.
 - **Vercel**: `vercel.json` for static frontend (`static/`). Backend runs elsewhere (e.g. Render).
 
 ## Important Gotchas
 - `crew.py` agents/tasks are imported dynamically; if you rename modules in `agents/` or `tasks/`, update the corresponding `from tasks...` / `from agents...` imports.
 - The database uses lightweight migrations at startup (`_ensure_*` functions). If you add new fields to `models/__init__.py`, also update the `_ensure_*` migration logic for SQLite/Postgres.
 - `src/resume_lab.py` contains deterministic validation and repair logic for LLM analysis. LLM output is expected to match `ResumeAnalysisResult` schema.
-- `src/main.py` clears Windows-broken proxy variables (`127.0.0.1:9`) that can break Groq/Jooble APIs.
+- `src/main.py` clears Windows-broken proxy variables (`127.0.0.1:9`) that can break Groq API calls.
 
 ## Tech Stack
 - FastAPI + Uvicorn

@@ -8,20 +8,36 @@ os.environ["AUTO_CREATE_DB_SCHEMA"] = "true"
 os.environ["SECRET_KEY"] = "test-secret-key-for-talentforge"
 
 from fastapi.testclient import TestClient
+from sqlmodel import Session, select
 
 from src.main import app
 import src.api.routes.applications as applications_route
+import src.services.recruitment_ai as recruitment_ai
+from src.database.connection import create_db_and_tables, engine
+from src.models import User
 
+create_db_and_tables()
 client = TestClient(app)
 
 
 def _register(username: str, role: str) -> str:
     response = client.post(
         "/api/auth/register",
-        json={"username": username, "password": "Pass123!", "role": role},
+        json={"username": username, "password": "Pass123!"},
     )
     assert response.status_code == 201, response.text
-    return response.json()["access_token"]
+    if role == "candidate":
+        return response.json()["access_token"]
+
+    with Session(engine) as session:
+        user = session.exec(select(User).where(User.username == username)).one()
+        user.role = role
+        session.add(user)
+        session.commit()
+
+    login = client.post("/api/auth/login", json={"username": username, "password": "Pass123!"})
+    assert login.status_code == 200, login.text
+    return login.json()["access_token"]
 
 
 def test_register_and_login_returns_role():
@@ -32,6 +48,14 @@ def test_register_and_login_returns_role():
     response = client.post("/api/auth/login", json={"username": username, "password": "Pass123!"})
     assert response.status_code == 200
     assert response.json()["role"] == "candidate"
+
+
+def test_public_registration_rejects_role_escalation():
+    response = client.post(
+        "/api/auth/register",
+        json={"username": f"admin_{uuid.uuid4().hex[:8]}", "password": "Pass123!", "role": "admin"},
+    )
+    assert response.status_code == 422
 
 
 def test_hr_can_manage_jobs_candidate_can_only_read():
@@ -114,3 +138,69 @@ def test_candidate_application_flow_and_rbac(monkeypatch):
 
     hr_denied = client.get("/api/applications/me", headers=hr_headers)
     assert hr_denied.status_code == 403
+
+
+def test_application_ai_analysis_and_ranking(monkeypatch):
+    monkeypatch.setattr(
+        applications_route,
+        "extract_text_from_pdf",
+        lambda path: (
+            "Summary\nBackend developer.\nSkills\nPython, FastAPI, SQL, Docker\n"
+            "Projects\nBuilt recruitment workflow APIs."
+        ),
+    )
+    monkeypatch.setattr(
+        recruitment_ai,
+        "_run_crewai_analysis",
+        lambda resume_text, job: {
+            "fit_score": 82,
+            "recommendation": "Recommended",
+            "summary": "Strong backend fit for this opening.",
+            "strengths": ["Matches FastAPI and SQL requirements."],
+            "weaknesses": ["Docker depth should be validated."],
+            "missing_skills": [],
+            "observations": ["Resume is aligned with backend API work."],
+            "interview_prep": {
+                "technical_questions": ["Explain a FastAPI service you built."],
+                "behavioral_questions": ["Describe a time you handled ambiguity."],
+                "probing_areas": ["API ownership", "SQL schema design"],
+            },
+        },
+    )
+
+    candidate_token = _register(f"candidate_{uuid.uuid4().hex[:8]}", "candidate")
+    hr_token = _register(f"hr_{uuid.uuid4().hex[:8]}", "hr")
+    candidate_headers = {"Authorization": f"Bearer {candidate_token}"}
+    hr_headers = {"Authorization": f"Bearer {hr_token}"}
+
+    created = client.post(
+        "/api/jobs",
+        headers=hr_headers,
+        json={
+            "title": "Backend Developer",
+            "description": "Build recruitment intelligence APIs.",
+            "required_skills": "Python, FastAPI, SQL, Docker",
+        },
+    )
+    job_id = created.json()["id"]
+
+    applied = client.post(
+        "/api/applications/apply",
+        headers=candidate_headers,
+        data={"job_id": str(job_id)},
+        files={"file": ("resume.pdf", b"%PDF-1.4 fake pdf", "application/pdf")},
+    )
+    assert applied.status_code == 201, applied.text
+    application = applied.json()["application"]
+    assert application["ai_analysis"]["fit_score"] == 82
+    assert application["ai_analysis"]["recommendation"] == "Recommended"
+    assert application["ai_analysis"]["interview_prep"]["technical_questions"]
+
+    refreshed = client.post(f"/api/applications/{application['id']}/analyze", headers=hr_headers)
+    assert refreshed.status_code == 200
+    assert refreshed.json()["application"]["ai_analysis"]["status"] == "completed"
+
+    rankings = client.get(f"/api/applications/rankings/{job_id}", headers=hr_headers)
+    assert rankings.status_code == 200
+    assert rankings.json()["rankings"][0]["rank"] == 1
+    assert rankings.json()["rankings"][0]["analysis"]["fit_score"] == 82

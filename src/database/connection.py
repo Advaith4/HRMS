@@ -1,4 +1,3 @@
-import os
 import logging
 
 from sqlmodel import SQLModel, create_engine, Session, text
@@ -12,7 +11,7 @@ def _normalize_db_url(url: str) -> str:
     if url.startswith("postgres://"):
         url = url.replace("postgres://", "postgresql://", 1)
 
-    sslmode = os.getenv("PGSSLMODE", "").strip()
+    sslmode = settings.PGSSLMODE.strip()
     if sslmode and "sslmode=" not in url.lower() and url.startswith("postgresql://"):
         url = f"{url}{'&' if '?' in url else '?'}sslmode={sslmode}"
 
@@ -20,18 +19,30 @@ def _normalize_db_url(url: str) -> str:
 
 
 _db_url = _normalize_db_url(settings.DATABASE_URL)
+if not _db_url:
+    raise RuntimeError("DATABASE_URL is required. Configure the Supabase PostgreSQL connection string in .env.")
 
-# connect_args only needed for SQLite
+# SQLite and PostgreSQL use different driver connection arguments.
 _connect_args = {"check_same_thread": False} if _db_url.startswith("sqlite") else {}
+if _db_url.startswith("postgresql"):
+    _connect_args["connect_timeout"] = settings.DATABASE_CONNECT_TIMEOUT
 
-engine = create_engine(_db_url, echo=settings.DEBUG, connect_args=_connect_args)
+engine = create_engine(
+    _db_url,
+    echo=settings.DEBUG,
+    connect_args=_connect_args,
+    pool_pre_ping=True,
+    pool_recycle=300,
+)
 
 
 def create_db_and_tables() -> None:
-    auto_create = os.getenv("AUTO_CREATE_DB_SCHEMA", "").strip().lower() in {"1", "true", "yes", "on"}
-    if _db_url.startswith("sqlite") or auto_create:
+    import src.models  # noqa: F401
+
+    if _db_url.startswith("sqlite") or settings.AUTO_CREATE_DB_SCHEMA:
         SQLModel.metadata.create_all(engine)
     _ensure_user_role_column()
+    _ensure_application_ai_analysis_table()
     _ensure_resume_lab_columns()
     _ensure_interview_context_columns()
     _ensure_career_coach_memory_table()
@@ -67,6 +78,44 @@ def _ensure_postgres_user_role_column() -> None:
     with Session(engine) as session:
         for statement in statements:
             session.exec(text(statement))
+        session.commit()
+
+
+def _ensure_application_ai_analysis_table() -> None:
+    """Create Day 2 AI analysis table where supported."""
+    try:
+        if _db_url.startswith("sqlite") or settings.AUTO_CREATE_DB_SCHEMA:
+            SQLModel.metadata.create_all(engine)
+        elif not _db_url.startswith("sqlite"):
+            _ensure_postgres_application_ai_analysis_table()
+    except Exception as exc:
+        logger.warning("Application AI analysis migration skipped: %s", exc)
+
+
+def _ensure_postgres_application_ai_analysis_table() -> None:
+    statement = """
+    CREATE TABLE IF NOT EXISTS application_ai_analyses (
+        id SERIAL PRIMARY KEY,
+        application_id INTEGER UNIQUE NOT NULL REFERENCES candidate_applications(id),
+        fit_score INTEGER DEFAULT 0,
+        recommendation VARCHAR(40) DEFAULT 'Consider',
+        summary TEXT DEFAULT '',
+        strengths TEXT DEFAULT '[]',
+        weaknesses TEXT DEFAULT '[]',
+        missing_skills TEXT DEFAULT '[]',
+        observations TEXT DEFAULT '[]',
+        technical_questions TEXT DEFAULT '[]',
+        behavioral_questions TEXT DEFAULT '[]',
+        probing_areas TEXT DEFAULT '[]',
+        status VARCHAR(30) DEFAULT 'pending',
+        error_message TEXT,
+        source VARCHAR(40) DEFAULT 'fallback',
+        created_at TIMESTAMP,
+        updated_at TIMESTAMP
+    )
+    """
+    with Session(engine) as session:
+        session.exec(text(statement))
         session.commit()
 
 
@@ -169,7 +218,7 @@ def _ensure_postgres_interview_context_columns() -> None:
 def _ensure_career_coach_memory_table() -> None:
     """Create long-term coach memory table where supported."""
     try:
-        if _db_url.startswith("sqlite") or os.getenv("AUTO_CREATE_DB_SCHEMA", "").strip().lower() in {"1", "true", "yes", "on"}:
+        if _db_url.startswith("sqlite") or settings.AUTO_CREATE_DB_SCHEMA:
             SQLModel.metadata.create_all(engine)
         elif not _db_url.startswith("sqlite"):
             _ensure_postgres_career_coach_memory_table()

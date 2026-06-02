@@ -80,13 +80,13 @@ logger = logging.getLogger(__name__)
 
 # ── CrewAI storage isolation ──────────────────────────────────────────────────
 def _prepare_crewai_storage() -> None:
-    os.environ.setdefault("CREWAI_STORAGE_DIR", "jobify_local")
+    os.environ.setdefault("CREWAI_STORAGE_DIR", "talentforge_local")
     os.environ.setdefault("CREWAI_DISABLE_TELEMETRY", "true")
     os.environ.setdefault("CREWAI_DISABLE_TRACKING", "true")
     storage_root = Path.cwd() / "data" / ".crewai_storage"
     storage_root.mkdir(parents=True, exist_ok=True)
     appdirs.user_data_dir = lambda appname=None, appauthor=None, version=None, roaming=False: str(
-        storage_root / (appauthor or "CrewAI") / (appname or "jobify_local")
+        storage_root / (appauthor or "CrewAI") / (appname or "talentforge_local")
     )
 
 _prepare_crewai_storage()

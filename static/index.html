@@ -26,16 +26,6 @@
                     Password
                     <input id="auth-password" type="password" autocomplete="current-password" required minlength="1" maxlength="128">
                 </label>
-                <label id="role-field" class="hidden">
-                    Role
-                    <select id="auth-role">
-                        <option value="candidate">Candidate</option>
-                        <option value="employee">Employee</option>
-                        <option value="hr">HR</option>
-                        <option value="manager">Manager</option>
-                        <option value="admin">Admin</option>
-                    </select>
-                </label>
                 <button id="auth-submit" class="primary-btn" type="submit">
                     <i class="fa-solid fa-right-to-bracket"></i>
                     <span>Login</span>
@@ -193,7 +183,25 @@
             </section>
 
             <section id="management-applications" class="view-section hidden">
+                <div id="rankings-panel" class="editor-panel">
+                    <label>
+                        Rank candidates for job
+                        <select id="ranking-job-select"></select>
+                    </label>
+                    <button id="load-rankings-btn" class="primary-btn" type="button">
+                        <i class="fa-solid fa-ranking-star"></i>
+                        <span>View Rankings</span>
+                    </button>
+                    <div id="rankings-list" class="ranking-list"></div>
+                </div>
                 <div id="applications-list" class="table-wrap"></div>
+            </section>
+
+            <section id="analysis-modal" class="modal-layer hidden">
+                <article class="analysis-modal">
+                    <button id="close-analysis-modal" class="link-btn" type="button">Close</button>
+                    <div id="analysis-modal-content"></div>
+                </article>
             </section>
 
             <p id="app-message" class="message"></p>

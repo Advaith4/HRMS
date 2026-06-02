@@ -6,6 +6,7 @@ from sqlmodel import Session, select
 from src.api.dependencies import require_roles
 from src.database.connection import get_session
 from src.models import CandidateApplication, User
+from src.services.recruitment_ai import application_payload
 
 router = APIRouter(prefix="/api/candidates", tags=["candidates"])
 
@@ -50,15 +51,5 @@ def _candidate_payload(session: Session, candidate: User, include_applications: 
         "application_count": len(applications),
     }
     if include_applications:
-        payload["applications"] = [
-            {
-                "id": application.id,
-                "job_id": application.job_id,
-                "status": application.status,
-                "application_date": application.application_date.isoformat()
-                if application.application_date
-                else None,
-            }
-            for application in applications
-        ]
+        payload["applications"] = [application_payload(session, application) for application in applications]
     return payload
