@@ -113,22 +113,21 @@ export const CandidateDashboard = ({ activeTab = 'overview' }) => {
           <div className="lg:col-span-2 space-y-6">
             
             {/* Welcome banner */}
-            <div className="relative rounded-2xl bg-gradient-to-tr from-brand-indigo-muted/30 via-bg-surface to-brand-indigo/10 border border-border-custom p-8 overflow-hidden shadow-lg">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-brand-indigo/5 rounded-full blur-[80px] pointer-events-none" />
-              <div className="space-y-4 max-w-lg z-10 relative">
-                <span className="text-[10px] font-bold tracking-wider text-brand-indigo bg-brand-indigo-muted/50 border border-brand-indigo/20 px-2.5 py-1 rounded-full uppercase">
-                  Welcome to TalentForge AI
+            <div className="relative rounded-2xl bg-white border border-border-custom p-8 overflow-hidden shadow-xs">
+              <div className="space-y-4 max-w-xl z-10 relative">
+                <span className="text-[10px] font-bold tracking-wider text-brand-indigo bg-brand-indigo-muted/50 border border-brand-indigo/10 px-2.5 py-1 rounded-md uppercase">
+                  Careers Portal
                 </span>
                 <h3 className="text-xl font-bold tracking-tight text-txt-primary">
-                  Accelerate Your Career with AI Screening
+                  Accelerate Your Career with Secure Matching
                 </h3>
-                <p className="text-xs text-txt-secondary leading-relaxed">
-                  Upload your professional PDF resume to automatically parse your skills, match with open positions, and review real-time AI suitability scores, strengths/weaknesses highlights, and interview preparations.
+                <p className="text-xs text-txt-secondary leading-relaxed max-w-lg">
+                  Upload your professional PDF resume to match with open positions, and review suitability metrics, strengths/weaknesses highlights, and curated interview preparations.
                 </p>
                 <div className="pt-2">
                   <Link
                     to="/jobs"
-                    className="inline-flex items-center px-4 py-2 bg-brand-indigo hover:bg-brand-indigo-hover text-white text-xs font-semibold rounded-lg transition-all cursor-pointer shadow-md shadow-brand-indigo/10 active:scale-[0.98]"
+                    className="inline-flex items-center px-4 py-2 bg-brand-indigo hover:bg-brand-indigo-hover text-white text-xs font-semibold rounded-lg transition-all cursor-pointer shadow-xs active:scale-[0.98]"
                   >
                     <span>Browse Careers</span>
                     <Briefcase size={14} className="ml-1.5" />
@@ -147,19 +146,19 @@ export const CandidateDashboard = ({ activeTab = 'overview' }) => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {seededJobs.slice(0, 2).map((job) => {
                   return (
-                    <div key={job.id} className="bg-bg-surface border border-border-custom p-5 rounded-xl flex flex-col justify-between space-y-3 shadow-md hover:border-border-hover-custom transition-all">
+                    <div key={job.id} className="bg-white border border-border-custom p-5 rounded-xl flex flex-col justify-between space-y-3 shadow-xs hover:shadow-sm hover:border-border-hover-custom transition-all">
                       <div>
                         <span className="text-xs font-bold text-txt-primary block leading-none">{job.title}</span>
-                        <span className="text-[9px] text-txt-tertiary mt-1 block leading-none">{job.department}</span>
-                        <p className="text-[11px] text-txt-secondary mt-2 line-clamp-2 leading-relaxed">
+                        <span className="text-[9px] text-txt-tertiary mt-1.5 block leading-none">{job.department}</span>
+                        <p className="text-[11px] text-txt-secondary mt-2.5 line-clamp-2 leading-relaxed">
                           {job.description}
                         </p>
                       </div>
                       <div className="flex items-center justify-between pt-2 border-t border-border-custom/50">
-                        <span className="text-[10px] text-ai-teal font-bold">{job.salary_range}</span>
+                        <span className="text-[10px] text-brand-indigo font-bold">{job.salary_range}</span>
                         <button
                           onClick={() => { setSelectedJob(job); setIsDetailOpen(true); }}
-                          className="px-2.5 py-1 bg-brand-indigo/10 hover:bg-brand-indigo/25 text-brand-indigo border border-brand-indigo/20 text-[10px] font-bold rounded-lg cursor-pointer transition-colors"
+                          className="px-3 py-1.5 bg-brand-indigo/10 hover:bg-brand-indigo/25 text-brand-indigo border border-brand-indigo/20 text-[10px] font-bold rounded-lg cursor-pointer transition-colors shadow-xs"
                         >
                           Details
                         </button>
@@ -176,33 +175,33 @@ export const CandidateDashboard = ({ activeTab = 'overview' }) => {
           <div className="space-y-6">
             
             {/* Resume Status Card */}
-            <div className="bg-bg-surface border border-border-custom rounded-xl p-5 space-y-4 shadow-md">
+            <div className="bg-white border border-border-custom rounded-xl p-5 space-y-4 shadow-xs">
               <span className="text-[9px] font-bold tracking-wider uppercase text-txt-secondary block">My Resume Status</span>
               {hasResume ? (
-                <div className="flex items-center space-x-3 p-3 bg-success-bg/20 border border-success-primary/20 rounded-lg">
-                  <div className="p-2 rounded bg-success-bg/40 text-success-primary">
-                    <FileText size={16} />
+                <div className="flex items-center space-x-3 p-3.5 bg-slate-50 border border-border-custom rounded-lg">
+                  <div className="p-2 rounded-md bg-success-bg text-success-primary">
+                    <FileText size={15} />
                   </div>
                   <div>
-                    <span className="text-xs font-bold text-txt-primary block">Resume Uploaded</span>
-                    <span className="text-[9px] text-txt-secondary mt-0.5 block">Parsing completed successfully</span>
+                    <span className="text-xs font-bold text-txt-primary block">Resume Active</span>
+                    <span className="text-[9px] text-txt-secondary mt-0.5 block">Uploaded and verified successfully</span>
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center space-x-3 p-3 bg-warning-bg/20 border border-warning-primary/20 rounded-lg">
-                  <div className="p-2 rounded bg-warning-bg/40 text-warning-primary">
-                    <Clock size={16} />
+                <div className="flex items-center space-x-3 p-3.5 bg-slate-50 border border-border-custom rounded-lg">
+                  <div className="p-2 rounded-md bg-warning-bg text-warning-primary">
+                    <Clock size={15} />
                   </div>
                   <div>
-                    <span className="text-xs font-bold text-txt-primary block">No Resume Found</span>
-                    <span className="text-[9px] text-txt-secondary mt-0.5 block">Upload a resume when applying</span>
+                    <span className="text-xs font-bold text-txt-primary block">No Active Resume</span>
+                    <span className="text-[9px] text-txt-secondary mt-0.5 block">Required to submit application</span>
                   </div>
                 </div>
               )}
             </div>
 
             {/* Application Progress Status */}
-            <div className="bg-bg-surface border border-border-custom rounded-xl p-5 space-y-4 shadow-md">
+            <div className="bg-white border border-border-custom rounded-xl p-5 space-y-4 shadow-xs">
               <div className="flex items-center justify-between">
                 <span className="text-[9px] font-bold tracking-wider uppercase text-txt-secondary">My Applications</span>
                 <Link to="/applications" className="text-[10px] font-semibold text-brand-indigo hover:underline">All applications</Link>
@@ -213,7 +212,7 @@ export const CandidateDashboard = ({ activeTab = 'overview' }) => {
               ) : (
                 <div className="space-y-3">
                   {seededApplications.slice(0, 3).map((app) => (
-                    <div key={app.id} className="flex items-center justify-between p-2.5 rounded-lg border border-border-custom bg-bg-page/40">
+                    <div key={app.id} className="flex items-center justify-between p-2.5 rounded-lg border border-border-custom bg-slate-50/50">
                       <div>
                         <span className="text-[10px] font-bold text-txt-primary block">{app.job_title}</span>
                         <span className="text-[9px] text-txt-tertiary block mt-0.5">Applied {new Date(app.application_date).toLocaleDateString()}</span>
@@ -289,23 +288,23 @@ export const CandidateDashboard = ({ activeTab = 'overview' }) => {
                 return (
                   <motion.div
                     key={job.id}
-                    whileHover={{ y: -3 }}
-                    className="rounded-xl border border-border-custom bg-bg-surface p-6 flex flex-col justify-between space-y-4"
+                    whileHover={{ y: -2 }}
+                    className="rounded-xl border border-border-custom bg-white p-6 flex flex-col justify-between space-y-4 shadow-xs hover:shadow-sm hover:border-brand-indigo/30 transition-all duration-300 relative group"
                   >
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
                           {/* Coloured Initials Placeholder avatar */}
-                          <div className="w-8 h-8 rounded-lg bg-brand-indigo/10 border border-brand-indigo/20 flex items-center justify-center text-brand-indigo font-bold text-xs uppercase">
+                          <div className="w-8 h-8 rounded-lg bg-brand-indigo/10 border border-brand-indigo/20 flex items-center justify-center text-brand-indigo font-bold text-xs uppercase transition-colors group-hover:bg-brand-indigo group-hover:text-white">
                             {job.department.slice(0, 2)}
                           </div>
                           <div>
-                            <span className="text-xs font-bold text-txt-primary block leading-none">{job.title}</span>
-                            <span className="text-[10px] text-txt-tertiary mt-1 block leading-none">{job.department}</span>
+                            <span className="text-xs font-bold text-txt-primary block leading-none transition-colors group-hover:text-brand-indigo">{job.title}</span>
+                            <span className="text-[9px] text-txt-tertiary mt-1.5 block leading-none">{job.department}</span>
                           </div>
                         </div>
                         {alreadyApplied && (
-                          <span className="text-[9px] font-bold text-success-primary bg-success-bg/40 border border-success-primary/20 px-2 py-0.5 rounded-full uppercase">
+                          <span className="text-[9px] font-bold text-success-primary bg-success-bg border border-success-primary/20 px-2 py-0.5 rounded-full uppercase">
                             Applied
                           </span>
                         )}
@@ -318,7 +317,7 @@ export const CandidateDashboard = ({ activeTab = 'overview' }) => {
                       {/* Skills pills */}
                       <div className="flex flex-wrap gap-1">
                         {skills.map((s, idx) => (
-                          <span key={idx} className="text-[9px] bg-bg-page border border-border-custom text-txt-tertiary px-2 py-0.5 rounded">
+                          <span key={idx} className="text-[9px] bg-slate-50 border border-border-custom text-txt-secondary px-2 py-0.5 rounded-md">
                             {s.trim()}
                           </span>
                         ))}
@@ -326,13 +325,13 @@ export const CandidateDashboard = ({ activeTab = 'overview' }) => {
                     </div>
 
                     <div className="pt-3 border-t border-border-custom/50 flex items-center justify-between">
-                      <div className="text-[10px] font-bold text-ai-teal">
+                      <div className="text-[10px] font-bold text-brand-indigo uppercase tracking-wider">
                         {job.salary_range || 'Competitive'}
                       </div>
                       
                       <button
                         onClick={() => { setSelectedJob(job); setIsDetailOpen(true); }}
-                        className="px-3.5 py-1.5 bg-brand-indigo hover:bg-brand-indigo-hover text-white text-[11px] font-semibold rounded-lg active:scale-98 transition-all cursor-pointer"
+                        className="px-3.5 py-1.5 bg-brand-indigo hover:bg-brand-indigo-hover text-white text-[11px] font-semibold rounded-lg active:scale-98 transition-all cursor-pointer shadow-xs"
                       >
                         {alreadyApplied ? 'Inspect vacancy' : 'Apply now'}
                       </button>
@@ -348,7 +347,7 @@ export const CandidateDashboard = ({ activeTab = 'overview' }) => {
 
       {/* MY APPLICATIONS ACCORDION TAB */}
       {activeTab === 'applications' && (
-        <div className="rounded-xl border border-border-custom bg-bg-surface p-6 space-y-4">
+        <div className="rounded-xl border border-border-custom bg-white p-6 shadow-xs space-y-4">
           <div className="border-b border-border-custom pb-3">
             <h4 className="text-sm font-semibold">Application History</h4>
             <p className="text-[11px] text-txt-secondary">Inspect resume analysis and selection stages</p>

@@ -519,286 +519,296 @@ export const EmployeeDashboard = () => {
       </div>
 
       {activeTab === 'overview' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div className="space-y-8">
           
-          {/* Attendance widget (55%) */}
-          <div className="lg:col-span-7 rounded-xl border border-border-custom bg-bg-surface p-6 space-y-5">
-            <div className="flex items-center justify-between border-b border-border-custom pb-3">
-              <div>
-                <h4 className="text-sm font-semibold">Time & Attendance</h4>
-                <p className="text-[11px] text-txt-secondary">{time.toLocaleDateString()}</p>
-              </div>
+          {/* Section: Workday Attendance & Leave Management */}
+          <div className="space-y-3">
+            <h3 className="text-[10px] font-bold tracking-wider uppercase text-txt-secondary">Workday Attendance & Leave Management</h3>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
               
-              {/* Live hours indicator */}
-              <span className="text-xs font-bold text-brand-indigo bg-brand-indigo-muted border border-brand-indigo/20 px-2.5 py-0.5 rounded">
-                Today: {totalHoursToday}
-              </span>
-            </div>
-
-            <div className="flex flex-col items-center justify-center py-6 text-center space-y-4">
-              
-              {/* Digital Clock */}
-              <div className="text-4xl font-extrabold tracking-tight text-txt-primary font-mono select-all">
-                {time.toLocaleTimeString()}
-              </div>
-
-              {/* Check in/out pulse button */}
-              <button
-                onClick={handleAttendanceToggle}
-                disabled={attendance && attendance.status === 'Completed'}
-                className={`w-full max-w-[280px] h-12 rounded-xl text-xs font-bold uppercase tracking-wider text-white relative overflow-hidden transition-all active:scale-97 ${
-                  attendance && attendance.status === 'Completed'
-                    ? 'bg-bg-elevated border border-border-custom text-txt-secondary cursor-not-allowed'
-                    : attendance && attendance.status === 'Checked In'
-                    ? 'bg-danger-primary hover:bg-danger-primary/90 shadow-lg shadow-danger-primary/20 animate-pulse cursor-pointer'
-                    : 'bg-success-primary hover:bg-success-primary/90 shadow-lg shadow-success-primary/20 cursor-pointer'
-                }`}
-              >
-                {attendance && attendance.status === 'Completed'
-                  ? 'Attendance Completed'
-                  : attendance && attendance.status === 'Checked In'
-                  ? 'Check Out'
-                  : 'Check In'}
-              </button>
-            </div>
-
-            {/* Weekly Heatmap (Mon-Sun) */}
-            <div className="space-y-2">
-              <span className="text-[10px] font-bold text-txt-tertiary uppercase tracking-wider block">Weekly Heatmap</span>
-              <div className="grid grid-cols-7 gap-2">
-                {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, idx) => {
-                  // Mock highlights: present on Mon, Tue. Absent on others
-                  const isToday = idx === (new Date().getDay() - 1 + 7) % 7
-                  const isPresent = idx < 2
+              {/* Attendance widget (55%) */}
+              <div className="lg:col-span-7 rounded-xl border border-border-custom bg-bg-surface p-6 shadow-xs space-y-5">
+                <div className="flex items-center justify-between border-b border-border-custom pb-3">
+                  <div>
+                    <h4 className="text-sm font-semibold">Time & Attendance</h4>
+                    <p className="text-[11px] text-txt-secondary">{time.toLocaleDateString()}</p>
+                  </div>
                   
-                  return (
-                    <div
-                      key={idx}
-                      className={`flex flex-col items-center justify-center p-2 rounded-lg border text-[11px] font-semibold ${
-                        isPresent
-                          ? 'bg-success-bg/30 border-success-primary text-success-primary'
-                          : isToday
-                          ? 'bg-bg-page border-brand-indigo text-brand-indigo'
-                          : 'bg-bg-page border-border-custom text-txt-tertiary'
-                      }`}
-                    >
-                      <span className="uppercase text-[9px] mb-1">{day}</span>
-                      <span className="text-[10px] font-bold">{isPresent ? 'P' : 'A'}</span>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
-          </div>
-
-          {/* Leave requests card (45%) */}
-          <div className="lg:col-span-5 rounded-xl border border-border-custom bg-bg-surface p-6 space-y-4">
-            <div className="border-b border-border-custom pb-3">
-              <h4 className="text-sm font-semibold">Request Time Off</h4>
-              <p className="text-[11px] text-txt-secondary">Submit leave requests directly to your line manager</p>
-            </div>
-
-            <form onSubmit={handleLeaveSubmit} className="space-y-3">
-              
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Leave Type</label>
-                <select
-                  value={leaveType}
-                  onChange={(e) => setLeaveType(e.target.value)}
-                  className="w-full bg-bg-page border border-border-custom outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary"
-                >
-                  <option value="Annual">Annual / Vacation</option>
-                  <option value="Casual">Casual / Personal</option>
-                  <option value="Sick">Sick Leave</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Start Date</label>
-                  <input
-                    type="date"
-                    required
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full bg-bg-page border border-border-custom outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary"
-                  />
+                  {/* Live hours indicator */}
+                  <span className="text-xs font-bold text-brand-indigo bg-brand-indigo-muted border border-brand-indigo/20 px-2.5 py-0.5 rounded">
+                    Today: {totalHoursToday}
+                  </span>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-txt-tertiary uppercase block">End Date</label>
-                  <input
-                    type="date"
-                    required
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full bg-bg-page border border-border-custom outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary"
-                  />
+
+                <div className="flex flex-col items-center justify-center py-6 text-center space-y-4">
+                  
+                  {/* Digital Clock */}
+                  <div className="text-4xl font-extrabold tracking-tight text-txt-primary font-mono select-all">
+                    {time.toLocaleTimeString()}
+                  </div>
+
+                  {/* Check in/out pulse button */}
+                  <button
+                    onClick={handleAttendanceToggle}
+                    disabled={attendance && attendance.status === 'Completed'}
+                    className={`w-full max-w-[280px] h-12 rounded-xl text-xs font-bold uppercase tracking-wider text-white relative overflow-hidden transition-all active:scale-97 ${
+                      attendance && attendance.status === 'Completed'
+                        ? 'bg-bg-elevated border border-border-custom text-txt-secondary cursor-not-allowed'
+                        : attendance && attendance.status === 'Checked In'
+                        ? 'bg-danger-primary hover:bg-danger-primary/90 shadow-lg shadow-danger-primary/20 animate-pulse cursor-pointer'
+                        : 'bg-success-primary hover:bg-success-primary/90 shadow-lg shadow-success-primary/20 cursor-pointer'
+                    }`}
+                  >
+                    {attendance && attendance.status === 'Completed'
+                      ? 'Attendance Completed'
+                      : attendance && attendance.status === 'Checked In'
+                      ? 'Check Out'
+                      : 'Check In'}
+                  </button>
                 </div>
-              </div>
 
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Reason</label>
-                <textarea
-                  rows={2}
-                  required
-                  placeholder="Details of cover, recovery etc..."
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  className="w-full bg-bg-page border border-border-custom outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary resize-none"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={submittingLeave}
-                className="w-full h-8 bg-brand-indigo hover:bg-brand-indigo-hover text-white text-xs font-semibold rounded-lg flex items-center justify-center cursor-pointer transition-all disabled:opacity-50 active:scale-98"
-              >
-                {submittingLeave ? 'Submitting request...' : 'Request Time Off'}
-              </button>
-            </form>
-
-            {/* Recent leaves table */}
-            {leaveSummary.recent.length > 0 && (
-              <div className="pt-4 border-t border-border-custom/50 space-y-2">
-                <span className="text-[10px] font-bold text-txt-tertiary uppercase tracking-wider block">My Recent Requests</span>
+                {/* Weekly Heatmap (Mon-Sun) */}
                 <div className="space-y-2">
-                  {leaveSummary.recent.map((req) => (
-                    <div key={req.id} className="flex items-center justify-between bg-bg-page/50 border border-border-custom/50 p-2.5 rounded-lg text-[11px]">
-                      <div>
-                        <span className="font-semibold text-txt-primary block leading-none mb-1">{req.leave_type} Leave</span>
-                        <span className="text-txt-tertiary block leading-none">
-                          {new Date(req.start_date).toLocaleDateString()} to {new Date(req.end_date).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <StatusPill status={req.status} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-          </div>
-
-        </div>
-      )}
-
-      {activeTab === 'overview' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          
-          {/* Skill Gap Analysis Box */}
-          <div className="rounded-xl border border-border-custom bg-bg-surface p-6 space-y-6">
-            <div className="border-b border-border-custom pb-3 flex items-center justify-between">
-              <div>
-                <h4 className="text-sm font-semibold">Career Path Gap Analysis</h4>
-                <p className="text-[11px] text-txt-secondary">
-                  {skillGap?.role_expectations ? `Compare profile against: ${skillGap.role_expectations}` : 'Define a target role to test skills gaps'}
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-              
-              {/* Radial indicators */}
-              <div className="flex flex-col items-center justify-center">
-                <SkillGapRadial percent={gapProgress} />
-              </div>
-
-              {/* Target Role search */}
-              <form onSubmit={handleSkillGapAnalyze} className="space-y-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Target Career Role</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Lead Backend Architect"
-                    value={targetRole}
-                    onChange={(e) => setTargetRole(e.target.value)}
-                    className="w-full bg-bg-page border border-border-custom outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary focus:border-brand-indigo"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={analyzingGap}
-                  className="w-full h-8 bg-brand-indigo hover:bg-brand-indigo-hover text-white text-xs font-semibold rounded-lg flex items-center justify-center cursor-pointer transition-colors"
-                >
-                  {analyzingGap ? 'Analyzing fit...' : 'Re-analyze Skill Gaps'}
-                </button>
-              </form>
-
-            </div>
-
-            {/* Current & Missing lists */}
-            {skillGap && (
-              <div className="space-y-4 pt-4 border-t border-border-custom/50">
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <span className="text-[9px] font-bold text-success-primary uppercase tracking-wider block">My Current Skills</span>
-                    <div className="flex flex-wrap gap-1">
-                      {currentSkillsList.map((s, idx) => (
-                        <span key={idx} className="bg-success-bg/20 text-success-primary border border-success-primary/20 px-2 py-0.5 rounded text-[10px]">
-                          {s}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <span className="text-[9px] font-bold text-warning-custom uppercase tracking-wider block">Identified Gaps</span>
-                    <div className="flex flex-wrap gap-1">
-                      {missingSkillsList.map((s, idx) => (
-                        <span key={idx} className="bg-warning-bg/20 text-warning-custom border border-warning-custom/20 px-2 py-0.5 rounded text-[10px]">
-                          {s}
-                        </span>
-                      ))}
-                    </div>
+                  <span className="text-[10px] font-bold text-txt-tertiary uppercase tracking-wider block">Weekly Heatmap</span>
+                  <div className="grid grid-cols-7 gap-2">
+                    {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, idx) => {
+                      // Mock highlights: present on Mon, Tue. Absent on others
+                      const isToday = idx === (new Date().getDay() - 1 + 7) % 7
+                      const isPresent = idx < 2
+                      
+                      return (
+                        <div
+                          key={idx}
+                          className={`flex flex-col items-center justify-center p-2 rounded-lg border text-[11px] font-semibold ${
+                            isPresent
+                              ? 'bg-success-bg/30 border-success-primary text-success-primary'
+                              : isToday
+                              ? 'bg-bg-page border-brand-indigo text-brand-indigo'
+                              : 'bg-bg-page border-border-custom text-txt-tertiary'
+                          }`}
+                        >
+                          <span className="uppercase text-[9px] mb-1">{day}</span>
+                          <span className="text-[10px] font-bold">{isPresent ? 'P' : 'A'}</span>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
 
-                {/* Suggestions */}
-                {skillGap.learning_suggestions && skillGap.learning_suggestions.length > 0 && (
-                  <div className="space-y-2 pt-2 border-t border-border-custom/30">
-                    <span className="text-[9px] font-bold text-txt-tertiary uppercase tracking-wider block flex items-center space-x-1">
-                      <BookOpen size={10} className="text-brand-indigo" />
-                      <span>Recommended Upskilling Path</span>
-                    </span>
-                    <ul className="space-y-1.5 text-xs text-txt-secondary leading-relaxed">
-                      {skillGap.learning_suggestions.slice(0, 3).map((suggestion, idx) => (
-                        <li key={idx} className="flex items-start space-x-1.5">
-                          <span className="text-brand-indigo">•</span>
-                          <span>{suggestion}</span>
-                        </li>
+              </div>
+
+              {/* Leave requests card (45%) */}
+              <div className="lg:col-span-5 rounded-xl border border-border-custom bg-bg-surface p-6 shadow-xs space-y-4">
+                <div className="border-b border-border-custom pb-3">
+                  <h4 className="text-sm font-semibold">Request Time Off</h4>
+                  <p className="text-[11px] text-txt-secondary">Submit leave requests directly to your line manager</p>
+                </div>
+
+                <form onSubmit={handleLeaveSubmit} className="space-y-3">
+                  
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Leave Type</label>
+                    <select
+                      value={leaveType}
+                      onChange={(e) => setLeaveType(e.target.value)}
+                      className="w-full bg-bg-page border border-border-custom outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary"
+                    >
+                      <option value="Annual">Annual / Vacation</option>
+                      <option value="Casual">Casual / Personal</option>
+                      <option value="Sick">Sick Leave</option>
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Start Date</label>
+                      <input
+                        type="date"
+                        required
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="w-full bg-bg-page border border-border-custom outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-txt-tertiary uppercase block">End Date</label>
+                      <input
+                        type="date"
+                        required
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="w-full bg-bg-page border border-border-custom outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Reason</label>
+                    <textarea
+                      rows={2}
+                      required
+                      placeholder="Details of cover, recovery etc..."
+                      value={reason}
+                      onChange={(e) => setReason(e.target.value)}
+                      className="w-full bg-bg-page border border-border-custom outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary resize-none font-sans"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={submittingLeave}
+                    className="w-full h-8 bg-brand-indigo hover:bg-brand-indigo-hover text-white text-xs font-semibold rounded-lg flex items-center justify-center cursor-pointer transition-all disabled:opacity-50 active:scale-98"
+                  >
+                    {submittingLeave ? 'Submitting request...' : 'Request Time Off'}
+                  </button>
+                </form>
+
+                {/* Recent leaves table */}
+                {leaveSummary.recent.length > 0 && (
+                  <div className="pt-4 border-t border-border-custom/50 space-y-2">
+                    <span className="text-[10px] font-bold text-txt-tertiary uppercase tracking-wider block">My Recent Requests</span>
+                    <div className="space-y-2">
+                      {leaveSummary.recent.map((req) => (
+                        <div key={req.id} className="flex items-center justify-between bg-bg-page/50 border border-border-custom/50 p-2.5 rounded-lg text-[11px]">
+                          <div>
+                            <span className="font-semibold text-txt-primary block leading-none mb-1">{req.leave_type} Leave</span>
+                            <span className="text-txt-tertiary block leading-none">
+                              {new Date(req.start_date).toLocaleDateString()} to {new Date(req.end_date).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <StatusPill status={req.status} />
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                   </div>
                 )}
 
               </div>
-            )}
 
+            </div>
           </div>
 
-          {/* Static HR/Dashboard policy helper box */}
-          <div className="rounded-xl border border-border-custom bg-bg-surface p-6 flex flex-col justify-between h-full space-y-6">
-            <div className="space-y-3">
-              <h4 className="text-sm font-semibold flex items-center space-x-1.5">
-                <AlertCircle size={16} className="text-brand-indigo" />
-                <span>Workspace Policies Reference</span>
-              </h4>
-              <p className="text-xs text-txt-secondary leading-relaxed">
-                Find standard guidelines regarding work hours, holidays, leaves, and payroll below. For dynamic queries, use the floating chatbot assistant in the bottom right corner.
-              </p>
-            </div>
+          {/* Section: Career Path & Organization Policies */}
+          <div className="space-y-3">
+            <h3 className="text-[10px] font-bold tracking-wider uppercase text-txt-secondary">Career Path Fit & Organization Policies</h3>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              
+              {/* Skill Gap Analysis Box */}
+              <div className="rounded-xl border border-border-custom bg-bg-surface p-6 shadow-xs space-y-6">
+                <div className="border-b border-border-custom pb-3 flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-semibold">Career Path Gap Analysis</h4>
+                    <p className="text-[11px] text-txt-secondary">
+                      {skillGap?.role_expectations ? `Compare profile against: ${skillGap.role_expectations}` : 'Define a target role to test skills gaps'}
+                    </p>
+                  </div>
+                </div>
 
-            <div className="space-y-2.5 text-xs text-txt-secondary bg-bg-page p-4 border border-border-custom rounded-xl">
-              <div>
-                <span className="font-semibold text-txt-primary">Check-In policy:</span> Check in before 10:00 AM local time is considered on-time. Delay triggers warnings.
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                  
+                  {/* Radial indicators */}
+                  <div className="flex flex-col items-center justify-center">
+                    <SkillGapRadial percent={gapProgress} />
+                  </div>
+
+                  {/* Target Role search */}
+                  <form onSubmit={handleSkillGapAnalyze} className="space-y-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Target Career Role</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Lead Backend Architect"
+                        value={targetRole}
+                        onChange={(e) => setTargetRole(e.target.value)}
+                        className="w-full bg-bg-page border border-border-custom outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary focus:border-brand-indigo"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={analyzingGap}
+                      className="w-full h-8 bg-brand-indigo hover:bg-brand-indigo-hover text-white text-xs font-semibold rounded-lg flex items-center justify-center cursor-pointer transition-colors"
+                    >
+                      {analyzingGap ? 'Analyzing fit...' : 'Re-analyze Skill Gaps'}
+                    </button>
+                  </form>
+
+                </div>
+
+                {/* Current & Missing lists */}
+                {skillGap && (
+                  <div className="space-y-4 pt-4 border-t border-border-custom/50">
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <span className="text-[9px] font-bold text-success-primary uppercase tracking-wider block">My Current Skills</span>
+                        <div className="flex flex-wrap gap-1">
+                          {currentSkillsList.map((s, idx) => (
+                            <span key={idx} className="bg-success-bg/20 text-success-primary border border-success-primary/20 px-2 py-0.5 rounded text-[10px]">
+                              {s}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <span className="text-[9px] font-bold text-warning-primary uppercase tracking-wider block">Identified Gaps</span>
+                        <div className="flex flex-wrap gap-1">
+                          {missingSkillsList.map((s, idx) => (
+                            <span key={idx} className="bg-warning-bg/20 text-warning-primary border border-warning-primary/20 px-2 py-0.5 rounded text-[10px]">
+                              {s}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Suggestions */}
+                    {skillGap.learning_suggestions && skillGap.learning_suggestions.length > 0 && (
+                      <div className="space-y-2 pt-2 border-t border-border-custom/30">
+                        <span className="text-[9px] font-bold text-txt-tertiary uppercase tracking-wider block flex items-center space-x-1">
+                          <BookOpen size={10} className="text-brand-indigo" />
+                          <span>Recommended Upskilling Path</span>
+                        </span>
+                        <ul className="space-y-1.5 text-xs text-txt-secondary leading-relaxed">
+                          {skillGap.learning_suggestions.slice(0, 3).map((suggestion, idx) => (
+                            <li key={idx} className="flex items-start space-x-1.5">
+                              <span className="text-brand-indigo">•</span>
+                              <span>{suggestion}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                  </div>
+                )}
+
               </div>
-              <div className="border-t border-border-custom/50 pt-2">
-                <span className="font-semibold text-txt-primary">Leave submissions:</span> Casual leave requests must be submitted 2 days in advance.
+
+              {/* Static HR/Dashboard policy helper box */}
+              <div className="rounded-xl border border-border-custom bg-bg-surface p-6 shadow-xs flex flex-col justify-between h-full space-y-6">
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold flex items-center space-x-1.5">
+                    <AlertCircle size={16} className="text-brand-indigo" />
+                    <span>Workspace Policies Reference</span>
+                  </h4>
+                  <p className="text-xs text-txt-secondary leading-relaxed">
+                    Find standard guidelines regarding work hours, holidays, leaves, and payroll below. For dynamic queries, use the floating chatbot assistant in the bottom right corner.
+                  </p>
+                </div>
+
+                <div className="space-y-2.5 text-xs text-txt-secondary bg-bg-page p-4 border border-border-custom rounded-xl">
+                  <div>
+                    <span className="font-semibold text-txt-primary">Check-In policy:</span> Check in before 10:00 AM local time is considered on-time. Delay triggers warnings.
+                  </div>
+                  <div className="border-t border-border-custom/50 pt-2">
+                    <span className="font-semibold text-txt-primary">Leave submissions:</span> Casual leave requests must be submitted 2 days in advance.
+                  </div>
+                </div>
               </div>
+
             </div>
           </div>
 

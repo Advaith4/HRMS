@@ -324,130 +324,133 @@ export const HRDashboard = ({ activeTab = 'overview' }) => {
       {/* RENDER SUBVIEWS DEPENDING ON ACTIVETAB */}
       
       {activeTab === 'overview' && (
-        <div className="space-y-6">
+        <div className="space-y-8">
           
-          {/* Main Visuals: 7-day trend area chart */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            {/* Volume trend */}
-            <div className="lg:col-span-2 rounded-xl border border-border-custom bg-bg-surface p-6">
-              <ApplicationTrend />
+          {/* Section: Talent Analytics */}
+          <div className="space-y-3">
+            <h3 className="text-[10px] font-bold tracking-wider uppercase text-txt-secondary">Talent Analytics & Fitting Profiles</h3>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Volume trend */}
+              <div className="lg:col-span-2 rounded-xl border border-border-custom bg-bg-surface p-6 shadow-xs">
+                <ApplicationTrend />
+              </div>
+              {/* Score distribution */}
+              <div className="rounded-xl border border-border-custom bg-bg-surface p-6 shadow-xs">
+                <ScoreDistribution />
+              </div>
             </div>
-
-            {/* Score distribution */}
-            <div className="rounded-xl border border-border-custom bg-bg-surface p-6">
-              <ScoreDistribution />
-            </div>
-
           </div>
 
-          {/* Table & Job summary rows */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            {/* Applications Table (60%) */}
-            <div className="lg:col-span-2 rounded-xl border border-border-custom bg-bg-surface p-6 space-y-4">
-              <div className="flex items-center justify-between border-b border-border-custom pb-3">
-                <div>
-                  <h4 className="text-sm font-semibold">Recruitment Pipeline</h4>
-                  <p className="text-[11px] text-txt-secondary">Candidate applications sorted by submission date</p>
+          {/* Section: Recruitment Activity */}
+          <div className="space-y-3">
+            <h3 className="text-[10px] font-bold tracking-wider uppercase text-txt-secondary">Recruitment Pipelines & Vacancies</h3>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              
+              {/* Applications Table (60%) */}
+              <div className="lg:col-span-2 rounded-xl border border-border-custom bg-bg-surface p-6 shadow-xs space-y-4">
+                <div className="flex items-center justify-between border-b border-border-custom pb-3">
+                  <div>
+                    <h4 className="text-sm font-semibold">Recruitment Pipeline</h4>
+                    <p className="text-[11px] text-txt-secondary">Candidate applications sorted by submission date</p>
+                  </div>
+                  
+                  {/* Micro search filter */}
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Search candidate..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="bg-bg-page border border-border-custom text-xs outline-none px-3 py-1 pl-8 rounded-lg w-48 text-txt-primary focus:border-brand-indigo transition-colors"
+                    />
+                    <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-txt-tertiary" />
+                  </div>
                 </div>
-                
-                {/* Micro search filter */}
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Search candidate..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="bg-bg-page border border-border-custom text-xs outline-none px-3 py-1 pl-8 rounded-lg w-48 text-txt-primary focus:border-brand-indigo"
-                  />
-                  <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-txt-tertiary" />
-                </div>
+
+                {filteredApps.length === 0 ? (
+                  <EmptyState title="No active applications" description="Wait for candidates to apply or share job openings." />
+                ) : (
+                  <div className="overflow-x-auto w-full">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-bg-page text-txt-secondary font-bold uppercase tracking-wider border-b border-border-custom">
+                          <th className="py-2.5 px-3 text-[10px] tracking-wider">Candidate</th>
+                          <th className="py-2.5 px-3 text-[10px] tracking-wider">Role Applied</th>
+                          <th className="py-2.5 px-3 text-[10px] tracking-wider text-center">AI Fit</th>
+                          <th className="py-2.5 px-3 text-[10px] tracking-wider">Status</th>
+                          <th className="py-2.5 px-3 text-[10px] tracking-wider text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border-custom/50">
+                        {filteredApps.map((app) => {
+                          const scoreVal = app.ai_analysis?.fit_score || 0
+                          const scoreColor = scoreVal >= 70 ? 'text-success-primary' : scoreVal >= 40 ? 'text-warning-custom' : 'text-danger-primary'
+                          
+                          return (
+                            <tr key={app.id} className="hover:bg-slate-50 transition-colors border-b border-border-custom/30">
+                              <td className="py-3 px-3 font-semibold text-txt-primary">{app.candidate_username}</td>
+                              <td className="py-3 px-3 text-txt-secondary">{app.job_title}</td>
+                              <td className="py-3 px-3 text-center font-bold">
+                                <span className={scoreColor}>{scoreVal}</span>
+                              </td>
+                              <td className="py-3 px-3">
+                                <StatusPill status={app.status} />
+                              </td>
+                              <td className="py-3 px-3 text-right space-x-2">
+                                <button
+                                  onClick={() => handleOpenAnalysis(app)}
+                                  className="inline-flex items-center space-x-1 border border-border-custom bg-bg-page text-txt-secondary hover:text-brand-indigo hover:border-brand-indigo/30 px-2 py-1 rounded text-[11px] font-medium cursor-pointer transition-colors"
+                                >
+                                  <Eye size={11} />
+                                  <span>Inspect</span>
+                                </button>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
 
-              {filteredApps.length === 0 ? (
-                <EmptyState title="No active applications" description="Wait for candidates to apply or share job openings." />
-              ) : (
-                <div className="overflow-x-auto w-full">
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead>
-                      <tr className="bg-bg-page text-txt-tertiary font-bold uppercase tracking-wider border-b border-border-custom">
-                        <th className="py-2.5 px-3">Candidate</th>
-                        <th className="py-2.5 px-3">Role Applied</th>
-                        <th className="py-2.5 px-3 text-center">AI Fit</th>
-                        <th className="py-2.5 px-3">Status</th>
-                        <th className="py-2.5 px-3 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border-custom/50">
-                      {filteredApps.map((app) => {
-                        const scoreVal = app.ai_analysis?.fit_score || 0
-                        const scoreColor = scoreVal >= 70 ? 'text-success-primary' : scoreVal >= 40 ? 'text-warning-custom' : 'text-danger-primary'
-                        
-                        return (
-                          <tr key={app.id} className="hover:bg-bg-elevated/40 transition-colors">
-                            <td className="py-3 px-3 font-semibold text-txt-primary">{app.candidate_username}</td>
-                            <td className="py-3 px-3 text-txt-secondary">{app.job_title}</td>
-                            <td className="py-3 px-3 text-center font-bold">
-                              <span className={scoreColor}>{scoreVal}</span>
-                            </td>
-                            <td className="py-3 px-3">
-                              <StatusPill status={app.status} />
-                            </td>
-                            <td className="py-3 px-3 text-right space-x-2">
-                              <button
-                                onClick={() => handleOpenAnalysis(app)}
-                                className="inline-flex items-center space-x-1 border border-border-custom bg-bg-page text-txt-secondary hover:text-brand-indigo hover:border-brand-indigo/30 px-2 py-1 rounded text-[11px] font-medium cursor-pointer"
-                              >
-                                <Eye size={11} />
-                                <span>Inspect</span>
-                              </button>
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
+              {/* Active Jobs list summary (40%) */}
+              <div className="rounded-xl border border-border-custom bg-bg-surface p-6 shadow-xs space-y-4">
+                <div className="flex items-center justify-between border-b border-border-custom pb-3">
+                  <h4 className="text-sm font-semibold">Active Postings</h4>
+                  <span className="text-[10px] text-brand-indigo font-bold bg-brand-indigo-muted px-2 py-0.5 rounded-full">{seededJobs.length} total</span>
                 </div>
-              )}
-            </div>
 
-            {/* Active Jobs list summary (40%) */}
-            <div className="rounded-xl border border-border-custom bg-bg-surface p-6 space-y-4">
-              <div className="flex items-center justify-between border-b border-border-custom pb-3">
-                <h4 className="text-sm font-semibold">Active Postings</h4>
-                <span className="text-[10px] text-brand-indigo font-bold">{seededJobs.length} total</span>
-              </div>
-
-              <div className="space-y-2">
-                {seededJobs.map((job) => {
-                  const count = seededApplications.filter(a => a.job_id === job.id).length
-                  return (
-                    <button
-                      key={job.id}
-                      onClick={() => { setSelectedJob(job); setIsApplicantsOpen(true) }}
-                      className="w-full flex items-start justify-between border border-border-custom/40 hover:border-brand-indigo/30 bg-bg-page hover:bg-bg-elevated rounded-lg px-3 py-2.5 transition-all group cursor-pointer text-left"
-                    >
-                      <div className="space-y-0.5 min-w-0">
-                        <span className="text-xs font-semibold text-txt-primary group-hover:text-brand-indigo transition-colors block truncate">{job.title}</span>
-                        <div className="flex items-center space-x-2 text-[10px] text-txt-secondary">
-                          <span className="bg-bg-surface px-1.5 py-0.5 rounded text-txt-tertiary">{job.department}</span>
-                          <span>·</span>
-                          <span>{job.salary_range}</span>
+                <div className="space-y-2">
+                  {seededJobs.map((job) => {
+                    const count = seededApplications.filter(a => a.job_id === job.id).length
+                    return (
+                      <button
+                        key={job.id}
+                        onClick={() => { setSelectedJob(job); setIsApplicantsOpen(true) }}
+                        className="w-full flex items-start justify-between border border-border-custom/40 hover:border-brand-indigo/30 bg-bg-page hover:bg-slate-50 rounded-lg px-3 py-2.5 transition-all group cursor-pointer text-left"
+                      >
+                        <div className="space-y-1 min-w-0">
+                          <span className="text-xs font-semibold text-txt-primary group-hover:text-brand-indigo transition-colors block truncate">{job.title}</span>
+                          <div className="flex items-center space-x-2 text-[10px] text-txt-secondary">
+                            <span className="bg-bg-surface px-1.5 py-0.5 rounded text-txt-tertiary font-medium">{job.department}</span>
+                            <span>·</span>
+                            <span>{job.salary_range}</span>
+                          </div>
                         </div>
-                      </div>
-                      <span className="flex items-center space-x-1 shrink-0 ml-2 mt-0.5">
-                        <span className="text-[10px] font-bold text-brand-indigo bg-brand-indigo/10 border border-brand-indigo/20 px-1.5 py-0.5 rounded">
-                          {count}
+                        <span className="flex items-center space-x-1 shrink-0 ml-2 mt-0.5">
+                          <span className="text-[10px] font-bold text-brand-indigo bg-brand-indigo-muted/50 border border-brand-indigo/20 px-1.5 py-0.5 rounded">
+                            {count}
+                          </span>
+                          <ChevronRight size={11} className="text-txt-tertiary group-hover:text-brand-indigo transition-colors" />
                         </span>
-                        <ChevronRight size={11} className="text-txt-tertiary group-hover:text-brand-indigo transition-colors" />
-                      </span>
-                    </button>
-                  )
-                })}
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
-            </div>
 
+            </div>
           </div>
 
         </div>

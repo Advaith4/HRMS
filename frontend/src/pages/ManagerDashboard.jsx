@@ -172,7 +172,7 @@ export const ManagerDashboard = ({ activeTab = 'overview' }) => {
       </div>
 
       {activeTab === 'overview' && (
-        <>
+        <div className="space-y-8">
           {/* KPI Cards Row */}
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -187,106 +187,112 @@ export const ManagerDashboard = ({ activeTab = 'overview' }) => {
             </div>
           )}
 
-          {/* Area & Bar charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 rounded-xl border border-border-custom bg-bg-surface p-6">
-              <ApplicationTrend />
-            </div>
-            <div className="rounded-xl border border-border-custom bg-bg-surface p-6">
-              <ScoreDistribution />
+          {/* Section: Talent Analytics */}
+          <div className="space-y-3">
+            <h3 className="text-[10px] font-bold tracking-wider uppercase text-txt-secondary">Talent Analytics & Trends</h3>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 rounded-xl border border-border-custom bg-white p-6 shadow-xs">
+                <ApplicationTrend />
+              </div>
+              <div className="rounded-xl border border-border-custom bg-white p-6 shadow-xs">
+                <ScoreDistribution />
+              </div>
             </div>
           </div>
 
-          {/* Per-job Candidate Leaderboard */}
-          <div className="rounded-xl border border-border-custom bg-bg-surface p-6 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-border-custom pb-3 gap-3">
-              <div>
-                <h4 className="text-sm font-semibold flex items-center space-x-1.5">
-                  <Trophy size={16} className="text-amber-500" />
-                  <span>Candidate Leaderboards</span>
-                </h4>
-                <p className="text-[11px] text-txt-secondary">Detailed candidates ranked based on AI Fit Match scores</p>
+          {/* Section: Performance & Evaluation Leaderboards */}
+          <div className="space-y-3">
+            <h3 className="text-[10px] font-bold tracking-wider uppercase text-txt-secondary">Performance & Evaluation Leaderboards</h3>
+            <div className="rounded-xl border border-border-custom bg-white p-6 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-border-custom pb-3 gap-3">
+                <div>
+                  <h4 className="text-sm font-semibold flex items-center space-x-1.5">
+                    <Trophy size={16} className="text-amber-500" />
+                    <span>Candidate Leaderboards</span>
+                  </h4>
+                  <p className="text-[11px] text-txt-secondary">Detailed candidates ranked based on AI Fit Match scores</p>
+                </div>
+
+                {/* Job Select Dropdown */}
+                <select
+                  value={selectedJobId}
+                  onChange={(e) => setSelectedJobId(e.target.value)}
+                  className="bg-white border border-border-custom text-xs outline-none px-3.5 py-2 rounded-lg text-txt-primary focus:border-brand-indigo focus:ring-1 focus:ring-brand-indigo w-full sm:w-64 transition-all shadow-xs cursor-pointer"
+                >
+                  <option value="">Select Job Opening...</option>
+                  {seededJobs.map((j) => (
+                    <option key={j.id} value={j.id}>{j.title}</option>
+                  ))}
+                </select>
               </div>
 
-              {/* Job Select Dropdown */}
-              <select
-                value={selectedJobId}
-                onChange={(e) => setSelectedJobId(e.target.value)}
-                className="bg-bg-page border border-border-custom text-xs outline-none px-3 py-1.5 rounded-lg text-txt-primary focus:border-brand-indigo w-full sm:w-56"
-              >
-                <option value="">Select Job Opening...</option>
-                {seededJobs.map((j) => (
-                  <option key={j.id} value={j.id}>{j.title}</option>
-                ))}
-              </select>
+              {loadingLeaderboard ? (
+                <SkeletonCard mode="table" count={3} />
+              ) : leaderboard.length === 0 ? (
+                <EmptyState title="No submissions ranked" description="Select a different job vacancy or wait for applications." />
+              ) : (
+                <div className="overflow-x-auto w-full">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-bg-page text-txt-secondary font-bold uppercase tracking-wider border-b border-border-custom">
+                        <th className="py-2.5 px-3 w-16 text-center text-[10px] tracking-wider">Rank</th>
+                        <th className="py-2.5 px-3 text-[10px] tracking-wider">Candidate</th>
+                        <th className="py-2.5 px-3 text-center text-[10px] tracking-wider">AI Match</th>
+                        <th className="py-2.5 px-3 text-[10px] tracking-wider">Recommendation</th>
+                        <th className="py-2.5 px-3 text-[10px] tracking-wider">Status</th>
+                        <th className="py-2.5 px-3 text-right text-[10px] tracking-wider">Profiles</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border-custom/50">
+                      {leaderboard.map((item) => {
+                        const scoreVal = item.analysis?.fit_score || 0
+                        const scoreColor = scoreVal >= 70 ? 'text-success-primary' : scoreVal >= 40 ? 'text-warning-custom' : 'text-danger-primary'
+                        
+                        // Map complete object to match drawer expectation
+                        const fullAppObj = {
+                          ...item.application,
+                          candidate_username: item.candidate?.username,
+                          ai_analysis: item.analysis
+                        }
+
+                        return (
+                          <tr key={item.application?.id || item.candidate?.id} className="hover:bg-slate-50 transition-colors border-b border-border-custom/30">
+                            <td className="py-3 px-3 text-center">{getMedalBadge(item.rank)}</td>
+                            <td className="py-3 px-3 font-semibold text-txt-primary">{item.candidate?.username}</td>
+                            <td className="py-3 px-3 text-center font-bold">
+                              <span className={scoreColor}>{scoreVal}</span>
+                            </td>
+                            <td className="py-3 px-3">
+                              <span className="text-[10px] font-semibold text-txt-secondary bg-bg-page px-2 py-0.5 rounded border border-border-custom/60 uppercase">
+                                {item.analysis?.recommendation || 'Consider'}
+                              </span>
+                            </td>
+                            <td className="py-3 px-3">
+                              <StatusPill status={item.application?.status || 'Applied'} />
+                            </td>
+                            <td className="py-3 px-3 text-right">
+                              <button
+                                onClick={() => { setSelectedApplication(fullAppObj); setIsAnalysisOpen(true); }}
+                                className="inline-flex items-center space-x-1 border border-border-custom bg-white text-txt-secondary hover:text-brand-indigo hover:border-brand-indigo/30 px-2.5 py-1.5 rounded-lg text-[11px] font-medium cursor-pointer transition-colors shadow-xs"
+                              >
+                                <Eye size={11} className="mr-1" />
+                                <span>Inspect</span>
+                              </button>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
-
-            {loadingLeaderboard ? (
-              <SkeletonCard mode="table" count={3} />
-            ) : leaderboard.length === 0 ? (
-              <EmptyState title="No submissions ranked" description="Select a different job vacancy or wait for applications." />
-            ) : (
-              <div className="overflow-x-auto w-full">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="bg-bg-page text-txt-tertiary font-bold uppercase tracking-wider border-b border-border-custom">
-                      <th className="py-2.5 px-3 w-16 text-center">Rank</th>
-                      <th className="py-2.5 px-3">Candidate</th>
-                      <th className="py-2.5 px-3 text-center">AI Match</th>
-                      <th className="py-2.5 px-3">Recommendation</th>
-                      <th className="py-2.5 px-3">Status</th>
-                      <th className="py-2.5 px-3 text-right">Profiles</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border-custom/50">
-                    {leaderboard.map((item) => {
-                      const scoreVal = item.analysis?.fit_score || 0
-                      const scoreColor = scoreVal >= 70 ? 'text-success-primary' : scoreVal >= 40 ? 'text-warning-custom' : 'text-danger-primary'
-                      
-                      // Map complete object to match drawer expectation
-                      const fullAppObj = {
-                        ...item.application,
-                        candidate_username: item.candidate?.username,
-                        ai_analysis: item.analysis
-                      }
-
-                      return (
-                        <tr key={item.application?.id || item.candidate?.id} className="hover:bg-bg-elevated/40 transition-colors">
-                          <td className="py-3 px-3 text-center">{getMedalBadge(item.rank)}</td>
-                          <td className="py-3 px-3 font-semibold text-txt-primary">{item.candidate?.username}</td>
-                          <td className="py-3 px-3 text-center font-bold">
-                            <span className={scoreColor}>{scoreVal}</span>
-                          </td>
-                          <td className="py-3 px-3">
-                            <span className="text-[10px] font-semibold text-txt-secondary bg-bg-page px-2 py-0.5 rounded border border-border-custom/60 uppercase">
-                              {item.analysis?.recommendation || 'Consider'}
-                            </span>
-                          </td>
-                          <td className="py-3 px-3">
-                            <StatusPill status={item.application?.status || 'Applied'} />
-                          </td>
-                          <td className="py-3 px-3 text-right">
-                            <button
-                              onClick={() => { setSelectedApplication(fullAppObj); setIsAnalysisOpen(true); }}
-                              className="inline-flex items-center space-x-1 border border-border-custom bg-bg-page text-txt-secondary hover:text-brand-indigo hover:border-brand-indigo/30 px-2 py-1 rounded text-[11px] font-medium cursor-pointer"
-                            >
-                              <Eye size={11} />
-                              <span>Inspect</span>
-                            </button>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
           </div>
-        </>
+        </div>
       )}
 
       {activeTab === 'leaves' && (
-        <div className="rounded-xl border border-border-custom bg-bg-surface p-6 space-y-4">
+        <div className="rounded-xl border border-border-custom bg-white p-6 shadow-xs space-y-4">
           <div className="flex items-center justify-between border-b border-border-custom pb-3">
             <div>
               <h4 className="text-sm font-semibold">Employee Leave Applications</h4>
@@ -302,18 +308,18 @@ export const ManagerDashboard = ({ activeTab = 'overview' }) => {
             <div className="overflow-x-auto w-full">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="bg-bg-page text-txt-tertiary font-bold uppercase tracking-wider border-b border-border-custom">
-                    <th className="py-2.5 px-3">Employee</th>
-                    <th className="py-2.5 px-3">Leave Type</th>
-                    <th className="py-2.5 px-3">Duration</th>
-                    <th className="py-2.5 px-3">Reason</th>
-                    <th className="py-2.5 px-3">Status</th>
-                    <th className="py-2.5 px-3 text-right">Actions</th>
+                  <tr className="bg-bg-page text-txt-secondary font-bold uppercase tracking-wider border-b border-border-custom">
+                    <th className="py-2.5 px-3 text-[10px] tracking-wider">Employee</th>
+                    <th className="py-2.5 px-3 text-[10px] tracking-wider">Leave Type</th>
+                    <th className="py-2.5 px-3 text-[10px] tracking-wider">Duration</th>
+                    <th className="py-2.5 px-3 text-[10px] tracking-wider">Reason</th>
+                    <th className="py-2.5 px-3 text-[10px] tracking-wider">Status</th>
+                    <th className="py-2.5 px-3 text-right text-[10px] tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-custom/50">
                   {leaves.map((leave) => (
-                    <tr key={leave.id} className="hover:bg-bg-elevated/40 transition-colors">
+                    <tr key={leave.id} className="hover:bg-slate-50 transition-colors border-b border-border-custom/30">
                       <td className="py-3 px-3">
                         <span className="font-semibold text-txt-primary block">{leave.username}</span>
                         <span className="text-[10px] text-txt-tertiary">{leave.employee_code}</span>
@@ -337,7 +343,7 @@ export const ManagerDashboard = ({ activeTab = 'overview' }) => {
                                 setDecisionStatus('Approved')
                                 setShowDecisionModal(true)
                               }}
-                              className="px-2.5 py-1 border border-success-primary text-success-primary bg-success-bg/10 hover:bg-success-bg/25 rounded text-[11px] font-semibold transition-colors cursor-pointer"
+                              className="px-3 py-1 bg-success-bg text-success-primary hover:bg-green-200/60 border border-green-200 rounded-lg text-[11px] font-bold transition-all duration-200 cursor-pointer shadow-xs"
                             >
                               Approve
                             </button>
@@ -347,7 +353,7 @@ export const ManagerDashboard = ({ activeTab = 'overview' }) => {
                                 setDecisionStatus('Rejected')
                                 setShowDecisionModal(true)
                               }}
-                              className="px-2.5 py-1 border border-danger-primary text-danger-primary bg-danger-bg/10 hover:bg-danger-bg/25 rounded text-[11px] font-semibold transition-colors cursor-pointer"
+                              className="px-3 py-1 bg-danger-bg text-danger-primary hover:bg-red-200/60 border border-red-200 rounded-lg text-[11px] font-bold transition-all duration-200 cursor-pointer shadow-xs"
                             >
                               Reject
                             </button>
