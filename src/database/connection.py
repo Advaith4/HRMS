@@ -31,8 +31,12 @@ engine = create_engine(
     _db_url,
     echo=settings.DEBUG,
     connect_args=_connect_args,
-    pool_pre_ping=True,
-    pool_recycle=300,
+    # Keep more connections open so requests don't wait for Supabase handshakes
+    pool_size=10,
+    max_overflow=20,
+    pool_timeout=15,      # fail fast instead of waiting 30s (default)
+    pool_pre_ping=True,   # drop stale connections before reuse
+    pool_recycle=300,     # recycle connections every 5 min
 )
 
 

@@ -1,16 +1,17 @@
+import logging
 import os
 import shutil
 import uuid
 from datetime import date, datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
 from src.api.dependencies import require_roles
 from src.database.connection import get_session
-from src.models import CandidateApplication, Employee, JobPosting, User
+from src.models import ApplicationAIAnalysis, CandidateApplication, Employee, JobPosting, User
 from src.resume_lab import parse_resume
 from src.services.recruitment_ai import (
     analysis_payload,
@@ -20,6 +21,7 @@ from src.services.recruitment_ai import (
 )
 from utils.resume_parser import extract_text_from_pdf
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/applications", tags=["applications"])
 
 MAX_FILE_SIZE_MB = 5
@@ -37,12 +39,24 @@ class HireApplicationReq(BaseModel):
 async def apply_to_job(
     job_id: int = Form(...),
     file: UploadFile = File(...),
+    background_tasks: BackgroundTasks = BackgroundTasks(),
     session: Session = Depends(get_session),
     current_user: User = Depends(require_roles("candidate")),
 ):
     job = session.get(JobPosting, job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
+
+    existing = session.exec(
+        select(CandidateApplication)
+        .where(CandidateApplication.candidate_user_id == current_user.id)
+        .where(CandidateApplication.job_id == job_id)
+    ).first()
+    if existing:
+        raise HTTPException(
+            status_code=409,
+            detail="You have already submitted an application for this job opening."
+        )
 
     resume_text = await _extract_resume_text(file)
     application = CandidateApplication(
@@ -55,14 +69,27 @@ async def apply_to_job(
     session.add(application)
     session.commit()
     session.refresh(application)
-    analysis = analyze_application(session, application.id)
+
+    # Run AI analysis in the background — don't make the candidate wait for the LLM
+    app_id = application.id
+    background_tasks.add_task(_run_analysis_background, app_id)
 
     return {
         "success": True,
-        "message": "Application submitted.",
+        "message": "Application submitted. AI analysis is running in the background.",
         "application": application_payload(session, application),
-        "ai_analysis": analysis_payload(analysis),
+        "ai_analysis": None,
     }
+
+
+def _run_analysis_background(application_id: int) -> None:
+    """Background task — runs AI analysis after the HTTP response is already sent."""
+    from src.database.connection import engine
+    with Session(engine) as bg_session:
+        try:
+            analyze_application(bg_session, application_id)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Background analysis failed for application %s: %s", application_id, exc)
 
 
 @router.get("/me")
@@ -75,7 +102,7 @@ def my_applications(
         .where(CandidateApplication.candidate_user_id == current_user.id)
         .order_by(CandidateApplication.application_date.desc())
     ).all()
-    return [application_payload(session, application) for application in applications]
+    return _bulk_application_payloads(session, applications, include_resume=False)
 
 
 @router.get("")
@@ -86,7 +113,7 @@ def list_applications(
     applications = session.exec(
         select(CandidateApplication).order_by(CandidateApplication.application_date.desc())
     ).all()
-    return [application_payload(session, application) for application in applications]
+    return _bulk_application_payloads(session, applications)
 
 
 @router.post("/{application_id}/analyze")
@@ -227,3 +254,57 @@ def _employee_payload(session: Session, employee: Employee) -> dict[str, Any]:
         "joining_date": employee.joining_date.isoformat() if employee.joining_date else None,
         "skills": employee.skills,
     }
+
+
+def _bulk_application_payloads(
+    session: Session,
+    applications: list[CandidateApplication],
+    include_resume: bool = True,
+) -> list[dict[str, Any]]:
+    """
+    Build application payloads with batch DB lookups — no N+1 queries.
+    Fetches all Jobs, Users, and AI Analyses in 3 queries regardless of list size.
+    """
+    if not applications:
+        return []
+
+    job_ids = list({a.job_id for a in applications if a.job_id})
+    user_ids = list({a.candidate_user_id for a in applications if a.candidate_user_id})
+    app_ids = [a.id for a in applications]
+
+    jobs_by_id: dict[int, JobPosting] = {}
+    users_by_id: dict[int, User] = {}
+    analyses_by_app_id: dict[int, ApplicationAIAnalysis] = {}
+
+    if job_ids:
+        for j in session.exec(select(JobPosting).where(JobPosting.id.in_(job_ids))).all():
+            jobs_by_id[j.id] = j
+    if user_ids:
+        for u in session.exec(select(User).where(User.id.in_(user_ids))).all():
+            users_by_id[u.id] = u
+    if app_ids:
+        for an in session.exec(
+            select(ApplicationAIAnalysis).where(ApplicationAIAnalysis.application_id.in_(app_ids))
+        ).all():
+            analyses_by_app_id[an.application_id] = an
+
+    result = []
+    for app in applications:
+        job = jobs_by_id.get(app.job_id)
+        candidate = users_by_id.get(app.candidate_user_id)
+        analysis = analyses_by_app_id.get(app.id)
+        payload = {
+            "id": app.id,
+            "candidate_user_id": app.candidate_user_id,
+            "candidate_username": candidate.username if candidate else "",
+            "job_id": app.job_id,
+            "job_title": job.title if job else "",
+            "department": job.department if job else "",
+            "application_date": app.application_date.isoformat() if app.application_date else None,
+            "status": app.status,
+            "ai_analysis": analysis_payload(analysis) if analysis else None,
+        }
+        if include_resume:
+            payload["resume_text"] = app.resume_text
+        result.append(payload)
+    return result

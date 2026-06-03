@@ -61,6 +61,7 @@ _disable_broken_local_proxies()
 import appdirs
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -68,7 +69,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from src.config import settings
 from src.database.connection import create_db_and_tables
 from src.core.exceptions import http_exception_handler, validation_exception_handler
-from src.api.routes import applications, auth, candidates, employees, jobs, resume
+from src.api.routes import applications, auth, candidates, dashboard, employees, jobs, resume, interview
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -77,6 +78,7 @@ logging.basicConfig(
     datefmt="%H:%M:%S",
 )
 logger = logging.getLogger(__name__)
+
 
 # ── CrewAI storage isolation ──────────────────────────────────────────────────
 def _prepare_crewai_storage() -> None:
@@ -89,7 +91,9 @@ def _prepare_crewai_storage() -> None:
         storage_root / (appauthor or "CrewAI") / (appname or "talentforge_local")
     )
 
+
 _prepare_crewai_storage()
+
 
 # ── App lifecycle ─────────────────────────────────────────────────────────────
 @asynccontextmanager
@@ -98,6 +102,7 @@ async def lifespan(app: FastAPI):
     create_db_and_tables()
     yield
     logger.info("Shutting down.")
+
 
 # ── Application factory ───────────────────────────────────────────────────────
 app = FastAPI(
@@ -109,6 +114,9 @@ app = FastAPI(
 )
 
 # ── Middleware ────────────────────────────────────────────────────────────────
+# GZip compression for all responses ≥ 512 bytes (JS, JSON, HTML)
+app.add_middleware(GZipMiddleware, minimum_size=512)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS,
@@ -117,13 +125,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # ── Exception Handlers ────────────────────────────────────────────────────────
 app.add_exception_handler(StarletteHTTPException, http_exception_handler)
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
 
+
 @app.get("/api/health", include_in_schema=False)
 def health_check():
     return {"status": "ok"}
+
 
 # ── API Routers ───────────────────────────────────────────────────────────────
 app.include_router(auth.router)
@@ -132,7 +143,23 @@ app.include_router(jobs.router)
 app.include_router(applications.router)
 app.include_router(candidates.router)
 app.include_router(employees.router)
+app.include_router(dashboard.router)
+app.include_router(interview.router)
+
+
 
 # ── Static Frontend (must be LAST) ────────────────────────────────────────────
+class SPAStaticFiles(StaticFiles):
+    async def get_response(self, path: str, scope):
+        try:
+            return await super().get_response(path, scope)
+        except StarletteHTTPException as exc:
+            if exc.status_code == 404 and not (
+                path.startswith("api") or path.startswith("docs")
+            ):
+                return await super().get_response("index.html", scope)
+            raise exc
+
+
 os.makedirs("static", exist_ok=True)
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
+app.mount("/", SPAStaticFiles(directory="static", html=True), name="static")

@@ -1,0 +1,81 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-bg-page: #0B0F1A;
+  --color-bg-surface: #111827;
+  --color-bg-elevated: #1A2236;
+  --color-border-custom: #1F2D45;
+  --color-border-hover-custom: #2A3F5F;
+
+  --color-brand-indigo: #4F46E5;
+  --color-brand-indigo-hover: #4338CA;
+  --color-brand-indigo-muted: #1E1B4B;
+
+  --color-ai-teal: #0D9488;
+  --color-ai-teal-glow: #0F766E;
+
+  --color-txt-primary: #F1F5F9;
+  --color-txt-secondary: #94A3B8;
+  --color-txt-tertiary: #475569;
+
+  --color-success-primary: #10B981;
+  --color-success-bg: #052E16;
+  --color-warning-primary: #F59E0B;
+  --color-warning-bg: #2D1F00;
+  --color-danger-primary: #EF4444;
+  --color-danger-bg: #2A0A0A;
+  --color-info-primary: #3B82F6;
+  --color-info-bg: #0C1A3A;
+
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+@layer base {
+  body {
+    background-color: #0B0F1A;
+    color: #F1F5F9;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    letter-spacing: 0;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* Custom scrollbars for dark premium theme */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0B0F1A;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #1F2D45;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #2A3F5F;
+  }
+}
+
+/* Custom shimmer animation for skeletons */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, #1A2236 25%, #2A3F5F 50%, #1A2236 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
+/* Custom donut transition */
+.donut-segment {
+  transition: stroke-dashoffset 1.2s ease-out;
+}

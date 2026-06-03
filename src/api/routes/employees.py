@@ -40,7 +40,26 @@ def list_employees(
     current_user: User = Depends(require_roles("hr")),
 ):
     employees = session.exec(select(Employee).order_by(Employee.id.desc())).all()
-    return [_employee_payload(session, employee) for employee in employees]
+    # Batch-fetch all users in one query to avoid N+1
+    user_ids = list({e.user_id for e in employees if e.user_id})
+    users_by_id: dict[int, User] = {}
+    if user_ids:
+        for u in session.exec(select(User).where(User.id.in_(user_ids))).all():
+            users_by_id[u.id] = u
+    return [
+        {
+            "id": e.id,
+            "user_id": e.user_id,
+            "username": users_by_id[e.user_id].username if e.user_id in users_by_id else "",
+            "employee_code": e.employee_code,
+            "department": e.department,
+            "designation": e.designation,
+            "salary": e.salary,
+            "joining_date": e.joining_date.isoformat() if e.joining_date else None,
+            "skills": e.skills,
+        }
+        for e in employees
+    ]
 
 
 @router.get("/me")
@@ -155,6 +174,21 @@ def submit_leave(
         raise HTTPException(status_code=400, detail="End date cannot be before start date.")
 
     employee = _get_employee_for_user(session, current_user.id)
+
+    # Check for identical duplicate leave request (same start and end date)
+    duplicate = session.exec(
+        select(LeaveRequest)
+        .where(LeaveRequest.employee_id == employee.id)
+        .where(LeaveRequest.start_date == req.start_date)
+        .where(LeaveRequest.end_date == req.end_date)
+        .where(LeaveRequest.status != "Rejected")
+    ).first()
+    if duplicate:
+        raise HTTPException(
+            status_code=409,
+            detail="A leave request for these dates is already pending or approved."
+        )
+
     now = datetime.utcnow()
     leave = LeaveRequest(
         employee_id=employee.id,
@@ -193,7 +227,35 @@ def list_leave_requests(
     current_user: User = Depends(require_roles("hr", "manager")),
 ):
     requests = session.exec(select(LeaveRequest).order_by(LeaveRequest.created_at.desc())).all()
-    return [_leave_payload(session, item) for item in requests]
+    # Batch-fetch related employees and users to avoid N+1 queries
+    emp_ids = list({r.employee_id for r in requests if r.employee_id})
+    user_ids = list({r.user_id for r in requests if r.user_id})
+    emps_by_id: dict[int, Employee] = {}
+    users_by_id: dict[int, User] = {}
+    if emp_ids:
+        for e in session.exec(select(Employee).where(Employee.id.in_(emp_ids))).all():
+            emps_by_id[e.id] = e
+    if user_ids:
+        for u in session.exec(select(User).where(User.id.in_(user_ids))).all():
+            users_by_id[u.id] = u
+    return [
+        {
+            "id": r.id,
+            "employee_id": r.employee_id,
+            "employee_code": emps_by_id[r.employee_id].employee_code if r.employee_id in emps_by_id else "",
+            "username": users_by_id[r.user_id].username if r.user_id in users_by_id else "",
+            "leave_type": r.leave_type,
+            "start_date": r.start_date.isoformat() if r.start_date else None,
+            "end_date": r.end_date.isoformat() if r.end_date else None,
+            "reason": r.reason,
+            "status": r.status,
+            "manager_note": r.manager_note,
+            "decided_by": r.decided_by,
+            "created_at": r.created_at.isoformat() + "Z" if r.created_at else None,
+            "updated_at": r.updated_at.isoformat() + "Z" if r.updated_at else None,
+        }
+        for r in requests
+    ]
 
 
 @router.post("/leave/{leave_id}/decision")
@@ -317,8 +379,8 @@ def _attendance_payload(record: AttendanceRecord) -> dict[str, Any]:
         "employee_id": record.employee_id,
         "user_id": record.user_id,
         "work_date": record.work_date.isoformat() if record.work_date else None,
-        "check_in": record.check_in.isoformat() if record.check_in else None,
-        "check_out": record.check_out.isoformat() if record.check_out else None,
+        "check_in": record.check_in.isoformat() + "Z" if record.check_in else None,
+        "check_out": record.check_out.isoformat() + "Z" if record.check_out else None,
         "status": record.status,
     }
 
@@ -338,8 +400,8 @@ def _leave_payload(session: Session, leave: LeaveRequest) -> dict[str, Any]:
         "status": leave.status,
         "manager_note": leave.manager_note,
         "decided_by": leave.decided_by,
-        "created_at": leave.created_at.isoformat() if leave.created_at else None,
-        "updated_at": leave.updated_at.isoformat() if leave.updated_at else None,
+        "created_at": leave.created_at.isoformat() + "Z" if leave.created_at else None,
+        "updated_at": leave.updated_at.isoformat() + "Z" if leave.updated_at else None,
     }
 
 
@@ -354,7 +416,7 @@ def _skill_gap_payload(analysis: SkillGapAnalysis) -> dict[str, Any]:
         "summary": analysis.summary,
         "source": analysis.source,
         "error_message": analysis.error_message,
-        "updated_at": analysis.updated_at.isoformat() if analysis.updated_at else None,
+        "updated_at": analysis.updated_at.isoformat() + "Z" if analysis.updated_at else None,
     }
 
 
