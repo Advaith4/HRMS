@@ -12,7 +12,11 @@ import {
   Search,
   FileText,
   LogOut,
-  HelpCircle
+  HelpCircle,
+  FolderKanban,
+  Award,
+  LifeBuoy,
+  TrendingUp
 } from 'lucide-react'
 
 const IconMap = {
@@ -26,7 +30,11 @@ const IconMap = {
   Search,
   FileText,
   LogOut,
-  HelpCircle
+  HelpCircle,
+  FolderKanban,
+  Award,
+  LifeBuoy,
+  TrendingUp
 }
 
 export const Sidebar = () => {
@@ -50,6 +58,11 @@ export const Sidebar = () => {
     if (role === 'hr' || role === 'admin') {
       return [
         { path: '/dashboard/hr', label: 'HR Dashboard', icon: 'LayoutDashboard' },
+        { path: '/hr/directory', label: 'Employee Directory', icon: 'Users' },
+        { path: '/hr/departments', label: 'Departments', icon: 'FolderKanban' },
+        { path: '/hr/designations', label: 'Designations', icon: 'Award' },
+        { path: '/hr/tickets', label: 'Grievance Tickets', icon: 'LifeBuoy' },
+        { path: '/hr/promotions', label: 'Promotions History', icon: 'TrendingUp' },
         { path: '/hr/jobs', label: 'Manage Jobs', icon: 'Briefcase' },
         { path: '/hr/pipeline', label: 'Pipeline Board', icon: 'GitMerge' },
         { path: '/hr/candidates', label: 'Candidates Table', icon: 'Users' },

@@ -116,6 +116,11 @@ export const App = () => {
             <Route path="/hr/pipeline" element={<RoleGuard allowedRoles={['hr', 'admin', 'manager']}><HRDashboard activeTab="pipeline" /></RoleGuard>} />
             <Route path="/hr/candidates" element={<RoleGuard allowedRoles={['hr', 'admin', 'manager']}><HRDashboard activeTab="candidates" /></RoleGuard>} />
             <Route path="/hr/leaves" element={<RoleGuard allowedRoles={['hr', 'admin']}><HRDashboard activeTab="leaves" /></RoleGuard>} />
+            <Route path="/hr/directory" element={<RoleGuard allowedRoles={['hr', 'admin']}><HRDashboard activeTab="directory" /></RoleGuard>} />
+            <Route path="/hr/departments" element={<RoleGuard allowedRoles={['hr', 'admin']}><HRDashboard activeTab="departments" /></RoleGuard>} />
+            <Route path="/hr/designations" element={<RoleGuard allowedRoles={['hr', 'admin']}><HRDashboard activeTab="designations" /></RoleGuard>} />
+            <Route path="/hr/tickets" element={<RoleGuard allowedRoles={['hr', 'admin']}><HRDashboard activeTab="tickets" /></RoleGuard>} />
+            <Route path="/hr/promotions" element={<RoleGuard allowedRoles={['hr', 'admin']}><HRDashboard activeTab="promotions" /></RoleGuard>} />
 
             {/* Manager Sub routes */}
             <Route path="/manager/leaves" element={<RoleGuard allowedRoles={['manager']}><ManagerDashboard activeTab="leaves" /></RoleGuard>} />

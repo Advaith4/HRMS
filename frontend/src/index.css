@@ -2,39 +2,58 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg-page: #0B0F1A;
-  --color-bg-surface: #111827;
-  --color-bg-elevated: #1A2236;
-  --color-border-custom: #1F2D45;
-  --color-border-hover-custom: #2A3F5F;
+  --color-bg-page: #F8FAFC;
+  --color-bg-surface: #FFFFFF;
+  --color-bg-elevated: #FFFFFF;
+  --color-border-custom: #E2E8F0;
+  --color-border-hover-custom: #CBD5E1;
 
-  --color-brand-indigo: #4F46E5;
-  --color-brand-indigo-hover: #4338CA;
-  --color-brand-indigo-muted: #1E1B4B;
+  --color-brand-indigo: #2563EB;
+  --color-brand-indigo-hover: #1D4ED8;
+  --color-brand-indigo-muted: #DBEAFE;
 
-  --color-ai-teal: #0D9488;
-  --color-ai-teal-glow: #0F766E;
+  --color-ai-teal: #2563EB;
+  --color-ai-teal-glow: #DBEAFE;
 
-  --color-txt-primary: #F1F5F9;
-  --color-txt-secondary: #94A3B8;
-  --color-txt-tertiary: #475569;
+  --color-txt-primary: #0F172A;
+  --color-txt-secondary: #64748B;
+  --color-txt-tertiary: #94A3B8;
 
-  --color-success-primary: #10B981;
-  --color-success-bg: #052E16;
-  --color-warning-primary: #F59E0B;
-  --color-warning-bg: #2D1F00;
-  --color-danger-primary: #EF4444;
-  --color-danger-bg: #2A0A0A;
-  --color-info-primary: #3B82F6;
-  --color-info-bg: #0C1A3A;
+  --color-success-primary: #16A34A;
+  --color-success-bg: #DCFCE7;
+  --color-warning-primary: #D97706;
+  --color-warning-bg: #FEF3C7;
+  --color-danger-primary: #DC2626;
+  --color-danger-bg: #FEE2E2;
+  --color-info-primary: #2563EB;
+  --color-info-bg: #DBEAFE;
+
+  /* Global Tailwind Indigo Override to match corporate blue theme */
+  --color-indigo-50: #F8FAFC;
+  --color-indigo-100: #E0F2FE;
+  --color-indigo-200: #BAE6FD;
+  --color-indigo-300: #7DD3FC;
+  --color-indigo-400: #38BDF8;
+  --color-indigo-500: #2563EB;
+  --color-indigo-600: #1D4ED8;
+  --color-indigo-700: #1E40AF;
+  --color-indigo-800: #1E3A8A;
+  --color-indigo-900: #172554;
+  --color-indigo-950: #0F172A;
+
+  /* Global Tailwind Violet & Purple Override to match indigo/sky gradients */
+  --color-violet-500: #4F46E5;
+  --color-violet-600: #4338CA;
+  --color-purple-500: #0EA5E9;
+  --color-purple-600: #0284C7;
 
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 @layer base {
   body {
-    background-color: #0B0F1A;
-    color: #F1F5F9;
+    background-color: #F8FAFC;
+    color: #0F172A;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     letter-spacing: 0;
     line-height: 1.5;
@@ -42,20 +61,20 @@
     overflow-x: hidden;
   }
 
-  /* Custom scrollbars for dark premium theme */
+  /* Custom scrollbars for light theme */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
   ::-webkit-scrollbar-track {
-    background: #0B0F1A;
+    background: #F8FAFC;
   }
   ::-webkit-scrollbar-thumb {
-    background: #1F2D45;
+    background: #E2E8F0;
     border-radius: 3px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #2A3F5F;
+    background: #CBD5E1;
   }
 }
 
@@ -70,7 +89,7 @@
 }
 
 .animate-shimmer {
-  background: linear-gradient(90deg, #1A2236 25%, #2A3F5F 50%, #1A2236 75%);
+  background: linear-gradient(90deg, #E2E8F0 25%, #F1F5F9 50%, #E2E8F0 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite linear;
 }
@@ -78,4 +97,13 @@
 /* Custom donut transition */
 .donut-segment {
   transition: stroke-dashoffset 1.2s ease-out;
+}
+
+/* Prevent Chrome/Safari autofill blue background */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px white inset !important;
+  -webkit-text-fill-color: #0f172a !important;
+  transition: background-color 5000s ease-in-out 0s;
 }

@@ -69,7 +69,10 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from src.config import settings
 from src.database.connection import create_db_and_tables
 from src.core.exceptions import http_exception_handler, validation_exception_handler
-from src.api.routes import applications, auth, candidates, dashboard, employees, jobs, resume, interview
+from src.api.routes import (
+    applications, auth, candidates, dashboard, employees, jobs, resume, interview,
+    departments, designations, lifecycle, tickets, salary, promotions, notifications
+)
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -145,6 +148,14 @@ app.include_router(candidates.router)
 app.include_router(employees.router)
 app.include_router(dashboard.router)
 app.include_router(interview.router)
+app.include_router(departments.router)
+app.include_router(designations.router)
+app.include_router(lifecycle.router)
+app.include_router(tickets.router)
+app.include_router(salary.router)
+app.include_router(promotions.router)
+app.include_router(notifications.router)
+
 
 
 

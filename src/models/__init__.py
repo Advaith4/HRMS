@@ -150,6 +150,20 @@ class Employee(SQLModel, table=True):
     salary: Optional[float] = None
     joining_date: Optional[date] = None
     skills: str = Field(default="")
+    full_name: Optional[str] = Field(default=None, max_length=200)
+    email: Optional[str] = Field(default=None, max_length=200)
+    phone: Optional[str] = Field(default=None, max_length=30)
+    address: Optional[str] = Field(default=None, max_length=500)
+    date_of_birth: Optional[date] = None
+    emergency_contact: Optional[str] = Field(default=None, max_length=200)
+    status: str = Field(default="Active", max_length=30)
+    work_location: Optional[str] = Field(default=None, max_length=100)
+    manager_id: Optional[int] = Field(default=None, foreign_key="users.id")
+    department_id: Optional[int] = Field(default=None, foreign_key="departments.id")
+    designation_id: Optional[int] = Field(default=None, foreign_key="designations.id")
+    certifications: str = Field(default="", max_length=1000)
+    years_of_experience: Optional[float] = None
+
 
 
 class AttendanceRecord(SQLModel, table=True):
@@ -201,3 +215,104 @@ class SkillGapAnalysis(SQLModel, table=True):
     error_message: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class Department(SQLModel, table=True):
+    __tablename__ = "departments"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(max_length=120, unique=True)
+    description: str = Field(default="", max_length=500)
+    head_user_id: Optional[int] = Field(default=None, foreign_key="users.id")
+    is_active: bool = Field(default=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class Designation(SQLModel, table=True):
+    __tablename__ = "designations"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(max_length=120)
+    department_id: Optional[int] = Field(default=None, foreign_key="departments.id")
+    level: int = Field(default=1)
+    description: str = Field(default="", max_length=500)
+    is_active: bool = Field(default=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class EmployeeLifecycleEvent(SQLModel, table=True):
+    __tablename__ = "employee_lifecycle_events"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    employee_id: int = Field(foreign_key="employees.id", index=True)
+    event_type: str = Field(max_length=60)
+    event_date: date = Field(default_factory=date.today)
+    description: str = Field(default="", max_length=1000)
+    created_by: int = Field(foreign_key="users.id")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class EmployeeTicket(SQLModel, table=True):
+    __tablename__ = "employee_tickets"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    employee_id: int = Field(foreign_key="employees.id", index=True)
+    user_id: int = Field(foreign_key="users.id", index=True)
+    title: str = Field(max_length=200)
+    description: str = Field(max_length=3000)
+    category: str = Field(max_length=60)
+    priority: str = Field(default="Medium", max_length=20)
+    status: str = Field(default="Open", max_length=30)
+    assigned_to: Optional[int] = Field(default=None, foreign_key="users.id")
+    resolution_note: Optional[str] = Field(default=None, max_length=2000)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class SalaryHistory(SQLModel, table=True):
+    __tablename__ = "salary_history"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    employee_id: int = Field(foreign_key="employees.id", index=True)
+    previous_salary: Optional[float] = None
+    new_salary: float
+    increment_percent: Optional[float] = None
+    reason: str = Field(default="", max_length=500)
+    approved_by: int = Field(foreign_key="users.id")
+    effective_date: date = Field(default_factory=date.today)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class PromotionHistory(SQLModel, table=True):
+    __tablename__ = "promotion_history"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    employee_id: int = Field(foreign_key="employees.id", index=True)
+    old_designation: str = Field(max_length=120)
+    new_designation: str = Field(max_length=120)
+    promotion_date: date = Field(default_factory=date.today)
+    reason: str = Field(default="", max_length=500)
+    approved_by: int = Field(foreign_key="users.id")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class IncrementHistory(SQLModel, table=True):
+    __tablename__ = "increment_history"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    employee_id: int = Field(foreign_key="employees.id", index=True)
+    previous_salary: float
+    new_salary: float
+    increment_percent: float
+    reason: str = Field(default="", max_length=500)
+    effective_date: date = Field(default_factory=date.today)
+    approved_by: int = Field(foreign_key="users.id")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class HRNotification(SQLModel, table=True):
+    __tablename__ = "hr_notifications"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="users.id", index=True)
+    title: str = Field(max_length=200)
+    message: str = Field(max_length=1000)
+    event_type: str = Field(max_length=60)
+    related_id: Optional[int] = None
+    is_read: bool = Field(default=False)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+

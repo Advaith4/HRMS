@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { User, Calendar, Clock, Send, MessageSquare, ChevronRight, Check, X, ShieldAlert, Award, BookOpen, AlertCircle } from 'lucide-react'
+import { User, Calendar, Clock, Send, MessageSquare, ChevronRight, Check, X, ShieldAlert, Award, BookOpen, AlertCircle, Plus } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import { SkillGapRadial } from '../components/charts/SkillGapRadial'
 import { StatusPill } from '../components/ui/StatusPill'
@@ -12,9 +12,16 @@ import {
   checkOut,
   submitLeave,
   analyzeSkillGap,
-  askHRAssistant
+  askHRAssistant,
+  getEmployeeProfile,
+  updateEmployeeProfile,
+  listTickets,
+  createTicket,
+  getLifecycle
 } from '../api'
+import { CreateTicketModal } from '../components/modals/CreateTicketModal'
 import toast from 'react-hot-toast'
+
 
 export const EmployeeDashboard = () => {
   const { user } = useAuthStore()
@@ -25,6 +32,114 @@ export const EmployeeDashboard = () => {
   const [attendance, setAttendance] = useState(null)
   const [leaveSummary, setLeaveSummary] = useState({ pending: 0, approved: 0, rejected: 0, recent: [] })
   const [skillGap, setSkillGap] = useState(null)
+
+  // Tabs navigation and operation states
+  const [activeTab, setActiveTab] = useState('overview')
+  const [profileData, setProfileData] = useState(null)
+  const [loadingProfile, setLoadingProfile] = useState(false)
+  const [isEditingProfile, setIsEditingProfile] = useState(false)
+  
+  // Profile edit fields state
+  const [editPhone, setEditPhone] = useState('')
+  const [editAddress, setEditAddress] = useState('')
+  const [editEmergencyContact, setEditEmergencyContact] = useState('')
+  const [editSkills, setEditSkills] = useState('')
+  
+  // Tickets state
+  const [tickets, setTickets] = useState([])
+  const [loadingTickets, setLoadingTickets] = useState(false)
+  const [isTicketModalOpen, setIsTicketModalOpen] = useState(false)
+  
+  // Lifecycle timeline state
+  const [lifecycle, setLifecycle] = useState([])
+  const [loadingLifecycle, setLoadingLifecycle] = useState(false)
+
+  const fetchProfile = async () => {
+    if (!employee) return
+    setLoadingProfile(true)
+    try {
+      const data = await getEmployeeProfile(employee.id)
+      setProfileData(data)
+      setEditPhone(data.phone || '')
+      setEditAddress(data.address || '')
+      setEditEmergencyContact(data.emergency_contact || '')
+      setEditSkills(data.skills || '')
+    } catch (err) {
+      console.error(err)
+      toast.error('Failed to load profile details')
+    } finally {
+      setLoadingProfile(false)
+    }
+  }
+
+  const fetchTickets = async () => {
+    setLoadingTickets(true)
+    try {
+      const data = await listTickets()
+      setTickets(data || [])
+    } catch (err) {
+      console.error(err)
+      toast.error('Failed to load tickets')
+    } finally {
+      setLoadingTickets(false)
+    }
+  }
+
+  const fetchLifecycle = async () => {
+    if (!employee) return
+    setLoadingLifecycle(true)
+    try {
+      const data = await getLifecycle(employee.id)
+      setLifecycle(data || [])
+    } catch (err) {
+      console.error(err)
+      toast.error('Failed to load timeline')
+    } finally {
+      setLoadingLifecycle(false)
+    }
+  }
+
+  useEffect(() => {
+    if (employee) {
+      if (activeTab === 'profile') {
+        fetchProfile()
+      } else if (activeTab === 'tickets') {
+        fetchTickets()
+      } else if (activeTab === 'timeline') {
+        fetchLifecycle()
+      }
+    }
+  }, [activeTab, employee])
+
+  const handleUpdateProfile = async (e) => {
+    e.preventDefault()
+    try {
+      await updateEmployeeProfile(employee.id, {
+        phone: editPhone,
+        address: editAddress,
+        emergency_contact: editEmergencyContact,
+        skills: editSkills,
+      })
+      toast.success('Profile updated successfully!')
+      setIsEditingProfile(false)
+      fetchProfile()
+      fetchDashboardData() // Refresh dashboard as skills might have changed
+    } catch (err) {
+      console.error(err)
+      toast.error('Failed to update profile')
+    }
+  }
+
+  const handleCreateTicket = async (ticketData) => {
+    try {
+      await createTicket(ticketData)
+      toast.success('Grievance ticket created successfully!')
+      fetchTickets()
+    } catch (err) {
+      console.error(err)
+      toast.error('Failed to create grievance ticket')
+    }
+  }
 
   // Leave Form States
   const [leaveType, setLeaveType] = useState('Annual')
@@ -372,296 +487,598 @@ export const EmployeeDashboard = () => {
             </div>
           </div>
           
-          <button className="px-3.5 py-1.5 border border-border-custom text-xs font-semibold text-txt-secondary hover:text-txt-primary hover:bg-bg-page rounded-lg cursor-pointer transition-colors">
+          <button 
+            onClick={() => { setActiveTab('profile'); setIsEditingProfile(true); }}
+            className="px-3.5 py-1.5 border border-border-custom text-xs font-semibold text-txt-secondary hover:text-txt-primary hover:bg-bg-page rounded-lg cursor-pointer transition-colors"
+          >
             Request Profile Edit
           </button>
         </div>
       )}
 
-      {/* Main Widgets layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        
-        {/* Attendance widget (55%) */}
-        <div className="lg:col-span-7 rounded-xl border border-border-custom bg-bg-surface p-6 space-y-5">
-          <div className="flex items-center justify-between border-b border-border-custom pb-3">
-            <div>
-              <h4 className="text-sm font-semibold">Time & Attendance</h4>
-              <p className="text-[11px] text-txt-secondary">{time.toLocaleDateString()}</p>
-            </div>
-            
-            {/* Live hours indicator */}
-            <span className="text-xs font-bold text-brand-indigo bg-brand-indigo-muted border border-brand-indigo/20 px-2.5 py-0.5 rounded">
-              Today: {totalHoursToday}
-            </span>
-          </div>
-
-          <div className="flex flex-col items-center justify-center py-6 text-center space-y-4">
-            
-            {/* Digital Clock */}
-            <div className="text-4xl font-extrabold tracking-tight text-txt-primary font-mono select-all">
-              {time.toLocaleTimeString()}
-            </div>
-
-            {/* Check in/out pulse button */}
-            <button
-              onClick={handleAttendanceToggle}
-              disabled={attendance && attendance.status === 'Completed'}
-              className={`w-full max-w-[280px] h-12 rounded-xl text-xs font-bold uppercase tracking-wider text-white relative overflow-hidden transition-all active:scale-97 ${
-                attendance && attendance.status === 'Completed'
-                  ? 'bg-bg-elevated border border-border-custom text-txt-secondary cursor-not-allowed'
-                  : attendance && attendance.status === 'Checked In'
-                  ? 'bg-danger-primary hover:bg-danger-primary/90 shadow-lg shadow-danger-primary/20 animate-pulse cursor-pointer'
-                  : 'bg-success-primary hover:bg-success-primary/90 shadow-lg shadow-success-primary/20 cursor-pointer'
-              }`}
-            >
-              {attendance && attendance.status === 'Completed'
-                ? 'Attendance Completed'
-                : attendance && attendance.status === 'Checked In'
-                ? 'Check Out'
-                : 'Check In'}
-            </button>
-          </div>
-
-          {/* Weekly Heatmap (Mon-Sun) */}
-          <div className="space-y-2">
-            <span className="text-[10px] font-bold text-txt-tertiary uppercase tracking-wider block">Weekly Heatmap</span>
-            <div className="grid grid-cols-7 gap-2">
-              {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, idx) => {
-                // Mock highlights: present on Mon, Tue. Absent on others
-                const isToday = idx === (new Date().getDay() - 1 + 7) % 7
-                const isPresent = idx < 2
-                
-                return (
-                  <div
-                    key={idx}
-                    className={`flex flex-col items-center justify-center p-2 rounded-lg border text-[11px] font-semibold ${
-                      isPresent
-                        ? 'bg-success-bg/30 border-success-primary text-success-primary'
-                        : isToday
-                        ? 'bg-bg-page border-brand-indigo text-brand-indigo'
-                        : 'bg-bg-page border-border-custom text-txt-tertiary'
-                    }`}
-                  >
-                    <span className="uppercase text-[9px] mb-1">{day}</span>
-                    <span className="text-[10px] font-bold">{isPresent ? 'P' : 'A'}</span>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-
-        </div>
-
-        {/* Leave requests card (45%) */}
-        <div className="lg:col-span-5 rounded-xl border border-border-custom bg-bg-surface p-6 space-y-4">
-          <div className="border-b border-border-custom pb-3">
-            <h4 className="text-sm font-semibold">Request Time Off</h4>
-            <p className="text-[11px] text-txt-secondary">Submit leave requests directly to your line manager</p>
-          </div>
-
-          <form onSubmit={handleLeaveSubmit} className="space-y-3">
-            
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Leave Type</label>
-              <select
-                value={leaveType}
-                onChange={(e) => setLeaveType(e.target.value)}
-                className="w-full bg-bg-page border border-border-custom outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary"
-              >
-                <option value="Annual">Annual / Vacation</option>
-                <option value="Casual">Casual / Personal</option>
-                <option value="Sick">Sick Leave</option>
-              </select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Start Date</label>
-                <input
-                  type="date"
-                  required
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full bg-bg-page border border-border-custom outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-txt-tertiary uppercase block">End Date</label>
-                <input
-                  type="date"
-                  required
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full bg-bg-page border border-border-custom outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Reason</label>
-              <textarea
-                rows={2}
-                required
-                placeholder="Details of cover, recovery etc..."
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                className="w-full bg-bg-page border border-border-custom outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary resize-none"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={submittingLeave}
-              className="w-full h-8 bg-brand-indigo hover:bg-brand-indigo-hover text-white text-xs font-semibold rounded-lg flex items-center justify-center cursor-pointer transition-all disabled:opacity-50 active:scale-98"
-            >
-              {submittingLeave ? 'Submitting request...' : 'Request Time Off'}
-            </button>
-          </form>
-
-          {/* Recent leaves table */}
-          {leaveSummary.recent.length > 0 && (
-            <div className="pt-4 border-t border-border-custom/50 space-y-2">
-              <span className="text-[10px] font-bold text-txt-tertiary uppercase tracking-wider block">My Recent Requests</span>
-              <div className="space-y-2">
-                {leaveSummary.recent.map((req) => (
-                  <div key={req.id} className="flex items-center justify-between bg-bg-page/50 border border-border-custom/50 p-2.5 rounded-lg text-[11px]">
-                    <div>
-                      <span className="font-semibold text-txt-primary block leading-none mb-1">{req.leave_type} Leave</span>
-                      <span className="text-txt-tertiary block leading-none">
-                        {new Date(req.start_date).toLocaleDateString()} to {new Date(req.end_date).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <StatusPill status={req.status} />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-        </div>
-
+      {/* Tabs Selector */}
+      <div className="flex border-b border-border-custom space-x-6 pb-px">
+        {[
+          { id: 'overview', label: 'Overview' },
+          { id: 'profile', label: 'My Profile' },
+          { id: 'tickets', label: 'My Tickets' },
+          { id: 'timeline', label: 'Career Timeline' }
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`pb-3 text-xs font-semibold tracking-wide border-b-2 transition-all cursor-pointer relative ${
+              activeTab === tab.id
+                ? 'text-brand-indigo border-brand-indigo'
+                : 'text-txt-tertiary hover:text-txt-secondary border-transparent'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      {/* Bottom Row - Skills Analyzer */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        {/* Skill Gap Analysis Box */}
-        <div className="rounded-xl border border-border-custom bg-bg-surface p-6 space-y-6">
-          <div className="border-b border-border-custom pb-3 flex items-center justify-between">
-            <div>
-              <h4 className="text-sm font-semibold">Career Path Gap Analysis</h4>
-              <p className="text-[11px] text-txt-secondary">
-                {skillGap?.role_expectations ? `Compare profile against: ${skillGap.role_expectations}` : 'Define a target role to test skills gaps'}
-              </p>
+      {activeTab === 'overview' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          
+          {/* Attendance widget (55%) */}
+          <div className="lg:col-span-7 rounded-xl border border-border-custom bg-bg-surface p-6 space-y-5">
+            <div className="flex items-center justify-between border-b border-border-custom pb-3">
+              <div>
+                <h4 className="text-sm font-semibold">Time & Attendance</h4>
+                <p className="text-[11px] text-txt-secondary">{time.toLocaleDateString()}</p>
+              </div>
+              
+              {/* Live hours indicator */}
+              <span className="text-xs font-bold text-brand-indigo bg-brand-indigo-muted border border-brand-indigo/20 px-2.5 py-0.5 rounded">
+                Today: {totalHoursToday}
+              </span>
             </div>
+
+            <div className="flex flex-col items-center justify-center py-6 text-center space-y-4">
+              
+              {/* Digital Clock */}
+              <div className="text-4xl font-extrabold tracking-tight text-txt-primary font-mono select-all">
+                {time.toLocaleTimeString()}
+              </div>
+
+              {/* Check in/out pulse button */}
+              <button
+                onClick={handleAttendanceToggle}
+                disabled={attendance && attendance.status === 'Completed'}
+                className={`w-full max-w-[280px] h-12 rounded-xl text-xs font-bold uppercase tracking-wider text-white relative overflow-hidden transition-all active:scale-97 ${
+                  attendance && attendance.status === 'Completed'
+                    ? 'bg-bg-elevated border border-border-custom text-txt-secondary cursor-not-allowed'
+                    : attendance && attendance.status === 'Checked In'
+                    ? 'bg-danger-primary hover:bg-danger-primary/90 shadow-lg shadow-danger-primary/20 animate-pulse cursor-pointer'
+                    : 'bg-success-primary hover:bg-success-primary/90 shadow-lg shadow-success-primary/20 cursor-pointer'
+                }`}
+              >
+                {attendance && attendance.status === 'Completed'
+                  ? 'Attendance Completed'
+                  : attendance && attendance.status === 'Checked In'
+                  ? 'Check Out'
+                  : 'Check In'}
+              </button>
+            </div>
+
+            {/* Weekly Heatmap (Mon-Sun) */}
+            <div className="space-y-2">
+              <span className="text-[10px] font-bold text-txt-tertiary uppercase tracking-wider block">Weekly Heatmap</span>
+              <div className="grid grid-cols-7 gap-2">
+                {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, idx) => {
+                  // Mock highlights: present on Mon, Tue. Absent on others
+                  const isToday = idx === (new Date().getDay() - 1 + 7) % 7
+                  const isPresent = idx < 2
+                  
+                  return (
+                    <div
+                      key={idx}
+                      className={`flex flex-col items-center justify-center p-2 rounded-lg border text-[11px] font-semibold ${
+                        isPresent
+                          ? 'bg-success-bg/30 border-success-primary text-success-primary'
+                          : isToday
+                          ? 'bg-bg-page border-brand-indigo text-brand-indigo'
+                          : 'bg-bg-page border-border-custom text-txt-tertiary'
+                      }`}
+                    >
+                      <span className="uppercase text-[9px] mb-1">{day}</span>
+                      <span className="text-[10px] font-bold">{isPresent ? 'P' : 'A'}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-            
-            {/* Radial indicators */}
-            <div className="flex flex-col items-center justify-center">
-              <SkillGapRadial percent={gapProgress} />
+          {/* Leave requests card (45%) */}
+          <div className="lg:col-span-5 rounded-xl border border-border-custom bg-bg-surface p-6 space-y-4">
+            <div className="border-b border-border-custom pb-3">
+              <h4 className="text-sm font-semibold">Request Time Off</h4>
+              <p className="text-[11px] text-txt-secondary">Submit leave requests directly to your line manager</p>
             </div>
 
-            {/* Target Role search */}
-            <form onSubmit={handleSkillGapAnalyze} className="space-y-4">
+            <form onSubmit={handleLeaveSubmit} className="space-y-3">
+              
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Target Career Role</label>
-                <input
-                  type="text"
+                <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Leave Type</label>
+                <select
+                  value={leaveType}
+                  onChange={(e) => setLeaveType(e.target.value)}
+                  className="w-full bg-bg-page border border-border-custom outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary"
+                >
+                  <option value="Annual">Annual / Vacation</option>
+                  <option value="Casual">Casual / Personal</option>
+                  <option value="Sick">Sick Leave</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Start Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="w-full bg-bg-page border border-border-custom outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-txt-tertiary uppercase block">End Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-full bg-bg-page border border-border-custom outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Reason</label>
+                <textarea
+                  rows={2}
                   required
-                  placeholder="e.g. Lead Backend Architect"
-                  value={targetRole}
-                  onChange={(e) => setTargetRole(e.target.value)}
-                  className="w-full bg-bg-page border border-border-custom outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary focus:border-brand-indigo"
+                  placeholder="Details of cover, recovery etc..."
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  className="w-full bg-bg-page border border-border-custom outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary resize-none"
                 />
               </div>
 
               <button
                 type="submit"
-                disabled={analyzingGap}
-                className="w-full h-8 bg-brand-indigo hover:bg-brand-indigo-hover text-white text-xs font-semibold rounded-lg flex items-center justify-center cursor-pointer transition-colors"
+                disabled={submittingLeave}
+                className="w-full h-8 bg-brand-indigo hover:bg-brand-indigo-hover text-white text-xs font-semibold rounded-lg flex items-center justify-center cursor-pointer transition-all disabled:opacity-50 active:scale-98"
               >
-                {analyzingGap ? 'Analyzing fit...' : 'Re-analyze Skill Gaps'}
+                {submittingLeave ? 'Submitting request...' : 'Request Time Off'}
               </button>
             </form>
 
-          </div>
-
-          {/* Current & Missing lists */}
-          {skillGap && (
-            <div className="space-y-4 pt-4 border-t border-border-custom/50">
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <span className="text-[9px] font-bold text-success-primary uppercase tracking-wider block">My Current Skills</span>
-                  <div className="flex flex-wrap gap-1">
-                    {currentSkillsList.map((s, idx) => (
-                      <span key={idx} className="bg-success-bg/20 text-success-primary border border-success-primary/20 px-2 py-0.5 rounded text-[10px]">
-                        {s}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <span className="text-[9px] font-bold text-warning-custom uppercase tracking-wider block">Identified Gaps</span>
-                  <div className="flex flex-wrap gap-1">
-                    {missingSkillsList.map((s, idx) => (
-                      <span key={idx} className="bg-warning-bg/20 text-warning-custom border border-warning-custom/20 px-2 py-0.5 rounded text-[10px]">
-                        {s}
-                      </span>
-                    ))}
-                  </div>
+            {/* Recent leaves table */}
+            {leaveSummary.recent.length > 0 && (
+              <div className="pt-4 border-t border-border-custom/50 space-y-2">
+                <span className="text-[10px] font-bold text-txt-tertiary uppercase tracking-wider block">My Recent Requests</span>
+                <div className="space-y-2">
+                  {leaveSummary.recent.map((req) => (
+                    <div key={req.id} className="flex items-center justify-between bg-bg-page/50 border border-border-custom/50 p-2.5 rounded-lg text-[11px]">
+                      <div>
+                        <span className="font-semibold text-txt-primary block leading-none mb-1">{req.leave_type} Leave</span>
+                        <span className="text-txt-tertiary block leading-none">
+                          {new Date(req.start_date).toLocaleDateString()} to {new Date(req.end_date).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <StatusPill status={req.status} />
+                    </div>
+                  ))}
                 </div>
               </div>
+            )}
 
-              {/* Suggestions */}
-              {skillGap.learning_suggestions && skillGap.learning_suggestions.length > 0 && (
-                <div className="space-y-2 pt-2 border-t border-border-custom/30">
-                  <span className="text-[9px] font-bold text-txt-tertiary uppercase tracking-wider block flex items-center space-x-1">
-                    <BookOpen size={10} className="text-brand-indigo" />
-                    <span>Recommended Upskilling Path</span>
-                  </span>
-                  <ul className="space-y-1.5 text-xs text-txt-secondary leading-relaxed">
-                    {skillGap.learning_suggestions.slice(0, 3).map((suggestion, idx) => (
-                      <li key={idx} className="flex items-start space-x-1.5">
-                        <span className="text-brand-indigo">•</span>
-                        <span>{suggestion}</span>
-                      </li>
-                    ))}
-                  </ul>
+          </div>
+
+        </div>
+      )}
+
+      {activeTab === 'overview' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          {/* Skill Gap Analysis Box */}
+          <div className="rounded-xl border border-border-custom bg-bg-surface p-6 space-y-6">
+            <div className="border-b border-border-custom pb-3 flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-semibold">Career Path Gap Analysis</h4>
+                <p className="text-[11px] text-txt-secondary">
+                  {skillGap?.role_expectations ? `Compare profile against: ${skillGap.role_expectations}` : 'Define a target role to test skills gaps'}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+              
+              {/* Radial indicators */}
+              <div className="flex flex-col items-center justify-center">
+                <SkillGapRadial percent={gapProgress} />
+              </div>
+
+              {/* Target Role search */}
+              <form onSubmit={handleSkillGapAnalyze} className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Target Career Role</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Lead Backend Architect"
+                    value={targetRole}
+                    onChange={(e) => setTargetRole(e.target.value)}
+                    className="w-full bg-bg-page border border-border-custom outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary focus:border-brand-indigo"
+                  />
                 </div>
-              )}
+
+                <button
+                  type="submit"
+                  disabled={analyzingGap}
+                  className="w-full h-8 bg-brand-indigo hover:bg-brand-indigo-hover text-white text-xs font-semibold rounded-lg flex items-center justify-center cursor-pointer transition-colors"
+                >
+                  {analyzingGap ? 'Analyzing fit...' : 'Re-analyze Skill Gaps'}
+                </button>
+              </form>
 
             </div>
-          )}
 
-        </div>
+            {/* Current & Missing lists */}
+            {skillGap && (
+              <div className="space-y-4 pt-4 border-t border-border-custom/50">
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <span className="text-[9px] font-bold text-success-primary uppercase tracking-wider block">My Current Skills</span>
+                    <div className="flex flex-wrap gap-1">
+                      {currentSkillsList.map((s, idx) => (
+                        <span key={idx} className="bg-success-bg/20 text-success-primary border border-success-primary/20 px-2 py-0.5 rounded text-[10px]">
+                          {s}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
 
-        {/* Static HR/Dashboard policy helper box */}
-        <div className="rounded-xl border border-border-custom bg-bg-surface p-6 flex flex-col justify-between h-full space-y-6">
-          <div className="space-y-3">
-            <h4 className="text-sm font-semibold flex items-center space-x-1.5">
-              <AlertCircle size={16} className="text-brand-indigo" />
-              <span>Workspace Policies Reference</span>
-            </h4>
-            <p className="text-xs text-txt-secondary leading-relaxed">
-              Find standard guidelines regarding work hours, holidays, leaves, and payroll below. For dynamic queries, use the floating chatbot assistant in the bottom right corner.
-            </p>
+                  <div className="space-y-1.5">
+                    <span className="text-[9px] font-bold text-warning-custom uppercase tracking-wider block">Identified Gaps</span>
+                    <div className="flex flex-wrap gap-1">
+                      {missingSkillsList.map((s, idx) => (
+                        <span key={idx} className="bg-warning-bg/20 text-warning-custom border border-warning-custom/20 px-2 py-0.5 rounded text-[10px]">
+                          {s}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Suggestions */}
+                {skillGap.learning_suggestions && skillGap.learning_suggestions.length > 0 && (
+                  <div className="space-y-2 pt-2 border-t border-border-custom/30">
+                    <span className="text-[9px] font-bold text-txt-tertiary uppercase tracking-wider block flex items-center space-x-1">
+                      <BookOpen size={10} className="text-brand-indigo" />
+                      <span>Recommended Upskilling Path</span>
+                    </span>
+                    <ul className="space-y-1.5 text-xs text-txt-secondary leading-relaxed">
+                      {skillGap.learning_suggestions.slice(0, 3).map((suggestion, idx) => (
+                        <li key={idx} className="flex items-start space-x-1.5">
+                          <span className="text-brand-indigo">•</span>
+                          <span>{suggestion}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+              </div>
+            )}
+
           </div>
 
-          <div className="space-y-2.5 text-xs text-txt-secondary bg-bg-page p-4 border border-border-custom rounded-xl">
-            <div>
-              <span className="font-semibold text-txt-primary">Check-In policy:</span> Check in before 10:00 AM local time is considered on-time. Delay triggers warnings.
+          {/* Static HR/Dashboard policy helper box */}
+          <div className="rounded-xl border border-border-custom bg-bg-surface p-6 flex flex-col justify-between h-full space-y-6">
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold flex items-center space-x-1.5">
+                <AlertCircle size={16} className="text-brand-indigo" />
+                <span>Workspace Policies Reference</span>
+              </h4>
+              <p className="text-xs text-txt-secondary leading-relaxed">
+                Find standard guidelines regarding work hours, holidays, leaves, and payroll below. For dynamic queries, use the floating chatbot assistant in the bottom right corner.
+              </p>
             </div>
-            <div className="border-t border-border-custom/50 pt-2">
-              <span className="font-semibold text-txt-primary">Leave submissions:</span> Casual leave requests must be submitted 2 days in advance.
+
+            <div className="space-y-2.5 text-xs text-txt-secondary bg-bg-page p-4 border border-border-custom rounded-xl">
+              <div>
+                <span className="font-semibold text-txt-primary">Check-In policy:</span> Check in before 10:00 AM local time is considered on-time. Delay triggers warnings.
+              </div>
+              <div className="border-t border-border-custom/50 pt-2">
+                <span className="font-semibold text-txt-primary">Leave submissions:</span> Casual leave requests must be submitted 2 days in advance.
+              </div>
             </div>
           </div>
-        </div>
 
-      </div>
+        </div>
+      )}
+
+      {/* Profile Tab View */}
+      {activeTab === 'profile' && (
+        <div className="space-y-6">
+          <div className="rounded-xl border border-border-custom bg-bg-surface p-6">
+            <div className="flex justify-between items-center border-b border-border-custom pb-4 mb-6">
+              <div>
+                <h4 className="text-sm font-semibold">Personal & Professional Records</h4>
+                <p className="text-[11px] text-txt-secondary">Official employee file and records</p>
+              </div>
+              <button
+                onClick={() => setIsEditingProfile(!isEditingProfile)}
+                className="px-3 py-1.5 border border-border-custom text-xs font-semibold text-txt-secondary hover:text-brand-indigo hover:border-brand-indigo/30 bg-bg-page rounded-lg cursor-pointer transition-colors"
+              >
+                {isEditingProfile ? 'Cancel' : 'Edit Contact Info'}
+              </button>
+            </div>
+
+            {loadingProfile ? (
+              <div className="flex justify-center py-12">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+              </div>
+            ) : profileData ? (
+              isEditingProfile ? (
+                <form onSubmit={handleUpdateProfile} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Mobile Phone</label>
+                      <input
+                        type="text"
+                        value={editPhone}
+                        onChange={(e) => setEditPhone(e.target.value)}
+                        className="w-full bg-bg-page border border-border-custom focus:border-brand-indigo outline-none px-3.5 py-1.5 text-xs rounded-xl text-txt-primary"
+                        placeholder="e.g. +91 98765 43210"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Emergency Contact</label>
+                      <input
+                        type="text"
+                        value={editEmergencyContact}
+                        onChange={(e) => setEditEmergencyContact(e.target.value)}
+                        className="w-full bg-bg-page border border-border-custom focus:border-brand-indigo outline-none px-3.5 py-1.5 text-xs rounded-xl text-txt-primary"
+                        placeholder="e.g. John Doe - Parent (+91 99999 88888)"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Residential Address</label>
+                    <textarea
+                      rows={2}
+                      value={editAddress}
+                      onChange={(e) => setEditAddress(e.target.value)}
+                      className="w-full bg-bg-page border border-border-custom focus:border-brand-indigo outline-none px-3.5 py-1.5 text-xs rounded-xl text-txt-primary resize-none"
+                      placeholder="Street, City, Zip"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Skills (comma-separated)</label>
+                    <input
+                      type="text"
+                      value={editSkills}
+                      onChange={(e) => setEditSkills(e.target.value)}
+                      className="w-full bg-bg-page border border-border-custom focus:border-brand-indigo outline-none px-3.5 py-1.5 text-xs rounded-xl text-txt-primary"
+                      placeholder="React, Node.js, Python"
+                    />
+                  </div>
+                  <div className="flex gap-2 justify-end pt-4 border-t border-border-custom">
+                    <button
+                      type="submit"
+                      className="h-8 px-4 bg-brand-indigo hover:bg-brand-indigo-hover text-white text-xs font-semibold rounded-lg flex items-center justify-center cursor-pointer transition-all active:scale-98"
+                    >
+                      Save Changes
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {/* Left Column: Personal */}
+                  <div className="space-y-4">
+                    <h5 className="text-xs font-bold text-brand-indigo uppercase tracking-wider">Personal Information</h5>
+                    <div className="grid grid-cols-2 gap-4 text-xs">
+                      <div>
+                        <span className="text-txt-tertiary block font-semibold mb-1">Full Name</span>
+                        <span className="text-txt-primary font-medium">{profileData.full_name || user?.username}</span>
+                      </div>
+                      <div>
+                        <span className="text-txt-tertiary block font-semibold mb-1">Email Address</span>
+                        <span className="text-txt-primary font-medium">{profileData.email || 'N/A'}</span>
+                      </div>
+                      <div>
+                        <span className="text-txt-tertiary block font-semibold mb-1">Mobile Phone</span>
+                        <span className="text-txt-primary font-medium">{profileData.phone || 'N/A'}</span>
+                      </div>
+                      <div>
+                        <span className="text-txt-tertiary block font-semibold mb-1">Date of Birth</span>
+                        <span className="text-txt-primary font-medium">
+                          {profileData.date_of_birth ? new Date(profileData.date_of_birth).toLocaleDateString() : 'N/A'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-xs">
+                      <span className="text-txt-tertiary block font-semibold mb-1">Residential Address</span>
+                      <span className="text-txt-primary font-medium">{profileData.address || 'N/A'}</span>
+                    </div>
+                    <div className="text-xs">
+                      <span className="text-txt-tertiary block font-semibold mb-1">Emergency Contact</span>
+                      <span className="text-txt-primary font-medium">{profileData.emergency_contact || 'N/A'}</span>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Professional */}
+                  <div className="space-y-4">
+                    <h5 className="text-xs font-bold text-brand-indigo uppercase tracking-wider">Professional Information</h5>
+                    <div className="grid grid-cols-2 gap-4 text-xs">
+                      <div>
+                        <span className="text-txt-tertiary block font-semibold mb-1">Employee Code</span>
+                        <span className="text-txt-primary font-medium">{profileData.employee_code}</span>
+                      </div>
+                      <div>
+                        <span className="text-txt-tertiary block font-semibold mb-1">Current Status</span>
+                        <span className="text-txt-primary font-medium">
+                          <StatusPill status={profileData.status || 'Active'} />
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-txt-tertiary block font-semibold mb-1">Department</span>
+                        <span className="text-txt-primary font-medium">{profileData.department || 'N/A'}</span>
+                      </div>
+                      <div>
+                        <span className="text-txt-tertiary block font-semibold mb-1">Designation</span>
+                        <span className="text-txt-primary font-medium">{profileData.designation || 'N/A'}</span>
+                      </div>
+                      <div>
+                        <span className="text-txt-tertiary block font-semibold mb-1">Reporting Manager</span>
+                        <span className="text-txt-primary font-medium">{profileData.manager_name || 'N/A'}</span>
+                      </div>
+                      <div>
+                        <span className="text-txt-tertiary block font-semibold mb-1">Work Location</span>
+                        <span className="text-txt-primary font-medium">{profileData.work_location || 'N/A'}</span>
+                      </div>
+                    </div>
+                    <div className="text-xs">
+                      <span className="text-txt-tertiary block font-semibold mb-1">Certifications</span>
+                      <span className="text-txt-primary font-medium">{profileData.certifications || 'None recorded'}</span>
+                    </div>
+                    <div className="text-xs">
+                      <span className="text-txt-tertiary block font-semibold mb-1">Years of Experience</span>
+                      <span className="text-txt-primary font-medium">{profileData.years_of_experience ?? 'N/A'} yrs</span>
+                    </div>
+                  </div>
+                </div>
+              )
+            ) : (
+              <div className="text-center py-6 text-xs text-txt-tertiary">Failed to load profile record.</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Tickets Tab View */}
+      {activeTab === 'tickets' && (
+        <div className="space-y-6">
+          <div className="rounded-xl border border-border-custom bg-bg-surface p-6">
+            <div className="flex justify-between items-center border-b border-border-custom pb-4 mb-6">
+              <div>
+                <h4 className="text-sm font-semibold">Grievances & Support Tickets</h4>
+                <p className="text-[11px] text-txt-secondary">View and track responses to your submitted tickets</p>
+              </div>
+              <button
+                onClick={() => setIsTicketModalOpen(true)}
+                className="h-8 bg-brand-indigo hover:bg-brand-indigo-hover text-white text-xs font-semibold px-4 rounded-lg flex items-center space-x-1.5 active:scale-98 transition-all cursor-pointer"
+              >
+                <Plus size={14} />
+                <span>Raise Ticket</span>
+              </button>
+            </div>
+
+            {loadingTickets ? (
+              <div className="flex justify-center py-12">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+              </div>
+            ) : tickets.length === 0 ? (
+              <EmptyState title="No tickets submitted" description="Submit queries, leave balance inquiries, salary, or workplace concerns." />
+            ) : (
+              <div className="overflow-x-auto w-full">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-bg-page text-txt-tertiary font-bold uppercase tracking-wider border-b border-border-custom">
+                      <th className="py-2.5 px-3">Ticket Details</th>
+                      <th className="py-2.5 px-3">Category</th>
+                      <th className="py-2.5 px-3">Priority</th>
+                      <th className="py-2.5 px-3">Status</th>
+                      <th className="py-2.5 px-3">Resolution Note</th>
+                      <th className="py-2.5 px-3 text-right">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border-custom/50">
+                    {tickets.map((t) => {
+                      const priorityColor = 
+                        t.priority === 'Critical' ? 'text-red-500' :
+                        t.priority === 'High' ? 'text-orange-400' :
+                        t.priority === 'Medium' ? 'text-yellow-400' : 'text-green-400'
+                      return (
+                        <tr key={t.id} className="hover:bg-bg-elevated/40 transition-colors">
+                          <td className="py-3 px-3">
+                            <span className="font-semibold text-txt-primary block">{t.title}</span>
+                            <span className="text-[10px] text-txt-secondary block max-w-sm truncate" title={t.description}>
+                              {t.description}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 font-medium text-txt-primary">{t.category}</td>
+                          <td className="py-3 px-3 font-semibold">
+                            <span className={priorityColor}>{t.priority}</span>
+                          </td>
+                          <td className="py-3 px-3">
+                            <StatusPill status={t.status} />
+                          </td>
+                          <td className="py-3 px-3 text-txt-secondary italic max-w-xs truncate" title={t.resolution_note || ''}>
+                            {t.resolution_note || 'Awaiting assignment...'}
+                          </td>
+                          <td className="py-3 px-3 text-right text-txt-tertiary">
+                            {new Date(t.created_at).toLocaleDateString()}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Career Timeline Tab View */}
+      {activeTab === 'timeline' && (
+        <div className="space-y-6">
+          <div className="rounded-xl border border-border-custom bg-bg-surface p-6">
+            <div className="border-b border-border-custom pb-4 mb-6">
+              <h4 className="text-sm font-semibold">Career History & Milestones</h4>
+              <p className="text-[11px] text-txt-secondary">Official milestones of your journey at TalentForge</p>
+            </div>
+
+            {loadingLifecycle ? (
+              <div className="flex justify-center py-12">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+              </div>
+            ) : lifecycle.length === 0 ? (
+              <EmptyState title="Timeline empty" description="Milestones will appear here once registered by HR operations." />
+            ) : (
+              <div className="relative border-l border-border-custom/80 ml-4 py-4 space-y-8">
+                {lifecycle.map((event) => (
+                  <div key={event.id} className="relative pl-6">
+                    {/* Circle Dot Marker */}
+                    <div className="absolute -left-[7px] top-1.5 w-3.5 h-3.5 rounded-full border-2 border-brand-indigo bg-bg-surface shadow" />
+                    
+                    <div className="space-y-1">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs font-bold text-txt-primary uppercase">{event.event_type}</span>
+                        <span className="text-[10px] text-txt-tertiary">
+                          {new Date(event.event_date).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <p className="text-xs text-txt-secondary max-w-xl leading-relaxed">
+                        {event.description}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Floating AI HR Assistant Button */}
       <div className="fixed bottom-6 right-6 z-40">
@@ -787,6 +1204,12 @@ export const EmployeeDashboard = () => {
         )}
       </AnimatePresence>
 
+      {/* CreateTicketModal integration */}
+      <CreateTicketModal
+        isOpen={isTicketModalOpen}
+        onClose={() => setIsTicketModalOpen(false)}
+        onSave={handleCreateTicket}
+      />
     </div>
   )
 }

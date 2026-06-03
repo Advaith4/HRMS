@@ -50,6 +50,7 @@ def create_db_and_tables() -> None:
     _ensure_resume_lab_columns()
     _ensure_interview_context_columns()
     _ensure_career_coach_memory_table()
+    _ensure_phase1_employee_columns()
 
 
 def _ensure_user_role_column() -> None:
@@ -252,6 +253,70 @@ def _ensure_postgres_career_coach_memory_table() -> None:
         session.commit()
 
 
+def _ensure_phase1_employee_columns() -> None:
+    """Lightweight migration to add Phase 1 Employee fields."""
+    try:
+        if _db_url.startswith("sqlite"):
+            _ensure_sqlite_phase1_employee_columns()
+        else:
+            _ensure_postgres_phase1_employee_columns()
+    except Exception as exc:
+        logger.warning("Phase 1 Employee columns migration skipped: %s", exc)
+
+
+def _ensure_sqlite_phase1_employee_columns() -> None:
+    columns = {
+        "full_name": "VARCHAR(200)",
+        "email": "VARCHAR(200)",
+        "phone": "VARCHAR(30)",
+        "address": "VARCHAR(500)",
+        "date_of_birth": "DATE",
+        "emergency_contact": "VARCHAR(200)",
+        "status": "VARCHAR(30) DEFAULT 'Active'",
+        "work_location": "VARCHAR(100)",
+        "manager_id": "INTEGER",
+        "department_id": "INTEGER",
+        "designation_id": "INTEGER",
+        "certifications": "VARCHAR(1000) DEFAULT ''",
+        "years_of_experience": "REAL",
+    }
+    with Session(engine) as session:
+        existing = {row[1] for row in session.exec(text("PRAGMA table_info(employees)")).all()}
+        if not existing:
+            return
+        for name, definition in columns.items():
+            if name not in existing:
+                session.exec(text(f"ALTER TABLE employees ADD COLUMN {name} {definition}"))
+        session.exec(text("UPDATE employees SET status = 'Active' WHERE status IS NULL OR status = ''"))
+        session.exec(text("UPDATE employees SET certifications = '' WHERE certifications IS NULL"))
+        session.commit()
+
+
+def _ensure_postgres_phase1_employee_columns() -> None:
+    statements = [
+        "ALTER TABLE employees ADD COLUMN IF NOT EXISTS full_name VARCHAR(200)",
+        "ALTER TABLE employees ADD COLUMN IF NOT EXISTS email VARCHAR(200)",
+        "ALTER TABLE employees ADD COLUMN IF NOT EXISTS phone VARCHAR(30)",
+        "ALTER TABLE employees ADD COLUMN IF NOT EXISTS address VARCHAR(500)",
+        "ALTER TABLE employees ADD COLUMN IF NOT EXISTS date_of_birth DATE",
+        "ALTER TABLE employees ADD COLUMN IF NOT EXISTS emergency_contact VARCHAR(200)",
+        "ALTER TABLE employees ADD COLUMN IF NOT EXISTS status VARCHAR(30) DEFAULT 'Active'",
+        "ALTER TABLE employees ADD COLUMN IF NOT EXISTS work_location VARCHAR(100)",
+        "ALTER TABLE employees ADD COLUMN IF NOT EXISTS manager_id INTEGER REFERENCES users(id)",
+        "ALTER TABLE employees ADD COLUMN IF NOT EXISTS department_id INTEGER REFERENCES departments(id)",
+        "ALTER TABLE employees ADD COLUMN IF NOT EXISTS designation_id INTEGER REFERENCES designations(id)",
+        "ALTER TABLE employees ADD COLUMN IF NOT EXISTS certifications VARCHAR(1000) DEFAULT ''",
+        "ALTER TABLE employees ADD COLUMN IF NOT EXISTS years_of_experience DOUBLE PRECISION",
+        "UPDATE employees SET status = 'Active' WHERE status IS NULL OR status = ''",
+        "UPDATE employees SET certifications = '' WHERE certifications IS NULL",
+    ]
+    with Session(engine) as session:
+        for statement in statements:
+            session.exec(text(statement))
+        session.commit()
+
+
 def get_session():
     with Session(engine) as session:
         yield session
+

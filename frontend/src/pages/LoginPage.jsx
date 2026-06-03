@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuthStore } from '../store/authStore'
 import { login, register } from '../api/auth'
-import { Eye, EyeOff, CheckCircle } from 'lucide-react'
+import { Eye, EyeOff, ShieldCheck, Lock, X, AlertCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
+import heroImage from '../assets/hero.png'
 
 export const LoginPage = () => {
   const navigate = useNavigate()
@@ -14,8 +15,12 @@ export const LoginPage = () => {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  
+  // Demo Modal State
+  const [showDemoModal, setShowDemoModal] = useState(false)
 
   // If already logged in, redirect to correct dashboard
   useEffect(() => {
@@ -40,11 +45,11 @@ export const LoginPage = () => {
   }
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
+    if (e) e.preventDefault()
     setError('')
     
     if (!username || username.trim().length < 3) {
-      setError('Username must be at least 3 characters')
+      setError('Username or Email must be at least 3 characters')
       return
     }
     if (!password || password.length < 6) {
@@ -55,13 +60,11 @@ export const LoginPage = () => {
     setIsLoading(true)
     try {
       if (isLogin) {
-        // Log in
         const data = await login(username.trim(), password)
         setAuth(data.access_token, data.has_resume)
         toast.success(`Welcome back, ${data.username}!`)
         redirectToDashboard(data.role)
       } else {
-        // Register candidate
         const data = await register(username.trim(), password)
         setAuth(data.access_token, false)
         toast.success('Account created successfully!')
@@ -69,7 +72,29 @@ export const LoginPage = () => {
       }
     } catch (err) {
       console.error(err)
-      const msg = err.response?.data?.detail || 'Authentication failed. Please check credentials.'
+      const msg = err.response?.data?.detail || 'Authentication failed. Please check your credentials.'
+      setError(msg)
+      toast.error(msg)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Auto-fill and submit helper
+  const handleDemoAutofill = async (demoUser, demoPass) => {
+    setShowDemoModal(false)
+    setUsername(demoUser)
+    setPassword(demoPass)
+    setError('')
+    setIsLoading(true)
+    try {
+      const data = await login(demoUser, demoPass)
+      setAuth(data.access_token, data.has_resume)
+      toast.success(`Logged in as ${data.username}`)
+      redirectToDashboard(data.role)
+    } catch (err) {
+      console.error(err)
+      const msg = err.response?.data?.detail || 'Demo login failed.'
       setError(msg)
       toast.error(msg)
     } finally {
@@ -78,180 +103,162 @@ export const LoginPage = () => {
   }
 
   return (
-    <div className="flex min-h-screen bg-bg-page w-full text-txt-primary select-none overflow-hidden">
+    <div className="flex flex-row min-h-screen w-full bg-[#fafbfc] text-slate-800 font-sans select-none overflow-x-hidden">
       
-      {/* Left Panel - Dynamic Premium Branding (60% width) */}
-      <div className="hidden lg:flex flex-col justify-between w-3/5 p-16 relative bg-gradient-to-tr from-bg-page via-bg-page to-brand-indigo-muted/30 border-r border-border-custom">
-        {/* Glow effect in background */}
-        <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-brand-indigo/10 rounded-full blur-[120px] pointer-events-none" />
+      {/* LEFT PANEL (65%) — Background Image with Warm Color Tone Overlay */}
+      <div className="w-[60%] xl:w-[65%] hidden lg:block relative overflow-hidden bg-[#2e130a]">
         
-        {/* Logo and Tagline */}
-        <div className="z-10">
-          <div className="flex items-center space-x-3">
-            <span className="w-10 h-10 rounded-lg bg-brand-indigo flex items-center justify-center text-white font-extrabold text-xl shadow-lg shadow-brand-indigo/20">
-              TF
-            </span>
-            <span className="text-2xl font-bold tracking-tight text-txt-primary">
-              TalentForge <span className="text-brand-indigo">AI</span>
-            </span>
-          </div>
-          <p className="text-txt-secondary text-sm font-medium mt-2">
-            Hire smarter. Grow faster.
-          </p>
-        </div>
-
-        {/* Dynamic Animated Mesh SVG */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-60 z-0">
-          <svg className="w-4/5 h-4/5 text-border-custom/50" viewBox="0 0 100 100" fill="none">
-            <motion.path
-              d="M10,50 Q30,20 50,50 T90,50"
-              stroke="currentColor"
-              strokeWidth="0.2"
-              fill="none"
-              animate={{ d: ["M10,50 Q30,20 50,50 T90,50", "M10,50 Q30,80 50,50 T90,50", "M10,50 Q30,20 50,50 T90,50"] }}
-              transition={{ repeat: Infinity, duration: 10, ease: "easeInOut" }}
-            />
-            <motion.path
-              d="M20,30 Q50,70 80,30"
-              stroke="currentColor"
-              strokeWidth="0.15"
-              fill="none"
-              animate={{ d: ["M20,30 Q50,70 80,30", "M20,30 Q50,10 80,30", "M20,30 Q50,70 80,30"] }}
-              transition={{ repeat: Infinity, duration: 8, ease: "easeInOut" }}
-            />
-            <circle cx="50" cy="50" r="2" fill="currentColor" opacity="0.5" />
-            <circle cx="30" cy="20" r="1.5" fill="currentColor" opacity="0.3" />
-            <circle cx="70" cy="80" r="1.5" fill="currentColor" opacity="0.3" />
-          </svg>
-        </div>
-
-        {/* Feature list */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.5 }}
-          className="space-y-6 z-10"
-        >
-          <h2 className="text-xl font-semibold tracking-tight text-txt-primary">
-            Intelligent Talent Operations Suite
-          </h2>
-          <div className="space-y-4">
-            {[
-              'AI-powered candidate scoring with explainability',
-              'End-to-end hiring lifecycle management',
-              'Real-time workforce intelligence dashboard',
-            ].map((text, i) => (
-              <div key={i} className="flex items-center space-x-3 text-sm text-txt-secondary">
-                <CheckCircle size={18} className="text-ai-teal flex-shrink-0" />
-                <span>{text}</span>
+        {/* Background Image */}
+        <img 
+          src={heroImage} 
+          alt="Workforce Showcase" 
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        
+        {/* Warm Overlay to harmonize text with the warm orange background */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#150702]/95 via-[#2e130a]/40 to-[#2e130a]/15 backdrop-blur-[0.5px]" />
+        
+        {/* Branding & Overlay Copy */}
+        <div className="absolute bottom-20 left-20 z-10 max-w-2xl">
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="space-y-5"
+          >
+            {/* Logo */}
+            <div className="flex items-center space-x-3">
+              <div className="w-9 h-9 rounded-lg bg-brand-indigo flex items-center justify-center text-white font-extrabold text-lg shadow-md shadow-brand-indigo/35">
+                TF
               </div>
-            ))}
-          </div>
-        </motion.div>
+              <span className="text-2xl font-bold tracking-tight text-white">
+                TalentForge <span className="text-slate-300 font-normal">HRMS</span>
+              </span>
+            </div>
 
-        {/* Footer */}
-        <div className="text-xs text-txt-tertiary z-10">
-          © 2026 TalentForge AI. All rights reserved. Professional Grade ATS & HRMS.
+            {/* Strategic HR Messaging */}
+            <h1 className="text-3xl lg:text-4xl xl:text-5xl font-extrabold tracking-tight text-white leading-tight">
+              Build Better Teams.<br />
+              Manage Smarter Workforces.
+            </h1>
+            
+            <p className="text-slate-200/90 text-sm lg:text-base font-normal leading-relaxed max-w-lg">
+              A unified enterprise platform for recruitment, employee lifecycle tracking, upskilling modules, and payroll analytics.
+            </p>
+          </motion.div>
         </div>
+
+        {/* Security Info Panel */}
+        <div className="absolute bottom-8 left-20 z-10 flex gap-5 text-[11px] text-slate-400 font-medium tracking-wide">
+          <span className="flex items-center gap-1.5"><ShieldCheck size={13} className="text-emerald-500" /> RBAC Compliant</span>
+          <span className="flex items-center gap-1.5"><Lock size={13} className="text-emerald-500" /> AES-256 Encryption</span>
+        </div>
+
       </div>
 
-      {/* Right Panel - Frosted Login Form (40% width) */}
-      <div className="w-full lg:w-2/5 flex flex-col items-center justify-center p-8 bg-bg-surface border-l border-border-custom relative z-10">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.96 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.3 }}
-          className="w-full max-w-[380px] bg-bg-elevated border border-border-hover-custom/60 rounded-2xl p-8 shadow-2xl relative overflow-hidden"
-        >
-          {/* Form Header */}
-          <div className="text-center mb-6">
-            <h3 className="text-xl font-bold tracking-tight text-txt-primary">
-              Welcome back
-            </h3>
-            <p className="text-xs text-txt-secondary mt-1">
-              Sign in to your workspace
+      {/* RIGHT PANEL (35%) — Clean White Authentication Panel */}
+      <div className="w-full lg:w-[40%] xl:w-[35%] flex flex-col justify-center items-center p-8 lg:p-12 bg-white relative min-h-screen lg:min-h-0 border-l border-slate-200">
+        
+        {/* Login Card Form Container */}
+        <div className="w-full max-w-[360px] my-auto py-8">
+          
+          {/* Logo Branding (Mobile only) */}
+          <div className="flex lg:hidden items-center space-x-2.5 mb-8">
+            <div className="w-8 h-8 rounded-lg bg-brand-indigo flex items-center justify-center text-white font-extrabold text-base shadow-md shadow-brand-indigo/35">
+              TF
+            </div>
+            <span className="text-lg font-bold tracking-tight text-slate-900">
+              TalentForge <span className="text-slate-400 font-normal">HRMS</span>
+            </span>
+          </div>
+
+          {/* Heading */}
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+              {isLogin ? 'Sign In' : 'Create Account'}
+            </h2>
+            <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+              {isLogin 
+                ? 'Welcome back. Enter your workspace credentials to access your secure portal.' 
+                : 'Set up your details below to request access to the company database.'}
             </p>
           </div>
 
-          {/* Toggle Switch */}
-          <div className="flex bg-bg-page border border-border-custom rounded-lg p-1 mb-6 relative">
-            <button
-              type="button"
-              onClick={() => { setIsLogin(true); setError(''); }}
-              className={`flex-1 text-center py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer ${
-                isLogin ? 'bg-brand-indigo text-white shadow' : 'text-txt-secondary hover:text-txt-primary'
-              }`}
-            >
-              Sign In
-            </button>
-            <button
-              type="button"
-              onClick={() => { setIsLogin(false); setError(''); }}
-              className={`flex-1 text-center py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer ${
-                !isLogin ? 'bg-brand-indigo text-white shadow' : 'text-txt-secondary hover:text-txt-primary'
-              }`}
-            >
-              Register
-            </button>
-          </div>
-
-          {/* Form */}
+          {/* Input Fields & Submit */}
           <form onSubmit={handleSubmit} className="space-y-4">
             
-            {/* Username Input */}
-            <div className="space-y-1">
-              <label className="block text-xs font-medium text-txt-secondary">
-                Username
-              </label>
+            {/* Username/Email Input */}
+            <div className="flex flex-col space-y-1.5">
+              <label className="text-xs font-semibold text-slate-700">Username or Email</label>
               <input
                 type="text"
                 disabled={isLoading}
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="e.g. recruit_lead"
-                className="w-full bg-bg-page border border-border-custom focus:border-brand-indigo rounded-lg px-3 py-2 text-sm text-txt-primary outline-none transition-colors disabled:opacity-50"
+                className="w-full px-3.5 py-2 text-sm text-slate-950 bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-brand-indigo focus:ring-1 focus:ring-brand-indigo disabled:opacity-50 transition"
+                placeholder="e.g. employee.name"
               />
             </div>
 
             {/* Password Input */}
-            <div className="space-y-1 relative">
-              <label className="block text-xs font-medium text-txt-secondary">
-                Password
-              </label>
+            <div className="flex flex-col space-y-1.5">
+              <div className="flex justify-between items-center">
+                <label className="text-xs font-semibold text-slate-700">Password</label>
+                <button
+                  type="button"
+                  onClick={() => toast.error('Contact your IT or HR Administrator to request a password reset.')}
+                  className="text-xs text-brand-indigo hover:text-brand-indigo-hover font-semibold transition"
+                >
+                  Forgot Password?
+                </button>
+              </div>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
                   disabled={isLoading}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-3.5 py-2 text-sm text-slate-950 bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-brand-indigo focus:ring-1 focus:ring-brand-indigo disabled:opacity-50 transition pr-10"
                   placeholder="••••••••"
-                  className="w-full bg-bg-page border border-border-custom focus:border-brand-indigo rounded-lg pl-3 pr-10 py-2 text-sm text-txt-primary outline-none transition-colors disabled:opacity-50"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-txt-secondary hover:text-txt-primary cursor-pointer"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition cursor-pointer"
                 >
                   {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
             </div>
 
-            {/* Submit Button */}
+            {/* Actions (Remember Me) */}
+            <div className="flex items-center text-xs pt-0.5">
+              <label className="flex items-center gap-2 text-slate-600 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 bg-white border border-slate-300 rounded focus:ring-0 accent-brand-indigo cursor-pointer"
+                />
+                <span className="font-medium">Remember me on this device</span>
+              </label>
+            </div>
+
+            {/* Sign In CTA Button */}
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full h-9 bg-brand-indigo hover:bg-brand-indigo-hover active:scale-[0.98] text-white text-xs font-semibold rounded-lg flex items-center justify-center cursor-pointer transition-all disabled:opacity-50"
+              className="w-full py-2.5 bg-brand-indigo hover:bg-brand-indigo-hover text-white text-xs font-bold rounded-lg flex items-center justify-center cursor-pointer transition disabled:opacity-50 shadow-sm border border-transparent"
             >
               {isLoading ? (
-                <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
               ) : isLogin ? (
                 'Sign In'
               ) : (
-                'Create Candidate Account'
+                'Request Account'
               )}
             </button>
 
@@ -262,7 +269,7 @@ export const LoginPage = () => {
                   initial={{ opacity: 0, y: -5 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
-                  className="text-xs font-medium text-danger-primary text-center pt-2"
+                  className="text-xs font-semibold text-red-500 text-center pt-2 leading-relaxed"
                 >
                   {error}
                 </motion.div>
@@ -271,19 +278,137 @@ export const LoginPage = () => {
 
           </form>
 
-          {/* Seeding credentials tip */}
+          {/* Toggle register/login links */}
+          <div className="text-xs text-center text-slate-500 mt-5">
+            {isLogin ? (
+              <>
+                New to TalentForge?{' '}
+                <button
+                  type="button"
+                  onClick={() => { setIsLogin(false); setError(''); }}
+                  className="text-brand-indigo hover:underline font-semibold"
+                >
+                  Create an account
+                </button>
+              </>
+            ) : (
+              <>
+                Already have an account?{' '}
+                <button
+                  type="button"
+                  onClick={() => { setIsLogin(true); setError(''); }}
+                  className="text-brand-indigo hover:underline font-semibold"
+                >
+                  Sign in
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* View Demo Access Link */}
           {isLogin && (
-            <div className="mt-6 pt-4 border-t border-border-custom/50 text-[10px] text-txt-tertiary leading-relaxed">
-              <span className="font-semibold text-txt-secondary block mb-1">Standard Demo Accounts:</span>
-              <ul className="list-disc pl-3.5 space-y-0.5">
-                <li>Candidates: register custom or check DB users</li>
-                <li>HR: check database roles / register via admin panel</li>
-              </ul>
+            <div className="mt-8 text-center border-t border-slate-100 pt-6">
+              <button
+                type="button"
+                onClick={() => setShowDemoModal(true)}
+                className="text-xs text-slate-400 hover:text-slate-600 transition cursor-pointer"
+              >
+                Need demo system access? <span className="underline font-semibold text-slate-500 hover:text-slate-700">View Credentials</span>
+              </button>
             </div>
           )}
-        </motion.div>
+
+        </div>
+
+        {/* Outer Footer */}
+        <div className="text-center w-full text-[10px] text-slate-400/80">
+          © 2026 TalentForge. All rights reserved. Secure Corporate Gateway.
+        </div>
+
       </div>
+
+      {/* DEMO CREDENTIALS MODAL */}
+      <AnimatePresence>
+        {showDemoModal && (
+          <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl border border-slate-200 p-6 max-w-sm w-full shadow-2xl relative"
+            >
+              {/* Close Button */}
+              <button
+                type="button"
+                onClick={() => setShowDemoModal(false)}
+                className="absolute right-4 top-4 text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+
+              <div className="flex items-center gap-2 mb-4 text-[#EA580C]">
+                <AlertCircle size={20} />
+                <h3 className="text-base font-bold text-slate-900">Demo System Access</h3>
+              </div>
+
+              <p className="text-xs text-slate-500 mb-4 leading-normal">
+                Click any profile button below to automatically autofill standard demo credentials and log in to that role's workspace.
+              </p>
+
+              {/* Roles List */}
+              <div className="space-y-3">
+                
+                <div className="p-3 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-between">
+                  <div>
+                    <div className="text-xs font-bold text-slate-800">HR Administrator</div>
+                    <div className="text-[10px] text-slate-400">User: demo_hr | Pass: Pass123!</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleDemoAutofill('demo_hr', 'Pass123!')}
+                    className="px-2.5 py-1 rounded-lg bg-brand-indigo hover:bg-brand-indigo-hover text-white text-[10px] font-bold shadow-sm"
+                  >
+                    Login
+                  </button>
+                </div>
+
+                <div className="p-3 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-between">
+                  <div>
+                    <div className="text-xs font-bold text-slate-800">Department Manager</div>
+                    <div className="text-[10px] text-slate-400">User: demo_manager | Pass: Pass123!</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleDemoAutofill('demo_manager', 'Pass123!')}
+                    className="px-2.5 py-1 rounded-lg bg-brand-indigo hover:bg-brand-indigo-hover text-white text-[10px] font-bold shadow-sm"
+                  >
+                    Login
+                  </button>
+                </div>
+
+                <div className="p-3 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-between">
+                  <div>
+                    <div className="text-xs font-bold text-slate-800">Staff Employee</div>
+                    <div className="text-[10px] text-slate-400">User: demo_employee | Pass: Pass123!</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleDemoAutofill('demo_employee', 'Pass123!')}
+                    className="px-2.5 py-1 rounded-lg bg-brand-indigo hover:bg-brand-indigo-hover text-white text-[10px] font-bold shadow-sm"
+                  >
+                    Login
+                  </button>
+                </div>
+
+              </div>
+
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </div>
   )
 }
+
 export default LoginPage

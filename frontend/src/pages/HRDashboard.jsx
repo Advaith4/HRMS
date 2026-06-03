@@ -12,6 +12,12 @@ import { PostJobModal } from '../components/modals/PostJobModal'
 import { getHRDashboardData, deleteJob, listLeaveRequests, decideLeaveRequest } from '../api'
 import { useAuthStore } from '../store/authStore'
 import toast from 'react-hot-toast'
+import { EmployeeDirectory } from './hr/EmployeeDirectory'
+import { DepartmentManagement } from './hr/DepartmentManagement'
+import { DesignationManagement } from './hr/DesignationManagement'
+import { GrievanceDashboard } from './hr/GrievanceDashboard'
+import { PromotionDashboard } from './hr/PromotionDashboard'
+
 
 export const HRDashboard = ({ activeTab = 'overview' }) => {
   const { role } = useAuthStore()
@@ -744,6 +750,13 @@ export const HRDashboard = ({ activeTab = 'overview' }) => {
           )}
         </div>
       )}
+
+      {activeTab === 'directory' && <EmployeeDirectory />}
+      {activeTab === 'departments' && <DepartmentManagement />}
+      {activeTab === 'designations' && <DesignationManagement />}
+      {activeTab === 'tickets' && <GrievanceDashboard />}
+      {activeTab === 'promotions' && <PromotionDashboard />}
+
 
       {/* Analysis Drawer */}
       <AnalysisDrawer

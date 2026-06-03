@@ -1,15 +1,19 @@
 import json
 from datetime import date, datetime
-from typing import Any
+from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
-from src.api.dependencies import require_roles
+from src.api.dependencies import require_roles, get_current_user
 from src.database.connection import get_session
-from src.models import AttendanceRecord, Employee, LeaveRequest, SkillGapAnalysis, User
+from src.models import (
+    AttendanceRecord, Employee, LeaveRequest, SkillGapAnalysis, User,
+    Department, Designation, EmployeeLifecycleEvent, HRNotification
+)
 from src.services.employee_ai import analyze_skill_gap, answer_hr_question
+
 
 router = APIRouter(prefix="/api/employees", tags=["employees"])
 
@@ -428,3 +432,240 @@ def _load_json(value: str | None) -> list[str]:
     except json.JSONDecodeError:
         return []
     return parsed if isinstance(parsed, list) else []
+
+
+# Phase 1 HR Operations Foundation Endpoints
+
+class EmployeeProfileUpdate(BaseModel):
+    full_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    date_of_birth: Optional[date] = None
+    emergency_contact: Optional[str] = None
+    status: Optional[str] = None
+    work_location: Optional[str] = None
+    manager_id: Optional[int] = None
+    department_id: Optional[int] = None
+    designation_id: Optional[int] = None
+    certifications: Optional[str] = None
+    years_of_experience: Optional[float] = None
+    skills: Optional[str] = None
+
+
+def _notify_hr_static(session: Session, title: str, message: str, event_type: str, related_id: Optional[int] = None):
+    hr_users = session.exec(select(User).where(User.role.in_(["hr", "admin"]))).all()
+    for u in hr_users:
+        notif = HRNotification(
+            user_id=u.id,
+            title=title,
+            message=message,
+            event_type=event_type,
+            related_id=related_id,
+            is_read=False
+        )
+        session.add(notif)
+
+
+@router.get("/directory")
+def get_employee_directory(
+    search: Optional[str] = None,
+    department: Optional[str] = None,
+    status: Optional[str] = None,
+    sort: Optional[str] = None,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_roles("hr", "manager"))
+):
+    query = select(Employee)
+    employees = session.exec(query).all()
+    
+    user_ids = {e.user_id for e in employees if e.user_id}
+    manager_ids = {e.manager_id for e in employees if e.manager_id}
+    dept_ids = {e.department_id for e in employees if e.department_id}
+    desig_ids = {e.designation_id for e in employees if e.designation_id}
+    
+    users = session.exec(select(User).where(User.id.in_(list(user_ids | manager_ids)))).all() if (user_ids | manager_ids) else []
+    depts = session.exec(select(Department).where(Department.id.in_(list(dept_ids)))).all() if dept_ids else []
+    desigs = session.exec(select(Designation).where(Designation.id.in_(list(desig_ids)))).all() if desig_ids else []
+    
+    users_by_id = {u.id: u for u in users}
+    depts_by_id = {d.id: d for d in depts}
+    desigs_by_id = {dg.id: dg for dg in desigs}
+    
+    payload = []
+    for e in employees:
+        u = users_by_id.get(e.user_id)
+        username = u.username if u else ""
+        mgr = users_by_id.get(e.manager_id)
+        manager_name = mgr.username if mgr else ""
+        
+        dept_name = depts_by_id.get(e.department_id).name if e.department_id and e.department_id in depts_by_id else e.department
+        desig_name = desigs_by_id.get(e.designation_id).name if e.designation_id and e.designation_id in desigs_by_id else e.designation
+        
+        payload.append({
+            "id": e.id,
+            "user_id": e.user_id,
+            "username": username,
+            "full_name": e.full_name or username or "",
+            "email": e.email or (f"{username}@talentforge.ai" if username else ""),
+            "phone": e.phone or "",
+            "employee_code": e.employee_code,
+            "department": dept_name,
+            "designation": desig_name,
+            "status": e.status or "Active",
+            "joining_date": e.joining_date.isoformat() if e.joining_date else None,
+            "manager_name": manager_name,
+            "work_location": e.work_location or "",
+        })
+        
+    if search:
+        search = search.lower()
+        payload = [
+            x for x in payload
+            if search in x["full_name"].lower()
+            or search in x["email"].lower()
+            or search in x["employee_code"].lower()
+            or search in x["username"].lower()
+        ]
+        
+    if department:
+        payload = [x for x in payload if x["department"] == department]
+        
+    if status:
+        payload = [x for x in payload if x["status"] == status]
+        
+    if sort == "joining_date":
+        payload.sort(key=lambda x: x["joining_date"] or "")
+    elif sort == "department":
+        payload.sort(key=lambda x: x["department"] or "")
+    elif sort == "designation":
+        payload.sort(key=lambda x: x["designation"] or "")
+        
+    return payload
+
+
+@router.get("/{employee_id}/profile")
+def get_employee_profile(
+    employee_id: int,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    emp = session.get(Employee, employee_id)
+    if not emp:
+        raise HTTPException(status_code=404, detail="Employee not found.")
+        
+    is_self = current_user.id == emp.user_id
+    is_mgmt = current_user.role in ["hr", "manager", "admin"]
+    if not (is_self or is_mgmt):
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+        
+    user = session.get(User, emp.user_id)
+    username = user.username if user else ""
+    
+    manager_name = ""
+    if emp.manager_id:
+        mgr = session.get(User, emp.manager_id)
+        manager_name = mgr.username if mgr else ""
+        
+    dept_name = ""
+    if emp.department_id:
+        dept = session.get(Department, emp.department_id)
+        dept_name = dept.name if dept else ""
+    else:
+        dept_name = emp.department
+        
+    desig_name = ""
+    if emp.designation_id:
+        desig = session.get(Designation, emp.designation_id)
+        desig_name = desig.name if desig else ""
+    else:
+        desig_name = emp.designation
+        
+    return {
+        "id": emp.id,
+        "user_id": emp.user_id,
+        "username": username,
+        "employee_code": emp.employee_code,
+        "department": dept_name,
+        "department_id": emp.department_id,
+        "designation": desig_name,
+        "designation_id": emp.designation_id,
+        "salary": emp.salary,
+        "joining_date": emp.joining_date.isoformat() if emp.joining_date else None,
+        "skills": emp.skills,
+        "full_name": emp.full_name,
+        "email": emp.email,
+        "phone": emp.phone,
+        "address": emp.address,
+        "date_of_birth": emp.date_of_birth.isoformat() if emp.date_of_birth else None,
+        "emergency_contact": emp.emergency_contact,
+        "status": emp.status,
+        "work_location": emp.work_location,
+        "manager_id": emp.manager_id,
+        "manager_name": manager_name,
+        "certifications": emp.certifications,
+        "years_of_experience": emp.years_of_experience,
+    }
+
+
+@router.put("/{employee_id}/profile")
+def update_employee_profile(
+    employee_id: int,
+    body: EmployeeProfileUpdate,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    emp = session.get(Employee, employee_id)
+    if not emp:
+        raise HTTPException(status_code=404, detail="Employee not found.")
+        
+    is_hr = current_user.role in ["hr", "admin"]
+    is_self = current_user.id == emp.user_id
+    
+    if not (is_hr or is_self):
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+        
+    data = body.model_dump(exclude_none=True)
+    if not is_hr:
+        # only allow phone, address, emergency_contact, skills
+        allowed_fields = {"phone", "address", "emergency_contact", "skills"}
+        data = {k: v for k, v in data.items() if k in allowed_fields}
+        
+    old_status = emp.status
+    
+    for k, v in data.items():
+        if k == "department_id":
+            dept = session.get(Department, v)
+            if dept:
+                emp.department = dept.name
+        elif k == "designation_id":
+            desig = session.get(Designation, v)
+            if desig:
+                emp.designation = desig.name
+        setattr(emp, k, v)
+        
+    session.add(emp)
+    
+    if "status" in data and data["status"] == "Active" and old_status != "Active":
+        event = EmployeeLifecycleEvent(
+            employee_id=emp.id,
+            event_type="Confirmed",
+            event_date=date.today(),
+            description="Employee status updated to Active / Confirmed.",
+            created_by=current_user.id
+        )
+        session.add(event)
+        
+        emp_user = session.get(User, emp.user_id)
+        emp_name = emp_user.username if emp_user else f"Code {emp.employee_code}"
+        _notify_hr_static(
+            session,
+            title="Employee Confirmed",
+            message=f"{emp_name} has been confirmed as an Active employee.",
+            event_type="lifecycle_event",
+            related_id=emp.id
+        )
+        
+    session.commit()
+    return {"ok": True}
+

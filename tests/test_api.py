@@ -182,11 +182,13 @@ def test_candidate_application_flow_and_rbac(monkeypatch):
     mine = client.get("/api/applications/me", headers=candidate_headers)
     assert mine.status_code == 200
     assert len(mine.json()) == 1
-    assert "FastAPI" in mine.json()[0]["resume_text"]
+    assert "resume_text" not in mine.json()[0]
 
     all_applications = client.get("/api/applications", headers=hr_headers)
     assert all_applications.status_code == 200
     assert len(all_applications.json()) >= 1
+    assert "FastAPI" in all_applications.json()[0]["resume_text"]
+
 
     candidate_denied = client.get("/api/candidates", headers=candidate_headers)
     assert candidate_denied.status_code == 403
@@ -247,9 +249,15 @@ def test_application_ai_analysis_and_ranking(monkeypatch):
     )
     assert applied.status_code == 201, applied.text
     application = applied.json()["application"]
-    assert application["ai_analysis"]["fit_score"] == 82
-    assert application["ai_analysis"]["recommendation"] == "Recommended"
-    assert application["ai_analysis"]["interview_prep"]["technical_questions"]
+    
+    # Query applications list for HR to get the populated AI analysis (since it runs in background)
+    apps = client.get("/api/applications", headers=hr_headers)
+    assert apps.status_code == 200
+    app_payload = [a for a in apps.json() if a["id"] == application["id"]][0]
+    assert app_payload["ai_analysis"]["fit_score"] == 82
+    assert app_payload["ai_analysis"]["recommendation"] == "Recommended"
+    assert app_payload["ai_analysis"]["interview_prep"]["technical_questions"]
+
 
     refreshed = client.post(f"/api/applications/{application['id']}/analyze", headers=hr_headers)
     assert refreshed.status_code == 200

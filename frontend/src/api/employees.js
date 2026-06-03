@@ -75,3 +75,19 @@ export const askHRAssistant = async (question) => {
   const response = await api.post('/api/employees/assistant', { question })
   return response.data
 }
+
+export const listEmployeeDirectory = async (params) => {
+  const response = await api.get('/api/employees/directory', { params })
+  return response.data
+}
+
+export const getEmployeeProfile = async (employeeId) => {
+  const response = await api.get(`/api/employees/${employeeId}/profile`)
+  return response.data
+}
+
+export const updateEmployeeProfile = async (employeeId, data) => {
+  const response = await api.put(`/api/employees/${employeeId}/profile`, data)
+  return response.data
+}
+

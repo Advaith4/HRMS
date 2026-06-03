@@ -11,13 +11,13 @@ const ICON_MAP = {
   Award, GitMerge, HelpCircle,
 }
 
-export const MetricCard = ({ iconName, label, value, delta, deltaType = 'increase', hoverColor = 'indigo' }) => {
-  const Icon = ICON_MAP[iconName] || HelpCircle
-
+export const MetricCard = ({ iconName, icon: PassedIcon, label, title, value, delta, description, deltaType = 'increase', hoverColor = 'indigo' }) => {
+  const displayLabel = label || title
+  const Icon = PassedIcon || ICON_MAP[iconName] || HelpCircle
   
   const isIncrease = deltaType === 'increase'
-  const deltaColor = isIncrease ? 'text-success-primary bg-success-bg/40' : 'text-danger-primary bg-danger-bg/40'
-  const barColor = hoverColor === 'teal' ? 'bg-ai-teal' : 'bg-brand-indigo'
+  const deltaColor = isIncrease ? 'text-green-700 bg-green-50 border border-green-200' : 'text-red-700 bg-red-50 border border-red-200'
+  const barColor = 'bg-brand-indigo'
 
   return (
     <motion.div
@@ -28,7 +28,7 @@ export const MetricCard = ({ iconName, label, value, delta, deltaType = 'increas
       className="group relative overflow-hidden rounded-xl border border-border-custom bg-bg-surface p-6 cursor-pointer"
     >
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-txt-secondary">{label}</span>
+        <span className="text-sm font-medium text-txt-secondary">{displayLabel}</span>
         <div className={`p-2 rounded-lg bg-bg-page border border-border-custom text-txt-secondary group-hover:text-txt-primary transition-colors`}>
           <Icon size={18} className={hoverColor === 'teal' ? 'text-ai-teal' : 'text-brand-indigo'} />
         </div>
@@ -44,6 +44,12 @@ export const MetricCard = ({ iconName, label, value, delta, deltaType = 'increas
           </span>
         )}
       </div>
+
+      {description && (
+        <p className="mt-1.5 text-xs text-txt-tertiary font-normal">
+          {description}
+        </p>
+      )}
 
       {/* Subtle bottom hover bar */}
       <div className={`absolute bottom-0 left-0 right-0 h-[3px] w-full ${barColor} transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left`} />
