@@ -38,7 +38,7 @@ export const SkillGapRadial = ({ percent = 0 }) => {
             cy={size / 2}
             r={radius}
             fill="transparent"
-            stroke="#1F2D45"
+            stroke="#E2E8F0"
             strokeWidth={strokeWidth}
           />
           {/* Dynamic Teal Progress */}
@@ -47,7 +47,7 @@ export const SkillGapRadial = ({ percent = 0 }) => {
             cy={size / 2}
             r={radius}
             fill="transparent"
-            stroke="#0D9488"
+            stroke="#14B8A6"
             strokeWidth={strokeWidth}
             strokeDasharray={circumference}
             strokeDashoffset={strokeDashoffset}

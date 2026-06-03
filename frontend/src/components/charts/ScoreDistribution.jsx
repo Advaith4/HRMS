@@ -24,7 +24,7 @@ export const ScoreDistribution = ({ data }) => {
     { range: '20–40', count: 12, color: '#F59E0B' }, // Amber
     { range: '40–60', count: 28, color: '#3B82F6' }, // Blue
     { range: '60–80', count: 45, color: '#4F46E5' }, // Indigo
-    { range: '80–100', count: 21, color: '#0D9488' }, // Teal
+    { range: '80–100', count: 21, color: '#14B8A6' }, // Teal
   ]
 
   const chartData = data && data.length > 0 ? data : defaultData
@@ -39,7 +39,7 @@ export const ScoreDistribution = ({ data }) => {
       <div className="w-full h-[240px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
-            <CartesianGrid stroke="#1F2D45" strokeDasharray="3 3" opacity={0.4} vertical={false} />
+            <CartesianGrid stroke="#E2E8F0" strokeDasharray="3 3" opacity={0.8} vertical={false} />
             <XAxis
               dataKey="range"
               stroke="#475569"
@@ -54,7 +54,7 @@ export const ScoreDistribution = ({ data }) => {
               axisLine={false}
               tickLine={false}
             />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: '#1F2D45', opacity: 0.2 }} />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: '#F1F5F9', opacity: 0.4 }} />
             <Bar
               dataKey="count"
               radius={[4, 4, 0, 0]}

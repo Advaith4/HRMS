@@ -334,6 +334,83 @@ def hr_assistant(
     return answer_hr_question(req.question)
 
 
+@router.get("/directory")
+def get_employee_directory(
+    search: Optional[str] = None,
+    department: Optional[str] = None,
+    status: Optional[str] = None,
+    sort: Optional[str] = None,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_roles("hr", "manager"))
+):
+    query = select(Employee)
+    employees = session.exec(query).all()
+    
+    user_ids = {e.user_id for e in employees if e.user_id}
+    manager_ids = {e.manager_id for e in employees if e.manager_id}
+    dept_ids = {e.department_id for e in employees if e.department_id}
+    desig_ids = {e.designation_id for e in employees if e.designation_id}
+    
+    users = session.exec(select(User).where(User.id.in_(list(user_ids | manager_ids)))).all() if (user_ids | manager_ids) else []
+    depts = session.exec(select(Department).where(Department.id.in_(list(dept_ids)))).all() if dept_ids else []
+    desigs = session.exec(select(Designation).where(Designation.id.in_(list(desig_ids)))).all() if desig_ids else []
+    
+    users_by_id = {u.id: u for u in users}
+    depts_by_id = {d.id: d for d in depts}
+    desigs_by_id = {dg.id: dg for dg in desigs}
+    
+    payload = []
+    for e in employees:
+        u = users_by_id.get(e.user_id)
+        username = u.username if u else ""
+        mgr = users_by_id.get(e.manager_id)
+        manager_name = mgr.username if mgr else ""
+        
+        dept_name = depts_by_id.get(e.department_id).name if e.department_id and e.department_id in depts_by_id else e.department
+        desig_name = desigs_by_id.get(e.designation_id).name if e.designation_id and e.designation_id in desigs_by_id else e.designation
+        
+        payload.append({
+            "id": e.id,
+            "user_id": e.user_id,
+            "username": username,
+            "full_name": e.full_name or username or "",
+            "email": e.email or (f"{username}@talentforge.ai" if username else ""),
+            "phone": e.phone or "",
+            "employee_code": e.employee_code,
+            "department": dept_name,
+            "designation": desig_name,
+            "status": e.status or "Active",
+            "joining_date": e.joining_date.isoformat() if e.joining_date else None,
+            "manager_name": manager_name,
+            "work_location": e.work_location or "",
+        })
+        
+    if search:
+        search = search.lower()
+        payload = [
+            x for x in payload
+            if search in x["full_name"].lower()
+            or search in x["email"].lower()
+            or search in x["employee_code"].lower()
+            or search in x["username"].lower()
+        ]
+        
+    if department:
+        payload = [x for x in payload if x["department"] == department]
+        
+    if status:
+        payload = [x for x in payload if x["status"] == status]
+        
+    if sort == "joining_date":
+        payload.sort(key=lambda x: x["joining_date"] or "")
+    elif sort == "department":
+        payload.sort(key=lambda x: x["department"] or "")
+    elif sort == "designation":
+        payload.sort(key=lambda x: x["designation"] or "")
+        
+    return payload
+
+
 @router.get("/{employee_id}")
 def get_employee(
     employee_id: int,
@@ -467,81 +544,7 @@ def _notify_hr_static(session: Session, title: str, message: str, event_type: st
         session.add(notif)
 
 
-@router.get("/directory")
-def get_employee_directory(
-    search: Optional[str] = None,
-    department: Optional[str] = None,
-    status: Optional[str] = None,
-    sort: Optional[str] = None,
-    session: Session = Depends(get_session),
-    current_user: User = Depends(require_roles("hr", "manager"))
-):
-    query = select(Employee)
-    employees = session.exec(query).all()
-    
-    user_ids = {e.user_id for e in employees if e.user_id}
-    manager_ids = {e.manager_id for e in employees if e.manager_id}
-    dept_ids = {e.department_id for e in employees if e.department_id}
-    desig_ids = {e.designation_id for e in employees if e.designation_id}
-    
-    users = session.exec(select(User).where(User.id.in_(list(user_ids | manager_ids)))).all() if (user_ids | manager_ids) else []
-    depts = session.exec(select(Department).where(Department.id.in_(list(dept_ids)))).all() if dept_ids else []
-    desigs = session.exec(select(Designation).where(Designation.id.in_(list(desig_ids)))).all() if desig_ids else []
-    
-    users_by_id = {u.id: u for u in users}
-    depts_by_id = {d.id: d for d in depts}
-    desigs_by_id = {dg.id: dg for dg in desigs}
-    
-    payload = []
-    for e in employees:
-        u = users_by_id.get(e.user_id)
-        username = u.username if u else ""
-        mgr = users_by_id.get(e.manager_id)
-        manager_name = mgr.username if mgr else ""
-        
-        dept_name = depts_by_id.get(e.department_id).name if e.department_id and e.department_id in depts_by_id else e.department
-        desig_name = desigs_by_id.get(e.designation_id).name if e.designation_id and e.designation_id in desigs_by_id else e.designation
-        
-        payload.append({
-            "id": e.id,
-            "user_id": e.user_id,
-            "username": username,
-            "full_name": e.full_name or username or "",
-            "email": e.email or (f"{username}@talentforge.ai" if username else ""),
-            "phone": e.phone or "",
-            "employee_code": e.employee_code,
-            "department": dept_name,
-            "designation": desig_name,
-            "status": e.status or "Active",
-            "joining_date": e.joining_date.isoformat() if e.joining_date else None,
-            "manager_name": manager_name,
-            "work_location": e.work_location or "",
-        })
-        
-    if search:
-        search = search.lower()
-        payload = [
-            x for x in payload
-            if search in x["full_name"].lower()
-            or search in x["email"].lower()
-            or search in x["employee_code"].lower()
-            or search in x["username"].lower()
-        ]
-        
-    if department:
-        payload = [x for x in payload if x["department"] == department]
-        
-    if status:
-        payload = [x for x in payload if x["status"] == status]
-        
-    if sort == "joining_date":
-        payload.sort(key=lambda x: x["joining_date"] or "")
-    elif sort == "department":
-        payload.sort(key=lambda x: x["department"] or "")
-    elif sort == "designation":
-        payload.sort(key=lambda x: x["designation"] or "")
-        
-    return payload
+
 
 
 @router.get("/{employee_id}/profile")

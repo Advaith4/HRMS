@@ -62,11 +62,11 @@ export const ApplicationTrend = ({ data }) => {
                 <stop offset="95%" stopColor="#4F46E5" stopOpacity={0}/>
               </linearGradient>
               <linearGradient id="colorHires" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#0D9488" stopOpacity={0.2}/>
-                <stop offset="95%" stopColor="#0D9488" stopOpacity={0}/>
+                <stop offset="5%" stopColor="#14B8A6" stopOpacity={0.2}/>
+                <stop offset="95%" stopColor="#14B8A6" stopOpacity={0}/>
               </linearGradient>
             </defs>
-            <CartesianGrid stroke="#1F2D45" strokeDasharray="3 3" opacity={0.4} vertical={false} />
+            <CartesianGrid stroke="#E2E8F0" strokeDasharray="3 3" opacity={0.8} vertical={false} />
             <XAxis
               dataKey="name"
               stroke="#475569"
@@ -96,11 +96,11 @@ export const ApplicationTrend = ({ data }) => {
               type="monotone"
               dataKey="Hires"
               name="Hired"
-              stroke="#0D9488"
+              stroke="#14B8A6"
               strokeWidth={2}
               fillOpacity={1}
               fill="url(#colorHires)"
-              activeDot={{ r: 4, strokeWidth: 0, fill: '#0D9488' }}
+              activeDot={{ r: 4, strokeWidth: 0, fill: '#14B8A6' }}
             />
           </AreaChart>
         </ResponsiveContainer>

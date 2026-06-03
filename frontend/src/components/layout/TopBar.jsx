@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
-import { Bell, Sun, Moon } from 'lucide-react'
+import { Bell } from 'lucide-react'
 import { listNotifications } from '../../api'
 import { NotificationDrawer } from '../drawers/NotificationDrawer'
 
@@ -9,7 +9,6 @@ export const TopBar = () => {
   const { role, user, isAuthenticated } = useAuthStore()
   const location = useLocation()
   const [unreadCount, setUnreadCount] = useState(0)
-  const [isDarkMode, setIsDarkMode] = useState(true) // Dark by default in this premium design
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
   const fetchUnreadCount = async () => {
@@ -110,14 +109,6 @@ export const TopBar = () => {
               {role}
             </span>
           )}
-
-          {/* Dark/Light mode toggle */}
-          <button
-            onClick={() => setIsDarkMode(!isDarkMode)}
-            className="p-1.5 rounded-lg border border-border-custom bg-bg-page hover:bg-bg-elevated hover:text-txt-primary text-txt-secondary transition-colors cursor-pointer"
-          >
-            {isDarkMode ? <Sun size={15} /> : <Moon size={15} />}
-          </button>
 
           {/* Notification Bell */}
           <div className="relative">

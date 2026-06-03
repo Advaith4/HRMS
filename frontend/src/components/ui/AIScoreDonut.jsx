@@ -54,7 +54,7 @@ export const AIScoreDonut = ({ score = 0 }) => {
             cy={size / 2}
             r={radius}
             fill="transparent"
-            stroke="#1F2D45"
+            stroke="#E2E8F0"
             strokeWidth={strokeWidth}
           />
           {/* Active Score Ring */}

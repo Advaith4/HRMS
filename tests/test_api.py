@@ -415,3 +415,13 @@ def test_candidates_and_managers_cannot_use_employee_self_service():
         headers={"Authorization": f"Bearer {manager_token}"},
     )
     assert manager_response.status_code == 403
+
+
+def test_employee_directory_routing():
+    hr_token = _register(f"hr_{uuid.uuid4().hex[:8]}", "hr")
+    response = client.get(
+        "/api/employees/directory",
+        headers={"Authorization": f"Bearer {hr_token}"},
+    )
+    assert response.status_code == 200
+    assert isinstance(response.json(), list)
