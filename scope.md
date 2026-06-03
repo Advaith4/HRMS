@@ -514,3 +514,549 @@ MODEL_NAME=llama-3.1-8b-instant    # Groq model name
 - **Resume format:** PDF only. DOCX, images, and LinkedIn imports are not yet supported.
 - **Attendance:** Basic check-in/out only. No shift management, overtime calculation, or biometric integration.
 - **No real-time updates:** Dashboard data refreshes on navigation. No WebSocket/SSE push for live notifications.
+
+---
+
+## 14. Key User Flows
+
+### 14.1 Candidate — Apply for a Job
+```
+1. Register / Login  →  role: candidate
+2. Careers Portal → Jobs tab
+3. Browse jobs, click "Details" on a vacancy
+4. JobDetailDrawer opens → read job description + required skills
+5. Drag-and-drop PDF resume into upload zone
+6. Click "Submit Application"
+7. Backend: validates PDF, extracts text (pypdf), saves CandidateApplication record
+8. HTTP 201 response returned instantly (<1 s)
+9. AI analysis runs as background task (5–30 s asynchronously)
+10. Toast: "Application submitted! AI score will appear shortly."
+11. Navigate to My Applications → score appears after background task completes
+12. Expand row → view strengths, weaknesses, missing skills, interview questions
+```
+
+### 14.2 HR — Post Job & Hire a Candidate
+```
+1. Login  →  role: hr
+2. HR Dashboard → Jobs tab → "Post New Job"
+3. PostJobModal: enter title, department, description, skills, salary, experience
+4. Job saved → visible to all candidates on the Careers Portal immediately
+5. HR Dashboard → Jobs tab → "View Applicants" on the new job
+6. Job Applicants Drawer opens → ranked list (sorted by AI fit score)
+7. Click "Inspect" on top-ranked candidate → AnalysisDrawer
+8. Review: fit score, recommendation, strengths, weaknesses, interview prep questions
+9. Return to Applicants Drawer → click "Hire" on selected candidate
+10. HireModal: enter department, designation, salary, joining date, employee code
+11. Backend: creates Employee record + updates Application status to "Hired"
+12. Candidate's role can now be updated to "employee" for system access
+```
+
+### 14.3 Employee — Daily Attendance & Leave
+```
+Attendance:
+1. Login  →  role: employee
+2. Employee Dashboard → Overview tab
+3. Click "Check In" → timestamp recorded, status changes to "Checked In"
+4. End of day → Click "Check Out" → duration calculated
+5. Attendance tab shows today's record with check-in / check-out times
+
+Leave:
+1. Employee Dashboard → Leave tab
+2. Fill form: leave type, start date, end date, reason
+3. Submit → backend checks for duplicate date-range overlap (409 if conflict)
+4. Status: Pending
+5. HR/Manager Dashboard → Leaves tab shows pending request
+6. HR/Manager clicks Approve or Reject, optionally adds a note
+7. Employee's Leave tab updates with Approved / Rejected + manager note
+```
+
+### 14.4 Manager — Review Recruitment Pipeline
+```
+1. Login  →  role: manager
+2. Manager Dashboard → Pipeline tab
+3. Select a job from the dropdown filter
+4. View all applications for that job with AI scores
+5. Filter by stage: Applied / Under Review / Shortlisted
+6. Click "Inspect" on any application card → full AnalysisDrawer
+7. View: fit score, recommendation, strengths, weaknesses, interview prep
+8. Leave tab: approve or reject employee leave requests with notes
+```
+
+### 14.5 Candidate — Mock Interview Practice
+```
+1. Candidate Dashboard → (Interview section)
+2. Choose: target role, difficulty (1–10), training mode, interviewer persona
+3. Session starts → interviewer opens with Introduction phase
+4. 8-phase structured interview:
+   Introduction → Resume Deep Dive → Core Technical →
+   Problem Solving → Behavioral → Pressure/Cross-questioning →
+   Candidate Questions → Final Evaluation
+5. Each answer is evaluated and scored (0–10) by the AI
+6. Session auto-advances through phases based on answer count and avg score
+7. Final Evaluation phase → summary of performance + improvement plan
+8. Session saved → CareerCoachMemory updated with weak areas and score trend
+9. Next session: AI automatically targets recurring weaknesses
+```
+
+---
+
+## 15. Interview System — Deep Dive
+
+### 15.1 Session Phases
+
+The interview is structured into **8 sequential phases**. Phase advancement is automatic based on answer count and average score:
+
+| # | Phase | Min Turns | Goal |
+|---|---|---|---|
+| 1 | Introduction | 1 | Establish context, confirm role fit |
+| 2 | Resume Deep Dive | 1 | Validate resume claims with concrete examples |
+| 3 | Core Technical Round | 2 | Probe depth, tradeoffs, system thinking |
+| 4 | Problem Solving | 1 | Structured thinking under constraints |
+| 5 | Behavioral Round | 1 | STAR stories, ownership, collaboration |
+| 6 | Pressure / Cross-questioning | 1 | Stress-test consistency and clarity |
+| 7 | Candidate Questions | 1 | Evaluate curiosity and role understanding |
+| 8 | Final Evaluation | 0 | Score summary and improvement plan |
+
+> After **8 answers total**, the session fast-forwards to Final Evaluation regardless of phase.
+
+### 15.2 Training Modes
+
+| Mode | Question Mix | Use Case |
+|---|---|---|
+| `adaptive` | 60% weak areas, 40% general | Default — balances drilling and coverage |
+| `weak_area_only` | 100% weak areas | Targeted remediation |
+| `domain_specific` | 70% domain, 30% weak areas | Pre-interview technical prep |
+| `behavioral_only` | 100% behavioral | Communication and leadership focus |
+
+### 15.3 Interviewer Personas
+
+| Persona | Pressure | Behavior |
+|---|---|---|
+| `balanced` | Medium | Professional, direct, coaches through gaps |
+| `strict` | High | Interrupts vague answers, demands precision |
+| `technical` | Medium-High | Challenges architecture and implementation tradeoffs |
+| `friendly` | Low-Medium | Encouraging, normalises mistakes, guided follow-ups |
+| `behavioral` | Medium | STAR-narrative focused, evidence-driven |
+
+### 15.4 Scoring & Memory
+- Each answer receives a **score 0–10** from the AI
+- `avg_score` is maintained per session
+- `CareerCoachMemory` (one record per user) tracks:
+  - `recurring_weak_areas` — areas that score poorly across multiple sessions
+  - `score_trend` — recent per-answer scores
+  - `session_history` — compact summaries of all past sessions
+  - `daily_plan` — AI-generated improvement plan
+  - `preferred_persona` and `preferred_training_mode` — learned over time
+
+### 15.5 Database Tables
+
+| Table | Purpose |
+|---|---|
+| `interview_sessions` | Full message history, phase state, avg score, status |
+| `career_coach_memory` | Long-term cross-session coaching memory (1 row per user) |
+| `job_applications` | Bookmarked/tracked external jobs with AI-tailored resume bullets |
+
+---
+
+## 16. CrewAI Agent Architecture
+
+### 16.1 Recruitment Analyst Agent
+- **File:** `agents/recruitment_analyst.py`
+- **Task:** `tasks/recruitment_task.py`
+- **Input:** Resume text + parsed resume + job posting details
+- **Output:** Structured JSON with fit score, recommendation, strengths, weaknesses, missing skills, observations, interview questions
+- **LLM:** Groq `llama-3.1-8b-instant` via `GROQ_API_KEY`
+- **Orchestration:** Single-agent `Crew`, `verbose=False`, one-shot kickoff
+
+### 16.2 AI Analysis Pipeline
+```
+PDF upload
+   │
+   ▼
+pypdf text extraction  (utils/resume_parser.py)
+   │
+   ▼
+parse_resume()  (src/resume_lab.py)
+   │  → structured fields: name, skills, experience, education, contact
+   ▼
+create_recruitment_analyst()  →  create_application_analysis_task()
+   │
+   ▼
+Crew.kickoff()  →  Groq LLM
+   │
+   ▼
+_extract_json()  →  _normalize_ai_payload()
+   │  → validates & clamps fit_score, recommendation, all list fields
+   ▼
+_upsert_analysis()  →  ApplicationAIAnalysis row saved to DB
+```
+
+### 16.3 Fallback Scorer
+When the LLM is unavailable (no API key, rate limit, timeout), `_fallback_analysis()` is used:
+- Tokenises resume and job description into lowercase term sets
+- Calculates **overlap ratio** between resume terms and required skill terms
+- Maps overlap ratio → `fit_score` (0–100) using a linear scale
+- Derives `recommendation` from score bracket:
+  - ≥ 80 → Strongly Recommended
+  - ≥ 65 → Recommended
+  - ≥ 45 → Consider
+  - < 45 → Reject
+- Generates deterministic strengths/weaknesses from matched/unmatched skill terms
+- `source` field set to `"fallback"` so HR can distinguish AI vs deterministic results
+
+---
+
+## 17. Frontend Component Architecture
+
+### 17.1 State Management
+```
+Zustand (authStore.js)
+  ├── token          — JWT string
+  ├── user           — { id, username, role }
+  ├── setAuth()      — called on login
+  └── clearAuth()    — called on logout / 401
+```
+Persisted to `localStorage`. On app load, token is rehydrated and validated.
+
+### 17.2 API Layer (`frontend/src/api/`)
+
+| File | Functions |
+|---|---|
+| `axios.js` | Axios instance, 12s timeout, Bearer interceptor, 30s GET cache, 401 logout handler |
+| `auth.js` | `login()`, `register()`, `getMe()` |
+| `jobs.js` | `listJobs()`, `createJob()`, `updateJob()`, `deleteJob()` |
+| `applications.js` | `applyToJob()` (60s timeout), `getMyApplications()`, `listApplications()`, `hireCandidate()`, `getJobRankings()` |
+| `candidates.js` | `listCandidates()` |
+| `employees.js` | `getEmployeeDashboard()`, `checkIn()`, `checkOut()`, `requestLeave()`, `getLeaves()`, `decideLeave()`, `analyzeSkillGap()`, `askHRQuestion()` |
+| `resume.js` | `uploadResume()`, `getMyResume()`, `analyzeResume()`, `applyFixes()` |
+| `dashboard.js` | `getHRDashboardData()`, `getCandidateDashboardData()` |
+| `index.js` | Barrel re-exports all above + `invalidateCache` |
+
+### 17.3 Component Map
+
+```
+App.jsx  (React Router)
+├── /                   → LoginPage
+├── /dashboard          → role-based redirect
+│   ├── role=candidate  → CandidateDashboard
+│   ├── role=hr         → HRDashboard
+│   ├── role=manager    → ManagerDashboard
+│   └── role=employee   → EmployeeDashboard
+│
+Layout.jsx
+├── Sidebar.jsx         — nav links, role label, logout
+└── TopBar.jsx          — page title, user avatar
+
+Shared UI Components:
+├── MetricCard          — KPI tile with icon, value, delta
+├── StatusPill          — coloured badge for status strings
+├── SkeletonCard        — animated loading placeholder
+├── EmptyState          — empty list illustration + CTA
+└── AIScoreDonut        — circular score ring (0–100)
+
+Charts (Recharts):
+├── ApplicationTrend    — area chart of applications over time
+├── ScoreDistribution   — donut of score buckets
+└── SkillGapRadial      — radar chart for skill coverage
+
+Drawers (slide-in panels, z-50, backdrop):
+├── AnalysisDrawer      — full AI analysis for one application
+│                         (score, recommendation, strengths, weaknesses,
+│                          missing skills, interview prep questions)
+└── JobDetailDrawer     — job info + PDF resume upload + submit
+
+Modals:
+└── PostJobModal        — create / edit job posting form
+```
+
+### 17.4 Routing & Auth Guard
+```jsx
+// App.jsx
+<ProtectedRoute roles={["hr","admin"]}>
+  <HRDashboard />
+</ProtectedRoute>
+```
+- `ProtectedRoute` reads role from `authStore`
+- Redirects to `/` (login) if no token
+- Redirects to role-correct dashboard if accessing wrong role's route
+
+---
+
+## 18. Data Flow Diagrams
+
+### 18.1 Resume Submit Flow
+```
+Browser                FastAPI               DB              Groq LLM
+   │                      │                   │                  │
+   │─ POST /apply ────────►│                   │                  │
+   │  (multipart PDF)      │                   │                  │
+   │                       │─ pypdf extract ──►│                  │
+   │                       │─ INSERT app ─────►│                  │
+   │                       │◄─ app.id ─────────│                  │
+   │◄─ 201 {application} ──│                   │                  │
+   │                       │                   │                  │
+   │  (response sent)      │── background ─────────────────────►  │
+   │                       │   task             │  CrewAI kickoff  │
+   │                       │                   │◄── analysis JSON ─│
+   │                       │                   │── INSERT analysis ►│
+   │                       │                   │                  │
+   │─ GET /dashboard/cand ►│                   │                  │
+   │◄─ {apps + score} ─────│◄─ SELECT ─────────│                  │
+```
+
+### 18.2 Leave Approval Flow
+```
+Employee              FastAPI             DB            HR/Manager
+   │                     │                │                 │
+   │─ POST /leave/req ──►│                │                 │
+   │                     │─ check dupe ──►│                 │
+   │                     │◄─ none ────────│                 │
+   │                     │─ INSERT ───────►│                 │
+   │◄─ 201 Pending ──────│                │                 │
+   │                     │                │                 │
+   │                     │                │◄── GET /leave ──│
+   │                     │                │─── list ───────►│
+   │                     │◄── PUT /decide─────────────────── │
+   │                     │─ UPDATE status►│                 │
+   │                     │◄─ done ────────│                 │
+   │◄─ status updated ───│                │                 │
+   │  (on next load)     │                │                 │
+```
+
+---
+
+## 19. API — Key Request & Response Shapes
+
+### POST `/api/auth/login`
+```json
+// Request
+{ "username": "alice", "password": "Pass123!" }
+
+// Response 200
+{
+  "access_token": "eyJhbGci...",
+  "token_type": "bearer",
+  "role": "candidate",
+  "username": "alice",
+  "user_id": 9
+}
+```
+
+### POST `/api/applications/apply` (multipart)
+```
+Form fields:
+  job_id = 3
+  file   = resume.pdf (binary)
+
+Response 201:
+{
+  "success": true,
+  "message": "Application submitted. AI analysis is running in the background.",
+  "application": {
+    "id": 17,
+    "job_id": 3,
+    "job_title": "Senior Backend Engineer",
+    "department": "Engineering",
+    "status": "Applied",
+    "application_date": "2026-06-03T01:37:21",
+    "ai_analysis": null        ← populated asynchronously
+  }
+}
+
+Error 409 (duplicate):
+{ "detail": "You have already submitted an application for this job opening." }
+```
+
+### GET `/api/dashboard/candidate`
+```json
+{
+  "jobs": [
+    {
+      "id": 3,
+      "title": "Senior Backend Engineer",
+      "department": "Engineering",
+      "required_skills": "Python, FastAPI, PostgreSQL",
+      "salary_range": "₹18–24 LPA",
+      "experience_required": "5+ years",
+      "description": "..."
+    }
+  ],
+  "applications": [
+    {
+      "id": 17,
+      "job_id": 3,
+      "job_title": "Senior Backend Engineer",
+      "status": "Applied",
+      "application_date": "2026-06-03T01:37:21",
+      "ai_analysis": {
+        "fit_score": 82,
+        "recommendation": "Recommended",
+        "summary": "Strong FastAPI background...",
+        "strengths": ["Expert in Python", "Solid DB indexing"],
+        "weaknesses": ["Limited cloud experience"],
+        "missing_skills": ["Kubernetes"],
+        "source": "ai"
+      }
+    }
+  ],
+  "has_resume": true,
+  "resume": { "id": 5, "updated_at": "2026-06-03T01:30:00" }
+}
+```
+
+### PUT `/api/employees/leave/{id}/decide`
+```json
+// Request
+{ "status": "Approved", "manager_note": "Approved. Enjoy your break." }
+
+// Response 200
+{ "id": 12, "status": "Approved", "manager_note": "Approved. Enjoy your break." }
+
+// Error 400 (already decided)
+{ "detail": "Leave request already decided." }
+```
+
+---
+
+## 20. Testing
+
+### Test Suite — `tests/`
+
+| File | Coverage |
+|---|---|
+| `tests/test_api.py` | Auth, RBAC, job CRUD, file upload, AI analysis, hire flow, rankings |
+| `tests/test_resume_lab.py` | Resume parsing, fix application, scoring logic |
+
+### Running Tests
+```bash
+# All tests
+pytest tests/ -v
+
+# Single module
+pytest tests/test_api.py -v
+
+# Single test
+pytest tests/test_api.py::test_register_and_login_returns_role -v
+```
+
+### Test Environment
+- Uses an isolated **SQLite database** (created fresh per test run)
+- `DATABASE_URL` is overridden to `sqlite:///data/test_<uuid>.db` before import
+- `AUTO_CREATE_DB_SCHEMA=true` — tables created at test startup
+- AI analysis calls are **monkeypatched** to return deterministic mock payloads
+- No Supabase or Groq API key required to run tests
+
+### Key Test Cases
+- `test_register_and_login_returns_role` — token + role in response
+- `test_public_registration_rejects_role_escalation` — can't self-assign admin
+- `test_job_crud_hr_only` — candidate gets 403 on job creation
+- `test_apply_and_duplicate_rejected` — second application returns 409
+- `test_hire_creates_employee_record` — hire flow creates Employee row
+- `test_resume_parse_extracts_skills` — pypdf + resume_lab extraction
+- `test_fallback_scorer_produces_valid_score` — deterministic scorer bounds
+
+---
+
+## 21. Development Workflow
+
+### First-time Setup
+```bash
+# 1. Clone
+git clone https://github.com/Advaith4/HRMS.git
+cd HRMS
+
+# 2. Python environment
+python -m venv .venv
+.venv\Scripts\activate        # Windows
+pip install -r requirements.txt
+
+# 3. Environment config
+copy .env.example .env
+# Fill in: DATABASE_URL, GROQ_API_KEY, SECRET_KEY
+
+# 4. Frontend
+cd frontend
+npm install
+npm run build                 # builds to ../static/
+cd ..
+
+# 5. Run
+uvicorn src.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+### Frontend Dev Mode (hot reload)
+```bash
+cd frontend
+npm run dev    # runs on :5173, proxies /api/* to :8000
+```
+> In dev mode, Vite proxies API requests to the FastAPI server. The `isDevServer` flag in `axios.js` detects port 5173 and removes the base URL prefix.
+
+### Rebuilding the Frontend
+```bash
+cd frontend
+npm run build
+# Output goes to ../static/assets/
+# FastAPI serves static/ at the root path
+```
+
+### Adding a New API Route
+1. Create `src/api/routes/myroute.py` with a `router = APIRouter(prefix="/api/myroute")`
+2. Import and register in `src/main.py`: `app.include_router(myroute.router)`
+3. Add corresponding frontend API function in `frontend/src/api/myroute.js`
+4. Re-export from `frontend/src/api/index.js`
+
+### Adding a New Database Table
+1. Add `SQLModel` class to `src/models/__init__.py`
+2. Add `ALTER TABLE` / column check logic to `src/database/connection.py` `_ensure_*` functions (idempotent)
+3. The table is created on next server startup (`AUTO_CREATE_DB_SCHEMA=true`)
+
+---
+
+## 22. Dependencies
+
+### Backend (`requirements.txt`)
+| Package | Purpose |
+|---|---|
+| `fastapi` | Web framework |
+| `uvicorn` | ASGI server |
+| `sqlmodel` | ORM (SQLAlchemy + Pydantic) |
+| `psycopg2-binary` | PostgreSQL driver |
+| `python-jose` | JWT encode/decode |
+| `passlib[bcrypt]` | Password hashing |
+| `python-multipart` | Multipart file upload parsing |
+| `pypdf` | PDF text extraction |
+| `crewai` | Multi-agent AI orchestration |
+| `groq` | Groq LLM API client |
+| `pydantic-settings` | `.env` config loading |
+| `appdirs` | Cross-platform app data paths |
+
+### Frontend (`package.json`)
+| Package | Purpose |
+|---|---|
+| `react` + `react-dom` | UI framework (v19) |
+| `react-router-dom` | Client-side routing |
+| `zustand` | Lightweight global state |
+| `axios` | HTTP client |
+| `framer-motion` | Animations and page transitions |
+| `recharts` | Chart components |
+| `lucide-react` | Icon library |
+| `react-dropzone` | Drag-and-drop file upload |
+| `react-hot-toast` | Toast notifications |
+| `vite` | Build tool and dev server |
+
+---
+
+## 23. Roadmap — Planned Enhancements
+
+| Feature | Priority | Notes |
+|---|---|---|
+| Email notifications | High | Notify candidates on status change; HR on new applications |
+| Real-time updates | High | WebSocket push for leave decisions and AI score completion |
+| Resume DOCX support | Medium | Extend `resume_parser.py` with `python-docx` |
+| Multi-tenant support | Medium | Company-scoped data isolation |
+| Payroll module | Medium | Salary calculation, pay slips, tax deductions |
+| Performance reviews | Medium | Periodic employee appraisals with AI scoring |
+| Shift management | Low | Rosters, overtime, multi-shift attendance |
+| LinkedIn import | Low | Parse LinkedIn PDF export as resume |
+| Mobile app | Low | React Native wrapper over the existing API |
+| Audit log | Low | Immutable log of all HR decisions (hire, reject, leave) |
