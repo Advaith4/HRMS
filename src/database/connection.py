@@ -52,6 +52,9 @@ def create_db_and_tables() -> None:
     _ensure_career_coach_memory_table()
     _ensure_phase1_employee_columns()
     _ensure_candidate_credibility_table()
+    _ensure_phase2_talent_tables()
+    _ensure_profile_completion_tables()
+    _ensure_profile_prepopulated_column()
 
 
 def _ensure_user_role_column() -> None:
@@ -341,9 +344,234 @@ def _ensure_candidate_credibility_table() -> None:
                 session.commit()
     except Exception as exc:
         logger.warning("Candidate credibility table migration skipped: %s", exc)
+def _ensure_phase2_talent_tables() -> None:
+    """Create Phase 2A onboarding and training tables for managed PostgreSQL deployments."""
+    try:
+        if _db_url.startswith("sqlite") or settings.AUTO_CREATE_DB_SCHEMA:
+            SQLModel.metadata.create_all(engine)
+        else:
+            _ensure_postgres_phase2_talent_tables()
+    except Exception as exc:
+        logger.warning("Phase 2A talent tables migration skipped: %s", exc)
+
+
+def _ensure_postgres_phase2_talent_tables() -> None:
+    statements = [
+        """
+        CREATE TABLE IF NOT EXISTS onboarding_templates (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(200) NOT NULL,
+            description VARCHAR(1000) DEFAULT '',
+            is_active BOOLEAN DEFAULT TRUE,
+            created_by INTEGER NOT NULL REFERENCES users(id),
+            created_at TIMESTAMP,
+            updated_at TIMESTAMP
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS onboarding_tasks (
+            id SERIAL PRIMARY KEY,
+            template_id INTEGER NOT NULL REFERENCES onboarding_templates(id),
+            title VARCHAR(200) NOT NULL,
+            description VARCHAR(1000) DEFAULT '',
+            order_index INTEGER DEFAULT 0,
+            is_required BOOLEAN DEFAULT TRUE,
+            created_at TIMESTAMP
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS employee_onboarding (
+            id SERIAL PRIMARY KEY,
+            employee_id INTEGER NOT NULL REFERENCES employees(id),
+            template_id INTEGER NOT NULL REFERENCES onboarding_templates(id),
+            assigned_by INTEGER NOT NULL REFERENCES users(id),
+            status VARCHAR(30) DEFAULT 'Active',
+            due_date DATE,
+            started_at TIMESTAMP,
+            completed_at TIMESTAMP,
+            created_at TIMESTAMP,
+            updated_at TIMESTAMP
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS employee_onboarding_tasks (
+            id SERIAL PRIMARY KEY,
+            employee_onboarding_id INTEGER NOT NULL REFERENCES employee_onboarding(id),
+            task_title VARCHAR(200) NOT NULL,
+            task_description VARCHAR(1000) DEFAULT '',
+            order_index INTEGER DEFAULT 0,
+            is_required BOOLEAN DEFAULT TRUE,
+            status VARCHAR(30) DEFAULT 'Pending',
+            completed_at TIMESTAMP,
+            notes VARCHAR(500) DEFAULT '',
+            created_at TIMESTAMP,
+            updated_at TIMESTAMP
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS training_programs (
+            id SERIAL PRIMARY KEY,
+            title VARCHAR(200) NOT NULL,
+            description VARCHAR(2000) DEFAULT '',
+            category VARCHAR(100) DEFAULT 'General',
+            skills_covered VARCHAR(500) DEFAULT '',
+            duration_hours INTEGER DEFAULT 1,
+            difficulty VARCHAR(30) DEFAULT 'Beginner',
+            status VARCHAR(20) DEFAULT 'Draft',
+            created_by INTEGER NOT NULL REFERENCES users(id),
+            created_at TIMESTAMP,
+            updated_at TIMESTAMP
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS training_assignments (
+            id SERIAL PRIMARY KEY,
+            program_id INTEGER NOT NULL REFERENCES training_programs(id),
+            employee_id INTEGER NOT NULL REFERENCES employees(id),
+            assigned_by INTEGER NOT NULL REFERENCES users(id),
+            status VARCHAR(30) DEFAULT 'Not Started',
+            progress_percent INTEGER DEFAULT 0,
+            started_at TIMESTAMP,
+            completed_at TIMESTAMP,
+            due_date DATE,
+            created_at TIMESTAMP,
+            updated_at TIMESTAMP
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS onboarding_required_documents (
+            id SERIAL PRIMARY KEY,
+            template_id INTEGER NOT NULL REFERENCES onboarding_templates(id),
+            document_type VARCHAR(80) NOT NULL,
+            created_at TIMESTAMP
+        )
+        """,
+    ]
+    with Session(engine) as session:
+        for statement in statements:
+            session.exec(text(statement))
+        session.commit()
+
+
+def _ensure_profile_completion_tables() -> None:
+    try:
+        if _db_url.startswith("sqlite") or settings.AUTO_CREATE_DB_SCHEMA:
+            SQLModel.metadata.create_all(engine)
+        else:
+            _ensure_postgres_profile_completion_tables()
+    except Exception as exc:
+        logger.warning("Profile completion tables migration skipped: %s", exc)
+
+
+def _ensure_postgres_profile_completion_tables() -> None:
+    statements = [
+        """
+        CREATE TABLE IF NOT EXISTS candidate_profiles (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER UNIQUE NOT NULL REFERENCES users(id),
+            full_name VARCHAR(200) DEFAULT '',
+            phone VARCHAR(30) DEFAULT '',
+            date_of_birth DATE,
+            gender VARCHAR(40) DEFAULT '',
+            location VARCHAR(100) DEFAULT '',
+            address VARCHAR(500) DEFAULT '',
+            linkedin_url VARCHAR(500) DEFAULT '',
+            portfolio_url VARCHAR(500) DEFAULT '',
+            current_status VARCHAR(60) DEFAULT '',
+            current_company VARCHAR(200) DEFAULT '',
+            current_role VARCHAR(200) DEFAULT '',
+            years_of_experience DOUBLE PRECISION,
+            expected_salary VARCHAR(100) DEFAULT '',
+            notice_period VARCHAR(100) DEFAULT '',
+            degree VARCHAR(200) DEFAULT '',
+            institution VARCHAR(200) DEFAULT '',
+            graduation_year VARCHAR(20) DEFAULT '',
+            cgpa_percentage VARCHAR(40) DEFAULT '',
+            technical_skills VARCHAR(1000) DEFAULT '',
+            soft_skills VARCHAR(1000) DEFAULT '',
+            certifications VARCHAR(1000) DEFAULT '',
+            is_complete BOOLEAN DEFAULT FALSE,
+            completion_percent INTEGER DEFAULT 0,
+            created_at TIMESTAMP,
+            updated_at TIMESTAMP
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS employee_profiles (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER UNIQUE NOT NULL REFERENCES users(id),
+            employee_id INTEGER REFERENCES employees(id),
+            phone VARCHAR(30) DEFAULT '',
+            address VARCHAR(500) DEFAULT '',
+            emergency_contact VARCHAR(200) DEFAULT '',
+            blood_group VARCHAR(20) DEFAULT '',
+            marital_status VARCHAR(40) DEFAULT '',
+            previous_experience VARCHAR(1000) DEFAULT '',
+            skills VARCHAR(1000) DEFAULT '',
+            certifications VARCHAR(1000) DEFAULT '',
+            career_interests VARCHAR(1000) DEFAULT '',
+            career_goals VARCHAR(1000) DEFAULT '',
+            is_complete BOOLEAN DEFAULT FALSE,
+            completion_percent INTEGER DEFAULT 0,
+            verification_status VARCHAR(40) DEFAULT 'Pending Review',
+            pre_populated BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP,
+            updated_at TIMESTAMP
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS candidate_documents (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            document_type VARCHAR(80) NOT NULL,
+            original_filename VARCHAR(255) NOT NULL,
+            stored_path VARCHAR(700) NOT NULL,
+            verification_status VARCHAR(40) DEFAULT 'Pending Review',
+            rejection_comment VARCHAR(1000) DEFAULT '',
+            uploaded_at TIMESTAMP,
+            reviewed_at TIMESTAMP,
+            reviewed_by INTEGER REFERENCES users(id)
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS employee_documents (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            employee_id INTEGER REFERENCES employees(id),
+            document_type VARCHAR(80) NOT NULL,
+            original_filename VARCHAR(255) NOT NULL,
+            stored_path VARCHAR(700) NOT NULL,
+            verification_status VARCHAR(40) DEFAULT 'Pending Review',
+            rejection_comment VARCHAR(1000) DEFAULT '',
+            uploaded_at TIMESTAMP,
+            reviewed_at TIMESTAMP,
+            reviewed_by INTEGER REFERENCES users(id)
+        )
+        """,
+    ]
+    with Session(engine) as session:
+        for statement in statements:
+            session.exec(text(statement))
+        session.commit()
 
 
 def get_session():
     with Session(engine) as session:
         yield session
 
+
+def _ensure_profile_prepopulated_column() -> None:
+    """Lightweight migration to add pre_populated column to employee_profiles."""
+    try:
+        if _db_url.startswith("sqlite"):
+            with Session(engine) as session:
+                existing = {row[1] for row in session.exec(text("PRAGMA table_info(employee_profiles)")).all()}
+                if existing and "pre_populated" not in existing:
+                    session.exec(text("ALTER TABLE employee_profiles ADD COLUMN pre_populated BOOLEAN DEFAULT 0"))
+                    session.commit()
+        else:
+            with Session(engine) as session:
+                session.exec(text("ALTER TABLE employee_profiles ADD COLUMN IF NOT EXISTS pre_populated BOOLEAN DEFAULT FALSE"))
+                session.commit()
+    except Exception as exc:
+        logger.warning("Employee profile pre_populated column migration skipped: %s", exc)

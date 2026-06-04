@@ -18,3 +18,9 @@ export const getCandidateDashboardData = async () => {
   const response = await api.get('/api/dashboard/candidate')
   return response.data
 }
+
+export const getHRReviews = async () => {
+  const response = await api.get('/api/dashboard/hr/reviews')
+  return response.data
+}
+

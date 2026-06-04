@@ -2,13 +2,13 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import {
   Briefcase, FileText, Clock, CheckCircle, Search, UserCheck,
-  Award, GitMerge, HelpCircle
+  Award, GitMerge, HelpCircle, BookOpen, ClipboardList, CalendarCheck
 } from 'lucide-react'
 
 // Only icons used via iconName prop across all MetricCard usages
 const ICON_MAP = {
   Briefcase, FileText, Clock, CheckCircle, Search, UserCheck,
-  Award, GitMerge, HelpCircle,
+  Award, GitMerge, HelpCircle, BookOpen, ClipboardList, CalendarCheck,
 }
 
 export const MetricCard = ({ iconName, icon: PassedIcon, label, title, value, delta, description, deltaType = 'increase', hoverColor = 'indigo' }) => {

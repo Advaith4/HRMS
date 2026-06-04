@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { User, Calendar, Clock, Send, MessageSquare, ChevronRight, Check, X, ShieldAlert, Award, BookOpen, AlertCircle, Plus } from 'lucide-react'
+import { User, Calendar, Clock, Send, MessageSquare, ChevronRight, Check, X, ShieldAlert, Award, BookOpen, AlertCircle, Plus, FileUp, FileText, ShieldCheck } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import { SkillGapRadial } from '../components/charts/SkillGapRadial'
 import { StatusPill } from '../components/ui/StatusPill'
 import { SkeletonCard } from '../components/ui/SkeletonCard'
 import { EmptyState } from '../components/ui/EmptyState'
+import { ProfileSetupWizard } from '../components/ProfileSetupWizard'
 import {
   getEmployeeDashboard,
   checkIn,
@@ -17,9 +18,19 @@ import {
   updateEmployeeProfile,
   listTickets,
   createTicket,
-  getLifecycle
+  getLifecycle,
+  getMyOnboarding,
+  getMyTrainingAssignments,
+  getMyProfileCompletion,
+  updateOnboardingTaskStatus,
+  updateTrainingProgress,
+  uploadProfileDocument
 } from '../api'
 import { CreateTicketModal } from '../components/modals/CreateTicketModal'
+import { ProfileCompletionWidget } from '../components/ProfileCompletionWidget'
+import { EmployeeProfileSection } from '../components/EmployeeProfileSection'
+import { EmployeeOnboardingSection } from '../components/EmployeeOnboardingSection'
+import { EmployeeTrainingSection } from '../components/EmployeeTrainingSection'
 import toast from 'react-hot-toast'
 
 
@@ -32,9 +43,14 @@ export const EmployeeDashboard = () => {
   const [attendance, setAttendance] = useState(null)
   const [leaveSummary, setLeaveSummary] = useState({ pending: 0, approved: 0, rejected: 0, recent: [] })
   const [skillGap, setSkillGap] = useState(null)
+  const [profileComplete, setProfileComplete] = useState(null)
+  const [profileCompletion, setProfileCompletion] = useState(null)
 
   // Tabs navigation and operation states
-  const [activeTab, setActiveTab] = useState('overview')
+  const [activeTab, setActiveTab] = useState(() => {
+    const params = new URLSearchParams(window.location.search)
+    return params.get('tab') || 'overview'
+  })
   const [profileData, setProfileData] = useState(null)
   const [loadingProfile, setLoadingProfile] = useState(false)
   const [isEditingProfile, setIsEditingProfile] = useState(false)
@@ -53,6 +69,12 @@ export const EmployeeDashboard = () => {
   // Lifecycle timeline state
   const [lifecycle, setLifecycle] = useState([])
   const [loadingLifecycle, setLoadingLifecycle] = useState(false)
+
+  // Talent management state
+  const [onboardingPlans, setOnboardingPlans] = useState([])
+  const [loadingOnboarding, setLoadingOnboarding] = useState(false)
+  const [trainingAssignments, setTrainingAssignments] = useState([])
+  const [loadingTraining, setLoadingTraining] = useState(false)
 
   const fetchProfile = async () => {
     if (!employee) return
@@ -99,6 +121,40 @@ export const EmployeeDashboard = () => {
     }
   }
 
+  const fetchOnboarding = async () => {
+    setLoadingOnboarding(true)
+    try {
+      const data = await getMyOnboarding()
+      setOnboardingPlans(data || [])
+    } catch (err) {
+      console.error(err)
+      toast.error('Failed to load onboarding plan')
+    } finally {
+      setLoadingOnboarding(false)
+    }
+  }
+
+  const fetchTraining = async () => {
+    setLoadingTraining(true)
+    try {
+      const data = await getMyTrainingAssignments()
+      setTrainingAssignments(data || [])
+    } catch (err) {
+      console.error(err)
+      toast.error('Failed to load training assignments')
+    } finally {
+      setLoadingTraining(false)
+    }
+  }
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const tab = params.get('tab')
+    if (tab && tab !== activeTab) {
+      setActiveTab(tab)
+    }
+  }, [window.location.search])
+
   useEffect(() => {
     if (employee) {
       if (activeTab === 'profile') {
@@ -107,6 +163,10 @@ export const EmployeeDashboard = () => {
         fetchTickets()
       } else if (activeTab === 'timeline') {
         fetchLifecycle()
+      } else if (activeTab === 'onboarding') {
+        fetchOnboarding()
+      } else if (activeTab === 'training') {
+        fetchTraining()
       }
     }
   }, [activeTab, employee])
@@ -141,6 +201,41 @@ export const EmployeeDashboard = () => {
     }
   }
 
+  const handleOnboardingTaskStatus = async (planId, taskId, status) => {
+    try {
+      await updateOnboardingTaskStatus(planId, taskId, { status })
+      toast.success(status === 'Completed' ? 'Onboarding task completed' : 'Task marked in progress')
+      fetchOnboarding()
+    } catch (err) {
+      console.error(err)
+      toast.error(err.response?.data?.detail || 'Failed to update onboarding task')
+    }
+  }
+
+  const handleUploadOnboardingDocument = async (documentType, file) => {
+    if (!file) return
+    const uploadToast = toast.loading(`Uploading ${documentType}...`)
+    try {
+      await uploadProfileDocument(documentType, file)
+      toast.success(`${documentType} uploaded successfully`, { id: uploadToast })
+      fetchOnboarding()
+    } catch (err) {
+      console.error(err)
+      toast.error(err.response?.data?.detail || 'Upload failed', { id: uploadToast })
+    }
+  }
+
+  const handleTrainingProgress = async (assignmentId, progressPercent) => {
+    try {
+      await updateTrainingProgress(assignmentId, { progress_percent: progressPercent })
+      toast.success(progressPercent >= 100 ? 'Training completed' : 'Training progress updated')
+      fetchTraining()
+    } catch (err) {
+      console.error(err)
+      toast.error(err.response?.data?.detail || 'Failed to update training progress')
+    }
+  }
+
   // Leave Form States
   const [leaveType, setLeaveType] = useState('Annual')
   const [startDate, setStartDate] = useState('')
@@ -171,11 +266,16 @@ export const EmployeeDashboard = () => {
   // Fetch Dashboard details
   const fetchDashboardData = async () => {
     try {
-      const data = await getEmployeeDashboard()
+      const [data, profileData] = await Promise.all([
+        getEmployeeDashboard(),
+        getMyProfileCompletion(),
+      ])
       setEmployee(data.employee)
       setAttendance(data.attendance_status)
       setLeaveSummary(data.leave_summary)
       setSkillGap(data.skill_gap)
+      setProfileCompletion(profileData.profile || profileData)
+      setProfileComplete(!!profileData.profile?.is_complete)
     } catch (err) {
       console.error('Employee dashboard fetch failed:', err)
       const msg = err?.response?.data?.detail || err?.message || 'Unknown error'
@@ -458,6 +558,10 @@ export const EmployeeDashboard = () => {
     return <SkeletonCard mode="card" count={2} />
   }
 
+  if (profileComplete === false) {
+    return <ProfileSetupWizard role="employee" onComplete={() => { setProfileComplete(true); fetchDashboardData(); }} />
+  }
+
   // Calculate skill gap progress metric
   const currentSkillsList = employee?.skills ? employee.skills.split(',').map(s => s.trim()) : []
   const missingSkillsList = skillGap?.missing_skills || []
@@ -502,7 +606,9 @@ export const EmployeeDashboard = () => {
           { id: 'overview', label: 'Overview' },
           { id: 'profile', label: 'My Profile' },
           { id: 'tickets', label: 'My Tickets' },
-          { id: 'timeline', label: 'Career Timeline' }
+          { id: 'timeline', label: 'Career Timeline' },
+          { id: 'onboarding', label: 'Onboarding' },
+          { id: 'training', label: 'Training' }
         ].map((tab) => (
           <button
             key={tab.id}
@@ -597,92 +703,104 @@ export const EmployeeDashboard = () => {
 
               </div>
 
-              {/* Leave requests card (45%) */}
-              <div className="lg:col-span-5 rounded-xl border border-border-custom bg-bg-surface p-6 shadow-xs space-y-4">
-                <div className="border-b border-border-custom pb-3">
-                  <h4 className="text-sm font-semibold">Request Time Off</h4>
-                  <p className="text-[11px] text-txt-secondary">Submit leave requests directly to your line manager</p>
-                </div>
-
-                <form onSubmit={handleLeaveSubmit} className="space-y-3">
-                  
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Leave Type</label>
-                    <select
-                      value={leaveType}
-                      onChange={(e) => setLeaveType(e.target.value)}
-                      className="w-full bg-bg-page border border-border-custom outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary"
-                    >
-                      <option value="Annual">Annual / Vacation</option>
-                      <option value="Casual">Casual / Personal</option>
-                      <option value="Sick">Sick Leave</option>
-                    </select>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Start Date</label>
-                      <input
-                        type="date"
-                        required
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                        className="w-full bg-bg-page border border-border-custom outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-txt-tertiary uppercase block">End Date</label>
-                      <input
-                        type="date"
-                        required
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
-                        className="w-full bg-bg-page border border-border-custom outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Reason</label>
-                    <textarea
-                      rows={2}
-                      required
-                      placeholder="Details of cover, recovery etc..."
-                      value={reason}
-                      onChange={(e) => setReason(e.target.value)}
-                      className="w-full bg-bg-page border border-border-custom outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary resize-none font-sans"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={submittingLeave}
-                    className="w-full h-8 bg-brand-indigo hover:bg-brand-indigo-hover text-white text-xs font-semibold rounded-lg flex items-center justify-center cursor-pointer transition-all disabled:opacity-50 active:scale-98"
-                  >
-                    {submittingLeave ? 'Submitting request...' : 'Request Time Off'}
-                  </button>
-                </form>
-
-                {/* Recent leaves table */}
-                {leaveSummary.recent.length > 0 && (
-                  <div className="pt-4 border-t border-border-custom/50 space-y-2">
-                    <span className="text-[10px] font-bold text-txt-tertiary uppercase tracking-wider block">My Recent Requests</span>
-                    <div className="space-y-2">
-                      {leaveSummary.recent.map((req) => (
-                        <div key={req.id} className="flex items-center justify-between bg-bg-page/50 border border-border-custom/50 p-2.5 rounded-lg text-[11px]">
-                          <div>
-                            <span className="font-semibold text-txt-primary block leading-none mb-1">{req.leave_type} Leave</span>
-                            <span className="text-txt-tertiary block leading-none">
-                              {new Date(req.start_date).toLocaleDateString()} to {new Date(req.end_date).toLocaleDateString()}
-                            </span>
-                          </div>
-                          <StatusPill status={req.status} />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+              {/* Right column widgets (45%) */}
+              <div className="lg:col-span-5 space-y-6">
+                
+                {/* Profile Completion Card */}
+                {profileCompletion && (
+                  <ProfileCompletionWidget
+                    profileCompletion={profileCompletion}
+                    onAction={() => setProfileComplete(false)}
+                  />
                 )}
 
+                {/* Leave requests card (45%) */}
+                <div className="rounded-xl border border-border-custom bg-bg-surface p-6 shadow-xs space-y-4">
+                  <div className="border-b border-border-custom pb-3">
+                    <h4 className="text-sm font-semibold">Request Time Off</h4>
+                    <p className="text-[11px] text-txt-secondary">Submit leave requests directly to your line manager</p>
+                  </div>
+
+                  <form onSubmit={handleLeaveSubmit} className="space-y-3">
+                    
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Leave Type</label>
+                      <select
+                        value={leaveType}
+                        onChange={(e) => setLeaveType(e.target.value)}
+                        className="w-full bg-bg-page border border-border-custom outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary"
+                      >
+                        <option value="Annual">Annual / Vacation</option>
+                        <option value="Casual">Casual / Personal</option>
+                        <option value="Sick">Sick Leave</option>
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Start Date</label>
+                        <input
+                          type="date"
+                          required
+                          value={startDate}
+                          onChange={(e) => setStartDate(e.target.value)}
+                          className="w-full bg-bg-page border border-border-custom outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-txt-tertiary uppercase block">End Date</label>
+                        <input
+                          type="date"
+                          required
+                          value={endDate}
+                          onChange={(e) => setEndDate(e.target.value)}
+                          className="w-full bg-bg-page border border-border-custom outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Reason</label>
+                      <textarea
+                        rows={2}
+                        required
+                        placeholder="Details of cover, recovery etc..."
+                        value={reason}
+                        onChange={(e) => setReason(e.target.value)}
+                        className="w-full bg-bg-page border border-border-custom outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary resize-none font-sans"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={submittingLeave}
+                      className="w-full h-8 bg-brand-indigo hover:bg-brand-indigo-hover text-white text-xs font-semibold rounded-lg flex items-center justify-center cursor-pointer transition-all disabled:opacity-50 active:scale-98"
+                    >
+                      {submittingLeave ? 'Submitting request...' : 'Request Time Off'}
+                    </button>
+                  </form>
+
+                  {/* Recent leaves table */}
+                  {leaveSummary.recent.length > 0 && (
+                    <div className="pt-4 border-t border-border-custom/50 space-y-2">
+                      <span className="text-[10px] font-bold text-txt-tertiary uppercase tracking-wider block">My Recent Requests</span>
+                      <div className="space-y-2">
+                        {leaveSummary.recent.map((req) => (
+                          <div key={req.id} className="flex items-center justify-between bg-bg-page/50 border border-border-custom/50 p-2.5 rounded-lg text-[11px]">
+                            <div>
+                              <span className="font-semibold text-txt-primary block leading-none mb-1">{req.leave_type} Leave</span>
+                              <span className="text-txt-tertiary block leading-none">
+                                {new Date(req.start_date).toLocaleDateString()} to {new Date(req.end_date).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <StatusPill status={req.status} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                </div>
               </div>
 
             </div>
@@ -817,161 +935,22 @@ export const EmployeeDashboard = () => {
 
       {/* Profile Tab View */}
       {activeTab === 'profile' && (
-        <div className="space-y-6">
-          <div className="rounded-xl border border-border-custom bg-bg-surface p-6">
-            <div className="flex justify-between items-center border-b border-border-custom pb-4 mb-6">
-              <div>
-                <h4 className="text-sm font-semibold">Personal & Professional Records</h4>
-                <p className="text-[11px] text-txt-secondary">Official employee file and records</p>
-              </div>
-              <button
-                onClick={() => setIsEditingProfile(!isEditingProfile)}
-                className="px-3 py-1.5 border border-border-custom text-xs font-semibold text-txt-secondary hover:text-brand-indigo hover:border-brand-indigo/30 bg-bg-page rounded-lg cursor-pointer transition-colors"
-              >
-                {isEditingProfile ? 'Cancel' : 'Edit Contact Info'}
-              </button>
-            </div>
-
-            {loadingProfile ? (
-              <div className="flex justify-center py-12">
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
-              </div>
-            ) : profileData ? (
-              isEditingProfile ? (
-                <form onSubmit={handleUpdateProfile} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Mobile Phone</label>
-                      <input
-                        type="text"
-                        value={editPhone}
-                        onChange={(e) => setEditPhone(e.target.value)}
-                        className="w-full bg-bg-page border border-border-custom focus:border-brand-indigo outline-none px-3.5 py-1.5 text-xs rounded-xl text-txt-primary"
-                        placeholder="e.g. +91 98765 43210"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Emergency Contact</label>
-                      <input
-                        type="text"
-                        value={editEmergencyContact}
-                        onChange={(e) => setEditEmergencyContact(e.target.value)}
-                        className="w-full bg-bg-page border border-border-custom focus:border-brand-indigo outline-none px-3.5 py-1.5 text-xs rounded-xl text-txt-primary"
-                        placeholder="e.g. John Doe - Parent (+91 99999 88888)"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Residential Address</label>
-                    <textarea
-                      rows={2}
-                      value={editAddress}
-                      onChange={(e) => setEditAddress(e.target.value)}
-                      className="w-full bg-bg-page border border-border-custom focus:border-brand-indigo outline-none px-3.5 py-1.5 text-xs rounded-xl text-txt-primary resize-none"
-                      placeholder="Street, City, Zip"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Skills (comma-separated)</label>
-                    <input
-                      type="text"
-                      value={editSkills}
-                      onChange={(e) => setEditSkills(e.target.value)}
-                      className="w-full bg-bg-page border border-border-custom focus:border-brand-indigo outline-none px-3.5 py-1.5 text-xs rounded-xl text-txt-primary"
-                      placeholder="React, Node.js, Python"
-                    />
-                  </div>
-                  <div className="flex gap-2 justify-end pt-4 border-t border-border-custom">
-                    <button
-                      type="submit"
-                      className="h-8 px-4 bg-brand-indigo hover:bg-brand-indigo-hover text-white text-xs font-semibold rounded-lg flex items-center justify-center cursor-pointer transition-all active:scale-98"
-                    >
-                      Save Changes
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  {/* Left Column: Personal */}
-                  <div className="space-y-4">
-                    <h5 className="text-xs font-bold text-brand-indigo uppercase tracking-wider">Personal Information</h5>
-                    <div className="grid grid-cols-2 gap-4 text-xs">
-                      <div>
-                        <span className="text-txt-tertiary block font-semibold mb-1">Full Name</span>
-                        <span className="text-txt-primary font-medium">{profileData.full_name || user?.username}</span>
-                      </div>
-                      <div>
-                        <span className="text-txt-tertiary block font-semibold mb-1">Email Address</span>
-                        <span className="text-txt-primary font-medium">{profileData.email || 'N/A'}</span>
-                      </div>
-                      <div>
-                        <span className="text-txt-tertiary block font-semibold mb-1">Mobile Phone</span>
-                        <span className="text-txt-primary font-medium">{profileData.phone || 'N/A'}</span>
-                      </div>
-                      <div>
-                        <span className="text-txt-tertiary block font-semibold mb-1">Date of Birth</span>
-                        <span className="text-txt-primary font-medium">
-                          {profileData.date_of_birth ? new Date(profileData.date_of_birth).toLocaleDateString() : 'N/A'}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="text-xs">
-                      <span className="text-txt-tertiary block font-semibold mb-1">Residential Address</span>
-                      <span className="text-txt-primary font-medium">{profileData.address || 'N/A'}</span>
-                    </div>
-                    <div className="text-xs">
-                      <span className="text-txt-tertiary block font-semibold mb-1">Emergency Contact</span>
-                      <span className="text-txt-primary font-medium">{profileData.emergency_contact || 'N/A'}</span>
-                    </div>
-                  </div>
-
-                  {/* Right Column: Professional */}
-                  <div className="space-y-4">
-                    <h5 className="text-xs font-bold text-brand-indigo uppercase tracking-wider">Professional Information</h5>
-                    <div className="grid grid-cols-2 gap-4 text-xs">
-                      <div>
-                        <span className="text-txt-tertiary block font-semibold mb-1">Employee Code</span>
-                        <span className="text-txt-primary font-medium">{profileData.employee_code}</span>
-                      </div>
-                      <div>
-                        <span className="text-txt-tertiary block font-semibold mb-1">Current Status</span>
-                        <span className="text-txt-primary font-medium">
-                          <StatusPill status={profileData.status || 'Active'} />
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-txt-tertiary block font-semibold mb-1">Department</span>
-                        <span className="text-txt-primary font-medium">{profileData.department || 'N/A'}</span>
-                      </div>
-                      <div>
-                        <span className="text-txt-tertiary block font-semibold mb-1">Designation</span>
-                        <span className="text-txt-primary font-medium">{profileData.designation || 'N/A'}</span>
-                      </div>
-                      <div>
-                        <span className="text-txt-tertiary block font-semibold mb-1">Reporting Manager</span>
-                        <span className="text-txt-primary font-medium">{profileData.manager_name || 'N/A'}</span>
-                      </div>
-                      <div>
-                        <span className="text-txt-tertiary block font-semibold mb-1">Work Location</span>
-                        <span className="text-txt-primary font-medium">{profileData.work_location || 'N/A'}</span>
-                      </div>
-                    </div>
-                    <div className="text-xs">
-                      <span className="text-txt-tertiary block font-semibold mb-1">Certifications</span>
-                      <span className="text-txt-primary font-medium">{profileData.certifications || 'None recorded'}</span>
-                    </div>
-                    <div className="text-xs">
-                      <span className="text-txt-tertiary block font-semibold mb-1">Years of Experience</span>
-                      <span className="text-txt-primary font-medium">{profileData.years_of_experience ?? 'N/A'} yrs</span>
-                    </div>
-                  </div>
-                </div>
-              )
-            ) : (
-              <div className="text-center py-6 text-xs text-txt-tertiary">Failed to load profile record.</div>
-            )}
-          </div>
-        </div>
+        <EmployeeProfileSection
+          isEditingProfile={isEditingProfile}
+          setIsEditingProfile={setIsEditingProfile}
+          loadingProfile={loadingProfile}
+          profileData={profileData}
+          user={user}
+          editPhone={editPhone}
+          setEditPhone={setEditPhone}
+          editEmergencyContact={editEmergencyContact}
+          setEditEmergencyContact={setEditEmergencyContact}
+          editAddress={editAddress}
+          setEditAddress={setEditAddress}
+          editSkills={editSkills}
+          setEditSkills={setEditSkills}
+          handleUpdateProfile={handleUpdateProfile}
+        />
       )}
 
       {/* Tickets Tab View */}
@@ -1088,6 +1067,25 @@ export const EmployeeDashboard = () => {
             )}
           </div>
         </div>
+      )}
+
+      {/* Onboarding Tab View */}
+      {activeTab === 'onboarding' && (
+        <EmployeeOnboardingSection
+          onboardingPlans={onboardingPlans}
+          loadingOnboarding={loadingOnboarding}
+          handleOnboardingTaskStatus={handleOnboardingTaskStatus}
+          handleUploadOnboardingDocument={handleUploadOnboardingDocument}
+        />
+      )}
+
+      {/* Training Tab View */}
+      {activeTab === 'training' && (
+        <EmployeeTrainingSection
+          trainingAssignments={trainingAssignments}
+          loadingTraining={loadingTraining}
+          handleTrainingProgress={handleTrainingProgress}
+        />
       )}
 
       {/* Floating AI HR Assistant Button */}

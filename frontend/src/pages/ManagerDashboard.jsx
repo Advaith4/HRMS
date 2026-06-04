@@ -10,6 +10,7 @@ import { ScoreDistribution } from '../components/charts/ScoreDistribution'
 import { AnalysisDrawer } from '../components/drawers/AnalysisDrawer'
 import { getHRDashboardData, getJobRankings, listLeaveRequests, decideLeaveRequest } from '../api'
 import toast from 'react-hot-toast'
+import { ManagerTrainingView } from './hr/ManagerTrainingView'
 
 export const ManagerDashboard = ({ activeTab = 'overview' }) => {
   const [loading, setLoading] = useState(true)
@@ -166,7 +167,11 @@ export const ManagerDashboard = ({ activeTab = 'overview' }) => {
         <div>
           <h2 className="text-xl font-bold tracking-tight">Manager Dashboard</h2>
           <p className="text-xs text-txt-secondary mt-1">
-            {activeTab === 'leaves' ? 'Review and decide employee leave applications.' : 'Read-only pipeline analytics, rankings, and candidate profiles.'}
+            {activeTab === 'leaves'
+              ? 'Review and decide employee leave applications.'
+              : activeTab === 'training'
+              ? 'Monitor team training completion and overdue assignments.'
+              : 'Read-only pipeline analytics, rankings, and candidate profiles.'}
           </p>
         </div>
       </div>
@@ -372,6 +377,8 @@ export const ManagerDashboard = ({ activeTab = 'overview' }) => {
           )}
         </div>
       )}
+
+      {activeTab === 'training' && <ManagerTrainingView />}
 
       {/* Analysis Drawer */}
       <AnalysisDrawer

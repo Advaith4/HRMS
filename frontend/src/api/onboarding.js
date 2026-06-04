@@ -27,6 +27,9 @@ export const assignOnboardingTemplate = (data) =>
 export const getEmployeeOnboarding = (employeeId) =>
   api.get(`/api/onboarding/employee/${employeeId}`).then(r => r.data)
 
+export const getMyOnboarding = () =>
+  api.get('/api/onboarding/my').then(r => r.data)
+
 export const updateOnboardingTaskStatus = (planId, taskId, data) =>
   api.put(`/api/onboarding/plan/${planId}/task/${taskId}`, data).then(r => r.data)
 

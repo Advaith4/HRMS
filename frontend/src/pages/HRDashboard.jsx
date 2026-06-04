@@ -9,22 +9,36 @@ import { ApplicationTrend } from '../components/charts/ApplicationTrend'
 import { ScoreDistribution } from '../components/charts/ScoreDistribution'
 import { AnalysisDrawer } from '../components/drawers/AnalysisDrawer'
 import { PostJobModal } from '../components/modals/PostJobModal'
-import { getHRDashboardData, deleteJob, listLeaveRequests, decideLeaveRequest } from '../api'
+import { getHRDashboardData, deleteJob, listLeaveRequests, decideLeaveRequest, getHRReviews } from '../api'
 import { useAuthStore } from '../store/authStore'
+import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { EmployeeDirectory } from './hr/EmployeeDirectory'
 import { DepartmentManagement } from './hr/DepartmentManagement'
 import { DesignationManagement } from './hr/DesignationManagement'
 import { GrievanceDashboard } from './hr/GrievanceDashboard'
 import { PromotionDashboard } from './hr/PromotionDashboard'
+import { OnboardingHub } from './hr/OnboardingHub'
+import { TrainingHub } from './hr/TrainingHub'
+import { DocumentVerification } from './hr/DocumentVerification'
+import { HRMetricsPanel } from '../components/HRMetricsPanel'
+import { HRReviewQueue } from '../components/HRReviewQueue'
+import { PendingActionsWidget } from '../components/PendingActionsWidget'
 
 
 export const HRDashboard = ({ activeTab = 'overview' }) => {
   const { role } = useAuthStore()
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [jobs, setJobs] = useState([])
   const [applications, setApplications] = useState([])
   const [candidates, setCandidates] = useState([])
+  const [reviewQueue, setReviewQueue] = useState({
+    pending_profiles: [],
+    pending_documents: [],
+    pending_onboarding_assignments: [],
+    overdue_trainings: []
+  })
 
   // Drawer & Modal States
   const [selectedApplication, setSelectedApplication] = useState(null)
@@ -52,10 +66,22 @@ export const HRDashboard = ({ activeTab = 'overview' }) => {
   const fetchData = async () => {
     setLoading(true)
     try {
-      const data = await getHRDashboardData()
+      const [data, reviewsData, leavesData] = await Promise.all([
+        getHRDashboardData(),
+        getHRReviews().catch(err => {
+          console.error("Failed to load HR review queue:", err)
+          return { pending_profiles: [], pending_documents: [], pending_onboarding_assignments: [], overdue_trainings: [], incomplete_candidates: [], incomplete_employees: [] }
+        }),
+        listLeaveRequests().catch(err => {
+          console.error("Failed to load leaves:", err)
+          return []
+        })
+      ])
       const jobsData = data.jobs || []
       const appsData = data.applications || []
       const candidatesData = data.candidates || []
+      setReviewQueue(reviewsData)
+      setLeaves(leavesData)
 
       // Seed jobs if empty
       setJobs(jobsData.length > 0 ? jobsData : [
@@ -306,20 +332,14 @@ export const HRDashboard = ({ activeTab = 'overview' }) => {
         )}
       </div>
 
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-          <SkeletonCard mode="metric" count={5} />
-        </div>
-      ) : (
-        /* KPI Cards Grid */
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-          <MetricCard iconName="Briefcase" label="Open Job Postings" value={openJobsCount} delta="3 new" />
-          <MetricCard iconName="FileText" label="Total Applications" value={totalAppsCount} delta="12% vs last wk" />
-          <MetricCard iconName="Search" label="Pending Screenings" value={pendingReviewCount} delta="High priority" />
-          <MetricCard iconName="UserCheck" label="Hires Completed" value={hiredCount} delta="2 this month" hoverColor="teal" />
-          <MetricCard iconName="Award" label="Avg AI Fit Score" value={`${avgScore}/100`} delta="Optimal" hoverColor="teal" />
-        </div>
-      )}
+      <HRMetricsPanel
+        openJobsCount={openJobsCount}
+        totalAppsCount={totalAppsCount}
+        pendingReviewCount={pendingReviewCount}
+        hiredCount={hiredCount}
+        avgScore={avgScore}
+        loading={loading}
+      />
 
       {/* RENDER SUBVIEWS DEPENDING ON ACTIVETAB */}
       
@@ -338,6 +358,20 @@ export const HRDashboard = ({ activeTab = 'overview' }) => {
               <div className="rounded-xl border border-border-custom bg-bg-surface p-6 shadow-xs">
                 <ScoreDistribution />
               </div>
+            </div>
+          </div>
+
+          {/* Section: Action Items & Review Queue */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <HRReviewQueue reviewQueue={reviewQueue} navigate={navigate} />
+            </div>
+            <div>
+              <PendingActionsWidget
+                reviewQueue={reviewQueue}
+                leaves={leaves}
+                onActionClick={(id) => navigate(`/hr/${id}`)}
+              />
             </div>
           </div>
 
@@ -759,6 +793,9 @@ export const HRDashboard = ({ activeTab = 'overview' }) => {
       {activeTab === 'designations' && <DesignationManagement />}
       {activeTab === 'tickets' && <GrievanceDashboard />}
       {activeTab === 'promotions' && <PromotionDashboard />}
+      {activeTab === 'onboarding' && <OnboardingHub />}
+      {activeTab === 'training' && <TrainingHub />}
+      {activeTab === 'documents' && <DocumentVerification />}
 
 
       {/* Analysis Drawer */}

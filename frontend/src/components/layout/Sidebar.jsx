@@ -81,14 +81,14 @@ const HR_NAV = [
     id: 'talent',
     label: 'Talent Management',
     icon: Star,
-    locked: true,
     badge: 'Phase 2',
     children: [
-      { label: 'Onboarding',          icon: UserCheck,   locked: true },
-      { label: 'Training',            icon: BookOpen,    locked: true },
-      { label: 'Goals',               icon: Target,      locked: true },
-      { label: 'Performance Reviews', icon: BarChart3,   locked: true },
-      { label: 'Career Development',  icon: Milestone,   locked: true },
+      { path: '/hr/onboarding',       label: 'Onboarding',          icon: UserCheck },
+      { path: '/hr/training',         label: 'Training',            icon: BookOpen },
+      { path: '/hr/documents',        label: 'Documents',           icon: FileText },
+      { label: 'Goals',               icon: Target,      locked: true, badge: 'Soon' },
+      { label: 'Performance Reviews', icon: BarChart3,   locked: true, badge: 'Soon' },
+      { label: 'Career Development',  icon: Milestone,   locked: true, badge: 'Soon' },
     ],
   },
   {
@@ -133,6 +133,12 @@ const MANAGER_NAV = [
     path: '/manager/leaves',
     label: 'Leave Approvals',
     icon: CalendarCheck,
+  },
+  {
+    type: 'item',
+    path: '/manager/training',
+    label: 'Team Training',
+    icon: BookOpen,
   },
 ]
 
@@ -255,7 +261,12 @@ const NavGroup = ({ group, pathname }) => {
                   return (
                     <div key={i} className="flex items-center space-x-2 px-2.5 py-1.5 rounded-md opacity-35 cursor-not-allowed">
                       <ChildIcon size={13} className="text-txt-tertiary shrink-0" />
-                      <span className="text-[11px] font-medium text-txt-tertiary">{child.label}</span>
+                      <span className="text-[11px] font-medium text-txt-tertiary flex-1">{child.label}</span>
+                      {child.badge && (
+                        <span className="text-[8px] font-bold uppercase tracking-wider text-txt-tertiary border border-border-custom px-1.5 py-0.5 rounded-full">
+                          {child.badge}
+                        </span>
+                      )}
                     </div>
                   )
                 }
