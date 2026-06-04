@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
-import { FileUp, Save, ShieldCheck } from 'lucide-react'
+import { FileUp, Save, ShieldCheck, AlertCircle } from 'lucide-react'
 import {
   getMyProfileCompletion,
   updateCandidateProfile,
@@ -35,8 +35,6 @@ export const ProfileSetupWizard = ({ role, onComplete }) => {
   const [step, setStep] = useState(0)
   const [profile, setProfile] = useState(isCandidate ? candidateInitial : employeeInitial)
   const [documents, setDocuments] = useState([])
-  const [completion, setCompletion] = useState(0)
-  const [missing, setMissing] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
@@ -46,6 +44,58 @@ export const ProfileSetupWizard = ({ role, onComplete }) => {
       : ['Personal', 'Professional', 'Documents']
   ), [isCandidate])
 
+  const requiredFields = useMemo(() => (
+    isCandidate ? [
+      "full_name", "phone", "date_of_birth", "gender", "location", "address",
+      "current_status", "degree", "institution", "graduation_year", "technical_skills"
+    ] : [
+      "phone", "address", "emergency_contact", "blood_group", "marital_status", "skills", "career_goals"
+    ]
+  ), [isCandidate])
+
+  const requiredDocs = useMemo(() => (
+    isCandidate ? ["Resume"] : ["Government ID", "Resume"]
+  ), [isCandidate])
+
+  // Live calculations on frontend state
+  const liveCompletion = useMemo(() => {
+    let filledFields = 0
+    requiredFields.forEach(f => {
+      if (profile[f] !== undefined && profile[f] !== null && String(profile[f]).trim() !== "") {
+        filledFields++
+      }
+    })
+    
+    let filledDocs = 0
+    requiredDocs.forEach(docType => {
+      const hasDoc = documents.some(d => d.document_type === docType && d.verification_status !== "Rejected")
+      if (hasDoc) {
+        filledDocs++
+      }
+    })
+    
+    const totalItems = requiredFields.length + requiredDocs.length
+    const filledItems = filledFields + filledDocs
+    return totalItems ? Math.round((filledItems / totalItems) * 100) : 100
+  }, [profile, documents, requiredFields, requiredDocs])
+
+  const liveMissing = useMemo(() => {
+    const missing = []
+    requiredFields.forEach(f => {
+      if (profile[f] === undefined || profile[f] === null || String(profile[f]).trim() === "") {
+        const friendly = f.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")
+        missing.push(friendly)
+      }
+    })
+    requiredDocs.forEach(d => {
+      const hasDoc = documents.some(doc => doc.document_type === d && doc.verification_status !== "Rejected")
+      if (!hasDoc) {
+        missing.push(`${d} Upload`)
+      }
+    })
+    return missing
+  }, [profile, documents, requiredFields, requiredDocs])
+
   const fetchProfile = async () => {
     setLoading(true)
     try {
@@ -53,8 +103,6 @@ export const ProfileSetupWizard = ({ role, onComplete }) => {
       const p = data.profile || {}
       setProfile({ ...(isCandidate ? candidateInitial : employeeInitial), ...p })
       setDocuments(p.documents || [])
-      setCompletion(p.completion_percent || 0)
-      setMissing(p.missing_information || [])
       if (p.is_complete) onComplete?.()
     } catch (err) {
       console.error(err)
@@ -70,22 +118,52 @@ export const ProfileSetupWizard = ({ role, onComplete }) => {
 
   const updateField = (key, value) => setProfile((prev) => ({ ...prev, [key]: value }))
 
-  const saveProfile = async () => {
+  const saveProfile = async (showToast = true) => {
     setSaving(true)
     try {
       const payload = isCandidate
         ? await updateCandidateProfile(profile)
         : await updateEmployeeCompletionProfile(profile)
-      setCompletion(payload.completion_percent || 0)
-      setMissing(payload.missing_information || [])
       setDocuments(payload.documents || documents)
-      toast.success('Profile saved')
-      if (payload.is_complete) onComplete?.()
+      if (showToast) {
+        toast.success('Profile progress saved')
+      }
+      if (payload.is_complete) {
+        onComplete?.()
+      }
+      return payload
     } catch (err) {
       console.error(err)
-      toast.error(err.response?.data?.detail || 'Failed to save profile')
+      if (showToast) {
+        toast.error(err.response?.data?.detail || 'Failed to save profile')
+      }
+      throw err
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleStepChange = async (newStep) => {
+    try {
+      await saveProfile(false) // Auto-save silently on step transition
+      setStep(newStep)
+    } catch (err) {
+      // Step transition can still happen but inform user
+      setStep(newStep)
+    }
+  }
+
+  const handleCompleteProfile = async () => {
+    try {
+      const payload = await saveProfile(true)
+      if (payload.is_complete) {
+        toast.success('Profile setup successfully completed!')
+        onComplete?.()
+      } else {
+        toast.error('Profile is still incomplete. Please double check all fields.')
+      }
+    } catch (err) {
+      toast.error('Could not complete profile setup.')
     }
   }
 
@@ -94,7 +172,10 @@ export const ProfileSetupWizard = ({ role, onComplete }) => {
     try {
       await uploadProfileDocument(documentType, file)
       toast.success(`${documentType} uploaded`)
-      fetchProfile()
+      // Refresh to pull updated document verification status
+      const data = await getMyProfileCompletion()
+      const p = data.profile || {}
+      setDocuments(p.documents || [])
     } catch (err) {
       console.error(err)
       toast.error(err.response?.data?.detail || 'Upload failed')
@@ -107,6 +188,15 @@ export const ProfileSetupWizard = ({ role, onComplete }) => {
 
   return (
     <div className="min-h-[70vh] rounded-xl border border-border-custom bg-bg-surface p-6 space-y-6">
+      {profile.pre_populated && (
+        <div className="rounded-lg border border-brand-indigo/30 bg-brand-indigo/10 p-3 text-xs text-txt-primary flex items-center gap-2">
+          <AlertCircle size={16} className="text-brand-indigo flex-shrink-0" />
+          <span>
+            <strong>Note:</strong> Some of your profile fields have been pre-populated from your candidate records. Please review and complete the remaining required details.
+          </span>
+        </div>
+      )}
+
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-border-custom pb-4">
         <div>
           <div className="flex items-center gap-2 text-brand-indigo">
@@ -119,23 +209,23 @@ export const ProfileSetupWizard = ({ role, onComplete }) => {
         </div>
         <div className="flex items-center gap-3">
           <div className="w-36 h-2 bg-bg-page border border-border-custom rounded-full overflow-hidden">
-            <div className="h-full bg-brand-indigo" style={{ width: `${completion}%` }} />
+            <div className="h-full bg-brand-indigo transition-all duration-300" style={{ width: `${liveCompletion}%` }} />
           </div>
-          <span className="text-sm font-bold text-brand-indigo">{completion}%</span>
+          <span className="text-sm font-bold text-brand-indigo">{liveCompletion}%</span>
         </div>
       </div>
 
       <div className="flex flex-wrap gap-2">
         {steps.map((name, idx) => (
-          <button key={name} onClick={() => setStep(idx)} className={`px-3 py-1.5 rounded-lg text-xs font-semibold border ${step === idx ? 'bg-brand-indigo text-white border-brand-indigo' : 'border-border-custom text-txt-secondary bg-bg-page'}`}>
+          <button key={name} onClick={() => handleStepChange(idx)} className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${step === idx ? 'bg-brand-indigo text-white border-brand-indigo' : 'border-border-custom text-txt-secondary bg-bg-page hover:border-border-custom/80'}`}>
             {idx + 1}. {name}
           </button>
         ))}
       </div>
 
-      {missing.length > 0 && (
-        <div className="rounded-lg border border-warning-primary/20 bg-warning-bg/30 p-3 text-xs text-warning-primary">
-          Missing: {missing.slice(0, 8).join(', ')}{missing.length > 8 ? '...' : ''}
+      {liveMissing.length > 0 && (
+        <div className="rounded-lg border border-warning-primary/20 bg-warning-bg/10 p-3 text-xs text-warning-primary">
+          <strong>Missing Required:</strong> {liveMissing.join(', ')}
         </div>
       )}
 
@@ -204,21 +294,38 @@ export const ProfileSetupWizard = ({ role, onComplete }) => {
         {step === steps.length - 1 && (
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {(isCandidate ? ['Resume', 'Certifications', 'Academic Documents'] : ['Government ID', 'Resume', 'Educational Certificates', 'Experience Letters', 'Other Supporting Documents']).map((docType) => (
-                <label key={docType} className="rounded-xl border border-border-custom bg-bg-page p-4 cursor-pointer hover:border-brand-indigo/40">
-                  <div className="flex items-center gap-2 text-xs font-semibold">
-                    <FileUp size={15} className="text-brand-indigo" />
-                    {docType}
+              {(isCandidate ? ['Resume', 'Certifications', 'Academic Documents'] : ['Government ID', 'Resume', 'Educational Certificates', 'Experience Letters', 'Other Supporting Documents']).map((docType) => {
+                const doc = documents.find(d => d.document_type === docType)
+                const isRejected = doc?.verification_status === 'Rejected'
+                
+                return (
+                  <div key={docType} className={`rounded-xl border p-4 flex flex-col justify-between gap-3 bg-bg-page ${isRejected ? 'border-red-500/40 bg-red-500/5' : 'border-border-custom hover:border-brand-indigo/40'}`}>
+                    <label className="cursor-pointer flex flex-col gap-1">
+                      <div className="flex items-center gap-2 text-xs font-semibold">
+                        <FileUp size={15} className="text-brand-indigo" />
+                        {docType}
+                      </div>
+                      <span className="text-[10px] text-txt-secondary">
+                        {doc ? `${doc.original_filename}` : 'No file uploaded'}
+                      </span>
+                      <input type="file" className="hidden" onChange={(e) => handleUpload(docType, e.target.files?.[0])} />
+                    </label>
+                    {isRejected && doc.rejection_comment && (
+                      <div className="text-[10px] text-red-400 border-t border-red-500/20 pt-1">
+                        <strong>Rejected:</strong> {doc.rejection_comment}
+                      </div>
+                    )}
                   </div>
-                  <input type="file" className="hidden" onChange={(e) => handleUpload(docType, e.target.files?.[0])} />
-                </label>
-              ))}
+                )
+              })}
             </div>
             <div className="rounded-xl border border-border-custom overflow-hidden">
               {(documents || []).map((doc) => (
                 <div key={doc.id} className="flex items-center justify-between px-4 py-3 border-b border-border-custom last:border-b-0 text-xs">
                   <span>{doc.document_type} · {doc.original_filename}</span>
-                  <span className="font-semibold text-brand-indigo">{doc.verification_status}</span>
+                  <span className={`font-semibold ${doc.verification_status === 'Approved' ? 'text-green-500' : doc.verification_status === 'Rejected' ? 'text-red-500' : 'text-brand-indigo'}`}>
+                    {doc.verification_status}
+                  </span>
                 </div>
               ))}
             </div>
@@ -227,13 +334,24 @@ export const ProfileSetupWizard = ({ role, onComplete }) => {
       </div>
 
       <div className="flex items-center justify-between pt-4 border-t border-border-custom">
-        <button disabled={step === 0} onClick={() => setStep((s) => Math.max(s - 1, 0))} className="px-4 py-2 border border-border-custom rounded-lg text-xs font-semibold disabled:opacity-40">Back</button>
+        <button disabled={step === 0} onClick={() => handleStepChange(Math.max(step - 1, 0))} className="px-4 py-2 border border-border-custom rounded-lg text-xs font-semibold disabled:opacity-40 hover:bg-bg-page transition-all">Back</button>
         <div className="flex gap-2">
-          <button onClick={saveProfile} disabled={saving} className="px-4 py-2 bg-brand-indigo text-white rounded-lg text-xs font-semibold inline-flex items-center gap-2">
+          <button onClick={() => saveProfile(true)} disabled={saving} className="px-4 py-2 bg-bg-page border border-border-custom text-txt-primary hover:border-brand-indigo/40 rounded-lg text-xs font-semibold inline-flex items-center gap-2">
             <Save size={14} />
-            Save
+            Save Progress
           </button>
-          <button disabled={step === steps.length - 1} onClick={() => setStep((s) => Math.min(s + 1, steps.length - 1))} className="px-4 py-2 border border-border-custom rounded-lg text-xs font-semibold disabled:opacity-40">Next</button>
+          {step === steps.length - 1 ? (
+            <button
+              onClick={handleCompleteProfile}
+              disabled={liveCompletion < 100 || saving}
+              className="px-4 py-2 bg-brand-indigo hover:bg-brand-indigo/90 text-white rounded-lg text-xs font-semibold inline-flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            >
+              <ShieldCheck size={14} />
+              Complete Setup
+            </button>
+          ) : (
+            <button onClick={() => handleStepChange(Math.min(step + 1, steps.length - 1))} className="px-4 py-2 bg-brand-indigo text-white rounded-lg text-xs font-semibold disabled:opacity-40 hover:bg-brand-indigo/90 transition-all">Next</button>
+          )}
         </div>
       </div>
     </div>

@@ -53,6 +53,7 @@ def create_db_and_tables() -> None:
     _ensure_phase1_employee_columns()
     _ensure_phase2_talent_tables()
     _ensure_profile_completion_tables()
+    _ensure_profile_prepopulated_column()
 
 
 def _ensure_user_role_column() -> None:
@@ -412,6 +413,14 @@ def _ensure_postgres_phase2_talent_tables() -> None:
             updated_at TIMESTAMP
         )
         """,
+        """
+        CREATE TABLE IF NOT EXISTS onboarding_required_documents (
+            id SERIAL PRIMARY KEY,
+            template_id INTEGER NOT NULL REFERENCES onboarding_templates(id),
+            document_type VARCHAR(80) NOT NULL,
+            created_at TIMESTAMP
+        )
+        """,
     ]
     with Session(engine) as session:
         for statement in statements:
@@ -480,6 +489,7 @@ def _ensure_postgres_profile_completion_tables() -> None:
             is_complete BOOLEAN DEFAULT FALSE,
             completion_percent INTEGER DEFAULT 0,
             verification_status VARCHAR(40) DEFAULT 'Pending Review',
+            pre_populated BOOLEAN DEFAULT FALSE,
             created_at TIMESTAMP,
             updated_at TIMESTAMP
         )
@@ -524,3 +534,19 @@ def get_session():
     with Session(engine) as session:
         yield session
 
+
+def _ensure_profile_prepopulated_column() -> None:
+    """Lightweight migration to add pre_populated column to employee_profiles."""
+    try:
+        if _db_url.startswith("sqlite"):
+            with Session(engine) as session:
+                existing = {row[1] for row in session.exec(text("PRAGMA table_info(employee_profiles)")).all()}
+                if existing and "pre_populated" not in existing:
+                    session.exec(text("ALTER TABLE employee_profiles ADD COLUMN pre_populated BOOLEAN DEFAULT 0"))
+                    session.commit()
+        else:
+            with Session(engine) as session:
+                session.exec(text("ALTER TABLE employee_profiles ADD COLUMN IF NOT EXISTS pre_populated BOOLEAN DEFAULT FALSE"))
+                session.commit()
+    except Exception as exc:
+        logger.warning("Employee profile pre_populated column migration skipped: %s", exc)

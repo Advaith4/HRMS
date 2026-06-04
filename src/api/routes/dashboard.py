@@ -3,6 +3,7 @@ src/api/routes/dashboard.py
 Aggregate dashboard endpoints — returns all dashboard data in ONE query.
 Eliminates multiple HTTP round trips from the frontend on page load.
 """
+from datetime import date
 from typing import Any
 
 from fastapi import APIRouter, Depends
@@ -10,7 +11,21 @@ from sqlmodel import Session, select
 
 from src.api.dependencies import require_roles
 from src.database.connection import get_session
-from src.models import ApplicationAIAnalysis, CandidateApplication, JobPosting, Resume, User
+from src.models import (
+    ApplicationAIAnalysis,
+    CandidateApplication,
+    JobPosting,
+    Resume,
+    User,
+    EmployeeProfile,
+    CandidateProfile,
+    Employee,
+    EmployeeDocument,
+    CandidateDocument,
+    EmployeeOnboarding,
+    TrainingAssignment,
+    TrainingProgram,
+)
 from src.services.recruitment_ai import analysis_payload
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
@@ -170,4 +185,131 @@ def candidate_dashboard(
             "raw_text": resume.raw_text[:500] if resume else "",
             "updated_at": resume.updated_at.isoformat() if resume and resume.updated_at else None,
         } if resume else None,
+    }
+
+
+@router.get("/hr/reviews")
+def get_hr_reviews(
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_roles("hr", "manager")),
+):
+    """
+    Returns pending/overdue review queues for HR home widgets.
+    """
+    # 1. Pending Profile Reviews (completed but unverified profiles)
+    cand_profiles = session.exec(
+        select(CandidateProfile)
+        .where(CandidateProfile.is_complete == True)
+    ).all()
+    emp_profiles = session.exec(
+        select(EmployeeProfile)
+        .where(EmployeeProfile.is_complete == True)
+        .where(EmployeeProfile.verification_status == "Pending Review")
+    ).all()
+    
+    users = {u.id: u for u in session.exec(select(User)).all()}
+    employees = {e.id: e for e in session.exec(select(Employee)).all()}
+    
+    pending_profiles = []
+    for cp in cand_profiles:
+        user = users.get(cp.user_id)
+        pending_profiles.append({
+            "type": "Candidate",
+            "id": cp.id,
+            "user_id": cp.user_id,
+            "name": cp.full_name or (user.username if user else "Candidate"),
+            "completion_percent": cp.completion_percent,
+            "updated_at": cp.updated_at.isoformat() if cp.updated_at else None,
+        })
+    for ep in emp_profiles:
+        user = users.get(ep.user_id)
+        emp = employees.get(ep.employee_id) if ep.employee_id else None
+        pending_profiles.append({
+            "type": "Employee",
+            "id": ep.id,
+            "user_id": ep.user_id,
+            "name": emp.full_name if emp else (user.username if user else "Employee"),
+            "completion_percent": ep.completion_percent,
+            "updated_at": ep.updated_at.isoformat() if ep.updated_at else None,
+        })
+        
+    # 2. Pending Document Verifications
+    emp_docs = session.exec(
+        select(EmployeeDocument)
+        .where(EmployeeDocument.verification_status == "Pending Review")
+    ).all()
+    cand_docs = session.exec(
+        select(CandidateDocument)
+        .where(CandidateDocument.verification_status == "Pending Review")
+    ).all()
+    
+    pending_docs = []
+    for d in cand_docs:
+        user = users.get(d.user_id)
+        pending_docs.append({
+            "kind": "candidate",
+            "id": d.id,
+            "user_id": d.user_id,
+            "username": user.username if user else "",
+            "document_type": d.document_type,
+            "original_filename": d.original_filename,
+            "uploaded_at": d.uploaded_at.isoformat() + "Z" if d.uploaded_at else None,
+        })
+    for d in emp_docs:
+        user = users.get(d.user_id)
+        pending_docs.append({
+            "kind": "employee",
+            "id": d.id,
+            "user_id": d.user_id,
+            "username": user.username if user else "",
+            "document_type": d.document_type,
+            "original_filename": d.original_filename,
+            "uploaded_at": d.uploaded_at.isoformat() + "Z" if d.uploaded_at else None,
+        })
+        
+    # 3. Pending Onboarding Assignments
+    all_employees = session.exec(select(Employee)).all()
+    all_plans = session.exec(select(EmployeeOnboarding)).all()
+    has_any_plan_ids = {p.employee_id for p in all_plans}
+    
+    pending_onboarding = []
+    for emp in all_employees:
+        if emp.id not in has_any_plan_ids:
+            user = users.get(emp.user_id)
+            pending_onboarding.append({
+                "employee_id": emp.id,
+                "user_id": emp.user_id,
+                "name": emp.full_name or (user.username if user else "Employee"),
+                "employee_code": emp.employee_code,
+                "department": emp.department,
+                "joining_date": emp.joining_date.isoformat() if emp.joining_date else None,
+            })
+            
+    # 4. Overdue Training Assignments
+    overdue_trainings = session.exec(
+        select(TrainingAssignment)
+        .where(TrainingAssignment.status != "Completed")
+        .where(TrainingAssignment.due_date < date.today())
+    ).all()
+    
+    overdue_training_list = []
+    for ta in overdue_trainings:
+        emp = employees.get(ta.employee_id)
+        user = users.get(emp.user_id) if emp else None
+        prog = session.get(TrainingProgram, ta.program_id)
+        overdue_training_list.append({
+            "id": ta.id,
+            "employee_id": ta.employee_id,
+            "name": emp.full_name if emp else (user.username if user else "Employee"),
+            "program_title": prog.title if prog else f"Program {ta.program_id}",
+            "due_date": ta.due_date.isoformat() if ta.due_date else None,
+            "status": ta.status,
+            "progress_percent": ta.progress_percent,
+        })
+        
+    return {
+        "pending_profiles": pending_profiles,
+        "pending_documents": pending_docs,
+        "pending_onboarding_assignments": pending_onboarding,
+        "overdue_trainings": overdue_training_list,
     }

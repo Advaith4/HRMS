@@ -6,8 +6,12 @@ import {
 } from 'lucide-react'
 import { listNotifications, markRead, markAllRead } from '../../api'
 import toast from 'react-hot-toast'
+import { useAuthStore } from '../../store/authStore'
+import { useNavigate } from 'react-router-dom'
 
 export const NotificationDrawer = ({ isOpen, onClose }) => {
+  const { user } = useAuthStore()
+  const navigate = useNavigate()
   const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -37,6 +41,58 @@ export const NotificationDrawer = ({ isOpen, onClose }) => {
       fetchNotifications()
     } catch (err) {
       console.error(err)
+    }
+  }
+
+  const handleNotifClick = async (n) => {
+    if (!n.is_read) {
+      await handleMarkRead(n.id)
+    }
+    
+    const role = user?.role
+    if (n.event_type === 'document_rejected' || n.title?.toLowerCase().includes('document rejected')) {
+      if (role === 'employee') {
+        navigate('/dashboard/employee?tab=onboarding')
+      } else {
+        navigate('/dashboard/candidate')
+      }
+      onClose()
+    } else if (n.event_type === 'profile_incomplete' || n.title?.toLowerCase().includes('profile incomplete')) {
+      if (role === 'employee') {
+        navigate('/dashboard/employee?tab=profile')
+      } else {
+        navigate('/dashboard/candidate')
+      }
+      onClose()
+    } else if (n.event_type === 'leave_request') {
+      if (role === 'hr' || role === 'admin') {
+        navigate('/hr/leaves')
+      } else {
+        navigate('/dashboard/employee')
+      }
+      onClose()
+    } else if (n.event_type === 'ticket_raised') {
+      if (role === 'hr' || role === 'admin') {
+        navigate('/hr/tickets')
+      } else {
+        navigate('/dashboard/employee?tab=tickets')
+      }
+      onClose()
+    } else if (n.event_type === 'ticket_status_change') {
+      if (role === 'employee') {
+        navigate('/dashboard/employee?tab=tickets')
+      }
+      onClose()
+    } else if (n.event_type === 'promotion') {
+      if (role === 'employee') {
+        navigate('/dashboard/employee?tab=timeline')
+      }
+      onClose()
+    } else if (n.event_type === 'salary_revision') {
+      if (role === 'employee') {
+        navigate('/dashboard/employee?tab=profile')
+      }
+      onClose()
     }
   }
 
@@ -138,7 +194,7 @@ export const NotificationDrawer = ({ isOpen, onClose }) => {
               notifications.map((n) => (
                 <div
                   key={n.id}
-                  onClick={() => !n.is_read && handleMarkRead(n.id)}
+                  onClick={() => handleNotifClick(n)}
                   className={`relative flex gap-3 rounded-xl border p-3.5 transition cursor-pointer ${
                     n.is_read
                       ? 'border-slate-100 bg-white hover:bg-slate-50'

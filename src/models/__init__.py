@@ -366,6 +366,7 @@ class EmployeeProfile(SQLModel, table=True):
     is_complete: bool = Field(default=False)
     completion_percent: int = Field(default=0)
     verification_status: str = Field(default="Pending Review", max_length=40)
+    pre_populated: bool = Field(default=False)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -484,3 +485,12 @@ class TrainingAssignment(SQLModel, table=True):
     due_date: Optional[date] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class OnboardingRequiredDocument(SQLModel, table=True):
+    __tablename__ = "onboarding_required_documents"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    template_id: int = Field(foreign_key="onboarding_templates.id", index=True)
+    document_type: str = Field(max_length=80)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+

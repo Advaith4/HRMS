@@ -3,7 +3,7 @@ import os
 import shutil
 import uuid
 from datetime import date, datetime
-from typing import Any
+from typing import Any, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel, Field
@@ -11,7 +11,22 @@ from sqlmodel import Session, select
 
 from src.api.dependencies import require_roles
 from src.database.connection import get_session
-from src.models import ApplicationAIAnalysis, CandidateApplication, Employee, JobPosting, User
+from src.models import (
+    ApplicationAIAnalysis,
+    CandidateApplication,
+    Employee,
+    JobPosting,
+    User,
+    CandidateProfile,
+    CandidateDocument,
+    EmployeeProfile,
+    EmployeeDocument,
+    EmployeeOnboarding,
+    EmployeeOnboardingTask,
+    OnboardingTemplate,
+    OnboardingTask,
+    HRNotification,
+)
 from src.resume_lab import parse_resume
 from src.services.recruitment_ai import (
     analysis_payload,
@@ -33,6 +48,7 @@ class HireApplicationReq(BaseModel):
     salary: float | None = None
     joining_date: date | None = None
     employee_code: str | None = Field(default=None, max_length=40)
+    onboarding_template_id: Optional[int] = None
 
 
 @router.post("/apply", status_code=201)
@@ -156,6 +172,9 @@ def hire_application(
     candidate.target_role = req.designation.strip() or job.title
     application.status = "Hired"
 
+    # Retrieve candidate profile and documents
+    candidate_profile = session.exec(select(CandidateProfile).where(CandidateProfile.user_id == candidate.id)).first()
+
     if employee is None:
         employee = Employee(
             user_id=candidate.id,
@@ -175,14 +194,122 @@ def hire_application(
         if req.employee_code:
             employee.employee_code = req.employee_code.strip()
 
+    # Pre-populate Employee fields if candidate profile exists
+    if candidate_profile:
+        employee.full_name = candidate_profile.full_name or employee.full_name or candidate.username
+        employee.phone = candidate_profile.phone or employee.phone
+        employee.address = candidate_profile.address or employee.address
+        employee.date_of_birth = candidate_profile.date_of_birth or employee.date_of_birth
+        employee.years_of_experience = candidate_profile.years_of_experience or employee.years_of_experience
+        employee.certifications = candidate_profile.certifications or employee.certifications
+
     session.add(candidate)
     session.add(application)
     session.add(employee)
+    session.flush()
+
+    # Create/update employee profile with pre_populated=True
+    employee_profile = session.exec(select(EmployeeProfile).where(EmployeeProfile.user_id == candidate.id)).first()
+    if employee_profile is None:
+        employee_profile = EmployeeProfile(
+            user_id=candidate.id,
+            employee_id=employee.id,
+            pre_populated=True,
+        )
+    else:
+        employee_profile.pre_populated = True
+        employee_profile.employee_id = employee.id
+
+    if candidate_profile:
+        employee_profile.phone = candidate_profile.phone or employee_profile.phone
+        employee_profile.address = candidate_profile.address or employee_profile.address
+        employee_profile.skills = candidate_profile.technical_skills or employee_profile.skills
+        employee_profile.certifications = candidate_profile.certifications or employee_profile.certifications
+
+    session.add(employee_profile)
+
+    # Migrate candidate documents to employee documents without duplicating file
+    cand_docs = session.exec(select(CandidateDocument).where(CandidateDocument.user_id == candidate.id)).all()
+    for c_doc in cand_docs:
+        existing_emp_doc = session.exec(
+            select(EmployeeDocument)
+            .where(EmployeeDocument.user_id == candidate.id)
+            .where(EmployeeDocument.document_type == c_doc.document_type)
+        ).first()
+        if not existing_emp_doc:
+            emp_doc = EmployeeDocument(
+                user_id=candidate.id,
+                employee_id=employee.id,
+                document_type=c_doc.document_type,
+                original_filename=c_doc.original_filename,
+                stored_path=c_doc.stored_path,
+                verification_status=c_doc.verification_status,
+                rejection_comment=c_doc.rejection_comment,
+                uploaded_at=c_doc.uploaded_at,
+                reviewed_at=c_doc.reviewed_at,
+                reviewed_by=c_doc.reviewed_by,
+            )
+            session.add(emp_doc)
+
+    # Automatically trigger onboarding assignment if onboarding_template_id is provided
+    if req.onboarding_template_id:
+        template = session.get(OnboardingTemplate, req.onboarding_template_id)
+        if template and template.is_active:
+            tasks = session.exec(
+                select(OnboardingTask)
+                .where(OnboardingTask.template_id == template.id)
+                .order_by(OnboardingTask.order_index, OnboardingTask.id)
+            ).all()
+            if tasks:
+                # Check for active duplicate onboarding plans
+                duplicate = session.exec(
+                    select(EmployeeOnboarding)
+                    .where(EmployeeOnboarding.employee_id == employee.id)
+                    .where(EmployeeOnboarding.template_id == template.id)
+                    .where(EmployeeOnboarding.status != "Completed")
+                ).first()
+                if not duplicate:
+                    plan = EmployeeOnboarding(
+                        employee_id=employee.id,
+                        template_id=template.id,
+                        assigned_by=current_user.id,
+                        status="Active",
+                        due_date=None,
+                        started_at=now,
+                        created_at=now,
+                        updated_at=now,
+                    )
+                    session.add(plan)
+                    session.flush()
+
+                    for task in tasks:
+                        session.add(
+                            EmployeeOnboardingTask(
+                                employee_onboarding_id=plan.id,
+                                task_title=task.title,
+                                task_description=task.description,
+                                order_index=task.order_index,
+                                is_required=task.is_required,
+                            )
+                        )
+                    # Notify employee
+                    session.add(
+                        HRNotification(
+                            user_id=employee.user_id,
+                            title="Onboarding Assigned",
+                            message=f"You have been assigned the {template.name} onboarding plan.",
+                            event_type="onboarding_assigned",
+                            related_id=plan.id,
+                            is_read=False,
+                        )
+                    )
+
     try:
         session.commit()
     except Exception as exc:
         session.rollback()
         raise HTTPException(status_code=409, detail=f"Could not create employee record: {exc}") from exc
+
     session.refresh(employee)
     session.refresh(application)
 

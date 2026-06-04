@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { User, Calendar, Clock, Send, MessageSquare, ChevronRight, Check, X, ShieldAlert, Award, BookOpen, AlertCircle, Plus } from 'lucide-react'
+import { User, Calendar, Clock, Send, MessageSquare, ChevronRight, Check, X, ShieldAlert, Award, BookOpen, AlertCircle, Plus, FileUp, FileText, ShieldCheck } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import { SkillGapRadial } from '../components/charts/SkillGapRadial'
 import { StatusPill } from '../components/ui/StatusPill'
@@ -23,7 +23,8 @@ import {
   getMyTrainingAssignments,
   getMyProfileCompletion,
   updateOnboardingTaskStatus,
-  updateTrainingProgress
+  updateTrainingProgress,
+  uploadProfileDocument
 } from '../api'
 import { CreateTicketModal } from '../components/modals/CreateTicketModal'
 import toast from 'react-hot-toast'
@@ -39,9 +40,13 @@ export const EmployeeDashboard = () => {
   const [leaveSummary, setLeaveSummary] = useState({ pending: 0, approved: 0, rejected: 0, recent: [] })
   const [skillGap, setSkillGap] = useState(null)
   const [profileComplete, setProfileComplete] = useState(null)
+  const [profileCompletion, setProfileCompletion] = useState(null)
 
   // Tabs navigation and operation states
-  const [activeTab, setActiveTab] = useState('overview')
+  const [activeTab, setActiveTab] = useState(() => {
+    const params = new URLSearchParams(window.location.search)
+    return params.get('tab') || 'overview'
+  })
   const [profileData, setProfileData] = useState(null)
   const [loadingProfile, setLoadingProfile] = useState(false)
   const [isEditingProfile, setIsEditingProfile] = useState(false)
@@ -139,6 +144,14 @@ export const EmployeeDashboard = () => {
   }
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const tab = params.get('tab')
+    if (tab && tab !== activeTab) {
+      setActiveTab(tab)
+    }
+  }, [window.location.search])
+
+  useEffect(() => {
     if (employee) {
       if (activeTab === 'profile') {
         fetchProfile()
@@ -195,6 +208,19 @@ export const EmployeeDashboard = () => {
     }
   }
 
+  const handleUploadOnboardingDocument = async (documentType, file) => {
+    if (!file) return
+    const uploadToast = toast.loading(`Uploading ${documentType}...`)
+    try {
+      await uploadProfileDocument(documentType, file)
+      toast.success(`${documentType} uploaded successfully`, { id: uploadToast })
+      fetchOnboarding()
+    } catch (err) {
+      console.error(err)
+      toast.error(err.response?.data?.detail || 'Upload failed', { id: uploadToast })
+    }
+  }
+
   const handleTrainingProgress = async (assignmentId, progressPercent) => {
     try {
       await updateTrainingProgress(assignmentId, { progress_percent: progressPercent })
@@ -244,6 +270,7 @@ export const EmployeeDashboard = () => {
       setAttendance(data.attendance_status)
       setLeaveSummary(data.leave_summary)
       setSkillGap(data.skill_gap)
+      setProfileCompletion(profileData.profile || profileData)
       setProfileComplete(!!profileData.profile?.is_complete)
     } catch (err) {
       console.error('Employee dashboard fetch failed:', err)
@@ -528,7 +555,7 @@ export const EmployeeDashboard = () => {
   }
 
   if (profileComplete === false) {
-    return <ProfileSetupWizard role="employee" onComplete={() => setProfileComplete(true)} />
+    return <ProfileSetupWizard role="employee" onComplete={() => { setProfileComplete(true); fetchDashboardData(); }} />
   }
 
   // Calculate skill gap progress metric
@@ -672,92 +699,152 @@ export const EmployeeDashboard = () => {
 
               </div>
 
-              {/* Leave requests card (45%) */}
-              <div className="lg:col-span-5 rounded-xl border border-border-custom bg-bg-surface p-6 shadow-xs space-y-4">
-                <div className="border-b border-border-custom pb-3">
-                  <h4 className="text-sm font-semibold">Request Time Off</h4>
-                  <p className="text-[11px] text-txt-secondary">Submit leave requests directly to your line manager</p>
-                </div>
-
-                <form onSubmit={handleLeaveSubmit} className="space-y-3">
-                  
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Leave Type</label>
-                    <select
-                      value={leaveType}
-                      onChange={(e) => setLeaveType(e.target.value)}
-                      className="w-full bg-bg-page border border-border-custom outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary"
-                    >
-                      <option value="Annual">Annual / Vacation</option>
-                      <option value="Casual">Casual / Personal</option>
-                      <option value="Sick">Sick Leave</option>
-                    </select>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Start Date</label>
-                      <input
-                        type="date"
-                        required
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                        className="w-full bg-bg-page border border-border-custom outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-txt-tertiary uppercase block">End Date</label>
-                      <input
-                        type="date"
-                        required
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
-                        className="w-full bg-bg-page border border-border-custom outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Reason</label>
-                    <textarea
-                      rows={2}
-                      required
-                      placeholder="Details of cover, recovery etc..."
-                      value={reason}
-                      onChange={(e) => setReason(e.target.value)}
-                      className="w-full bg-bg-page border border-border-custom outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary resize-none font-sans"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={submittingLeave}
-                    className="w-full h-8 bg-brand-indigo hover:bg-brand-indigo-hover text-white text-xs font-semibold rounded-lg flex items-center justify-center cursor-pointer transition-all disabled:opacity-50 active:scale-98"
-                  >
-                    {submittingLeave ? 'Submitting request...' : 'Request Time Off'}
-                  </button>
-                </form>
-
-                {/* Recent leaves table */}
-                {leaveSummary.recent.length > 0 && (
-                  <div className="pt-4 border-t border-border-custom/50 space-y-2">
-                    <span className="text-[10px] font-bold text-txt-tertiary uppercase tracking-wider block">My Recent Requests</span>
+              {/* Right column widgets (45%) */}
+              <div className="lg:col-span-5 space-y-6">
+                
+                {/* Profile Completion Card */}
+                {profileCompletion && (
+                  <div className="rounded-xl border border-border-custom bg-bg-surface p-6 shadow-xs space-y-4">
+                    <span className="text-[9px] font-bold tracking-wider uppercase text-txt-secondary block">Profile Completion</span>
                     <div className="space-y-2">
-                      {leaveSummary.recent.map((req) => (
-                        <div key={req.id} className="flex items-center justify-between bg-bg-page/50 border border-border-custom/50 p-2.5 rounded-lg text-[11px]">
-                          <div>
-                            <span className="font-semibold text-txt-primary block leading-none mb-1">{req.leave_type} Leave</span>
-                            <span className="text-txt-tertiary block leading-none">
-                              {new Date(req.start_date).toLocaleDateString()} to {new Date(req.end_date).toLocaleDateString()}
-                            </span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-txt-primary">{profileCompletion.completion_percent}% Complete</span>
+                        {profileCompletion.is_complete ? (
+                          <span className="text-[10px] font-semibold text-success-primary bg-success-bg/30 border border-success-primary/20 px-2 py-0.5 rounded">Verified</span>
+                        ) : (
+                          <span className="text-[10px] font-semibold text-warning-primary bg-warning-bg/30 border border-warning-primary/20 px-2 py-0.5 rounded">Action Required</span>
+                        )}
+                      </div>
+                      <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-brand-indigo transition-all duration-500"
+                          style={{ width: `${profileCompletion.completion_percent}%` }}
+                        />
+                      </div>
+                      
+                      {profileCompletion.missing_information && profileCompletion.missing_information.length > 0 && (
+                        <div className="space-y-1.5 pt-2">
+                          <span className="text-[9px] font-bold text-txt-tertiary uppercase tracking-wider block">Missing Information</span>
+                          <div className="space-y-1">
+                            {profileCompletion.missing_information.map((item, idx) => (
+                              <div key={idx} className="text-[10px] text-txt-secondary flex items-center justify-between">
+                                <div className="flex items-center space-x-1">
+                                  <span className="text-warning-primary font-bold">•</span>
+                                  <span>{item}</span>
+                                </div>
+                                <button
+                                  onClick={() => {
+                                    if (item.includes("Upload") || item.includes("ID") || item.includes("Resume")) {
+                                      setActiveTab('onboarding');
+                                    } else {
+                                      setActiveTab('profile');
+                                      setIsEditingProfile(true);
+                                    }
+                                  }}
+                                  className="text-[9px] text-brand-indigo hover:underline font-semibold cursor-pointer"
+                                >
+                                  Complete →
+                                </button>
+                              </div>
+                            ))}
                           </div>
-                          <StatusPill status={req.status} />
                         </div>
-                      ))}
+                      )}
+
+                      {profileCompletion.is_complete && (
+                        <p className="text-[10px] text-txt-secondary">Your official employee profile records are complete.</p>
+                      )}
                     </div>
                   </div>
                 )}
 
+                {/* Leave requests card (45%) */}
+                <div className="rounded-xl border border-border-custom bg-bg-surface p-6 shadow-xs space-y-4">
+                  <div className="border-b border-border-custom pb-3">
+                    <h4 className="text-sm font-semibold">Request Time Off</h4>
+                    <p className="text-[11px] text-txt-secondary">Submit leave requests directly to your line manager</p>
+                  </div>
+
+                  <form onSubmit={handleLeaveSubmit} className="space-y-3">
+                    
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Leave Type</label>
+                      <select
+                        value={leaveType}
+                        onChange={(e) => setLeaveType(e.target.value)}
+                        className="w-full bg-bg-page border border-border-custom outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary"
+                      >
+                        <option value="Annual">Annual / Vacation</option>
+                        <option value="Casual">Casual / Personal</option>
+                        <option value="Sick">Sick Leave</option>
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Start Date</label>
+                        <input
+                          type="date"
+                          required
+                          value={startDate}
+                          onChange={(e) => setStartDate(e.target.value)}
+                          className="w-full bg-bg-page border border-border-custom outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-txt-tertiary uppercase block">End Date</label>
+                        <input
+                          type="date"
+                          required
+                          value={endDate}
+                          onChange={(e) => setEndDate(e.target.value)}
+                          className="w-full bg-bg-page border border-border-custom outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Reason</label>
+                      <textarea
+                        rows={2}
+                        required
+                        placeholder="Details of cover, recovery etc..."
+                        value={reason}
+                        onChange={(e) => setReason(e.target.value)}
+                        className="w-full bg-bg-page border border-border-custom outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary resize-none font-sans"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={submittingLeave}
+                      className="w-full h-8 bg-brand-indigo hover:bg-brand-indigo-hover text-white text-xs font-semibold rounded-lg flex items-center justify-center cursor-pointer transition-all disabled:opacity-50 active:scale-98"
+                    >
+                      {submittingLeave ? 'Submitting request...' : 'Request Time Off'}
+                    </button>
+                  </form>
+
+                  {/* Recent leaves table */}
+                  {leaveSummary.recent.length > 0 && (
+                    <div className="pt-4 border-t border-border-custom/50 space-y-2">
+                      <span className="text-[10px] font-bold text-txt-tertiary uppercase tracking-wider block">My Recent Requests</span>
+                      <div className="space-y-2">
+                        {leaveSummary.recent.map((req) => (
+                          <div key={req.id} className="flex items-center justify-between bg-bg-page/50 border border-border-custom/50 p-2.5 rounded-lg text-[11px]">
+                            <div>
+                              <span className="font-semibold text-txt-primary block leading-none mb-1">{req.leave_type} Leave</span>
+                              <span className="text-txt-tertiary block leading-none">
+                                {new Date(req.start_date).toLocaleDateString()} to {new Date(req.end_date).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <StatusPill status={req.status} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                </div>
               </div>
 
             </div>
@@ -1169,65 +1256,201 @@ export const EmployeeDashboard = () => {
         <div className="space-y-6">
           <div className="rounded-xl border border-border-custom bg-bg-surface p-6">
             <div className="border-b border-border-custom pb-4 mb-6">
-              <h4 className="text-sm font-semibold">My Onboarding</h4>
+              <h4 className="text-sm font-semibold">My Onboarding Progress</h4>
               <p className="text-[11px] text-txt-secondary leading-relaxed mt-1">
-                Employee Onboarding helps new hires complete required documentation, company formalities, policy acknowledgements, and role preparation before becoming fully operational.
+                Complete the remaining items below, submit required documents, and mark task steps as done to finalize your employee onboarding.
               </p>
             </div>
 
             {loadingOnboarding ? (
-              <div className="text-xs text-txt-tertiary py-8">Loading onboarding...</div>
+              <div className="text-xs text-txt-tertiary py-8 text-center">Loading onboarding plan...</div>
             ) : onboardingPlans.length === 0 ? (
               <EmptyState title="No onboarding plan assigned" description="Your onboarding checklist will appear here once HR assigns it." />
             ) : (
-              <div className="space-y-5">
-                {onboardingPlans.map((plan) => (
-                  <div key={plan.id} className="border border-border-custom rounded-xl bg-bg-page p-4 space-y-4">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                      <div>
-                        <h5 className="text-sm font-semibold">{plan.template_name}</h5>
-                        <p className="text-[11px] text-txt-secondary">
-                          {plan.completed_count || 0} of {(plan.tasks || []).length} tasks complete
-                          {plan.due_date ? ` · Due ${new Date(plan.due_date).toLocaleDateString()}` : ''}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="w-32 h-2 bg-bg-surface rounded-full overflow-hidden border border-border-custom">
-                          <div className="h-full bg-brand-indigo" style={{ width: `${plan.progress_percent || 0}%` }} />
-                        </div>
-                        <span className="text-xs font-bold text-brand-indigo">{plan.progress_percent || 0}%</span>
-                        <StatusPill status={plan.status} />
-                      </div>
-                    </div>
+              <div className="space-y-6">
+                {onboardingPlans.map((plan) => {
+                  const reqDocs = plan.required_documents || []
+                  const tasks = plan.tasks || []
+                  
+                  const totalTasks = tasks.length
+                  const completedTasks = tasks.filter(t => t.status === 'Completed').length
+                  const taskProgress = totalTasks ? Math.round((completedTasks / totalTasks) * 100) : 100
 
-                    <div className="space-y-2">
-                      {(plan.tasks || []).map((task) => (
-                        <div key={task.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-border-custom bg-bg-surface px-3 py-3">
+                  const totalDocs = reqDocs.length
+                  const completedDocs = reqDocs.filter(d => d.status === 'Approved').length
+                  const docProgress = totalDocs ? Math.round((completedDocs / totalDocs) * 100) : 100
+
+                  return (
+                    <div key={plan.id} className="space-y-6">
+                      
+                      {/* Section 1: Progress Overview */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 border-b border-border-custom pb-6">
+                        <div className="border border-border-custom bg-bg-page/40 rounded-xl p-4 flex flex-col justify-between">
                           <div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-semibold">{task.title}</span>
-                              {task.required && <span className="text-[9px] uppercase font-bold text-brand-indigo bg-brand-indigo-muted px-1.5 py-0.5 rounded">Required</span>}
-                            </div>
-                            <p className="text-[11px] text-txt-secondary mt-1">{task.description || 'No details provided'}</p>
+                            <span className="text-[10px] uppercase font-bold text-txt-tertiary">Overall Onboarding</span>
+                            <h4 className="text-2xl font-bold mt-1 text-brand-indigo">{plan.progress_percent || 0}%</h4>
                           </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <StatusPill status={task.status} />
-                            {task.status !== 'Completed' && (
-                              <>
-                                <button onClick={() => handleOnboardingTaskStatus(plan.id, task.id, 'In Progress')} className="px-2.5 py-1 border border-border-custom text-[11px] rounded-lg">
-                                  Start
-                                </button>
-                                <button onClick={() => handleOnboardingTaskStatus(plan.id, task.id, 'Completed')} className="px-2.5 py-1 bg-success-primary text-white text-[11px] rounded-lg">
-                                  Complete
-                                </button>
-                              </>
-                            )}
+                          <div className="w-full h-2 bg-bg-surface rounded-full overflow-hidden border border-border-custom mt-4">
+                            <div className="h-full bg-brand-indigo transition-all duration-300" style={{ width: `${plan.progress_percent || 0}%` }} />
                           </div>
                         </div>
-                      ))}
+
+                        <div className="border border-border-custom bg-bg-page/40 rounded-xl p-4 flex flex-col justify-between">
+                          <div>
+                            <span className="text-[10px] uppercase font-bold text-txt-tertiary">Tasks Completed</span>
+                            <h4 className="text-2xl font-bold mt-1 text-green-500">{completedTasks} / {totalTasks}</h4>
+                          </div>
+                          <div className="w-full h-2 bg-bg-surface rounded-full overflow-hidden border border-border-custom mt-4">
+                            <div className="h-full bg-green-500 transition-all duration-300" style={{ width: `${taskProgress}%` }} />
+                          </div>
+                        </div>
+
+                        <div className="border border-border-custom bg-bg-page/40 rounded-xl p-4 flex flex-col justify-between">
+                          <div>
+                            <span className="text-[10px] uppercase font-bold text-txt-tertiary">Documents Approved</span>
+                            <h4 className="text-2xl font-bold mt-1 text-blue-500">{completedDocs} / {totalDocs}</h4>
+                          </div>
+                          <div className="w-full h-2 bg-bg-surface rounded-full overflow-hidden border border-border-custom mt-4">
+                            <div className="h-full bg-blue-500 transition-all duration-300" style={{ width: `${docProgress}%` }} />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Tasks & Documents Lists */}
+                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                        
+                        {/* Section 2: Tasks List */}
+                        <div className="space-y-4">
+                          <h5 className="text-xs font-bold text-txt-primary flex items-center gap-1.5 border-b border-border-custom pb-2">
+                            <span className="w-1.5 h-3 bg-brand-indigo rounded-full"></span>
+                            Onboarding Checkpoints ({tasks.length})
+                          </h5>
+                          <div className="space-y-3">
+                            {tasks.map((task) => (
+                              <div key={task.id} className="flex items-start justify-between p-3 border border-border-custom rounded-xl bg-bg-page/40 hover:border-border-custom/80 gap-4">
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-semibold">{task.title}</span>
+                                    {task.required && <span className="text-[8px] font-bold text-red-400 bg-red-400/10 border border-red-400/20 px-1 rounded">Required</span>}
+                                  </div>
+                                  <p className="text-[10px] text-txt-secondary">{task.description || 'No description provided'}</p>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <StatusPill status={task.status} />
+                                  {task.status !== 'Completed' && (
+                                    <div className="flex gap-1">
+                                      {task.status === 'Pending' && (
+                                        <button
+                                          onClick={() => handleOnboardingTaskStatus(plan.id, task.id, 'In Progress')}
+                                          className="px-2 py-1 border border-border-custom text-[10px] rounded hover:border-brand-indigo/40"
+                                        >
+                                          Start
+                                        </button>
+                                      )}
+                                      <button
+                                        onClick={() => handleOnboardingTaskStatus(plan.id, task.id, 'Completed')}
+                                        className="px-2 py-1 bg-success-primary hover:bg-success-primary/95 text-white text-[10px] rounded font-medium"
+                                      >
+                                        Done
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Section 3: Required Documents Upload */}
+                        <div className="space-y-4">
+                          <h5 className="text-xs font-bold text-txt-primary flex items-center gap-1.5 border-b border-border-custom pb-2">
+                            <span className="w-1.5 h-3 bg-brand-indigo rounded-full"></span>
+                            Required Compliance Documents ({reqDocs.length})
+                          </h5>
+                          {reqDocs.length === 0 ? (
+                            <div className="text-[11px] text-txt-tertiary bg-bg-page/35 border border-border-custom/50 rounded-xl p-4 text-center">
+                              No required documents configured for this template.
+                            </div>
+                          ) : (
+                            <div className="space-y-3">
+                              {reqDocs.map((doc) => {
+                                const isRejected = doc.status === 'Rejected'
+                                const isApproved = doc.status === 'Approved'
+                                const hasUploaded = doc.status !== 'Pending Submission'
+
+                                return (
+                                  <div key={doc.document_type} className={`p-4 border rounded-xl flex flex-col gap-3 bg-bg-page/40 ${isRejected ? 'border-red-500/20 bg-red-500/5' : 'border-border-custom'}`}>
+                                    <div className="flex items-center justify-between gap-3">
+                                      <div>
+                                        <span className="text-xs font-semibold block">{doc.document_type}</span>
+                                        {hasUploaded && (
+                                          <span className="text-[9px] text-txt-secondary block">
+                                            Uploaded: {doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString() : '-'}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <StatusPill status={doc.status} />
+                                    </div>
+                                    
+                                    {isRejected && doc.rejection_comment && (
+                                      <div className="text-[10px] text-red-400 bg-red-500/10 p-2 rounded border border-red-500/20">
+                                        <strong>Rejection Reason:</strong> {doc.rejection_comment}
+                                      </div>
+                                    )}
+
+                                    {(!isApproved) && (
+                                      <label className="inline-flex items-center justify-center gap-1.5 py-1.5 px-3 border border-border-custom bg-bg-surface hover:border-brand-indigo/40 rounded-lg text-[10px] font-semibold cursor-pointer text-txt-secondary hover:text-txt-primary transition-all">
+                                        <FileUp size={12} className="text-brand-indigo" />
+                                        {hasUploaded ? 'Re-upload Document' : 'Upload Document'}
+                                        <input
+                                          type="file"
+                                          className="hidden"
+                                          onChange={(e) => handleUploadOnboardingDocument(doc.document_type, e.target.files?.[0])}
+                                        />
+                                      </label>
+                                    )}
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Section 4: Onboarding Verification Status timeline */}
+                      <div className="border border-border-custom bg-bg-page/20 rounded-xl p-5 space-y-3">
+                        <h5 className="text-xs font-bold text-txt-primary flex items-center gap-1.5">
+                          <ShieldCheck size={14} className="text-brand-indigo" />
+                          Compliance & Verification Timeline
+                        </h5>
+                        <div className="space-y-4 pl-2 border-l border-border-custom/80 relative">
+                          <div className="relative pl-6">
+                            <span className={`absolute left-[-22px] top-0 w-3 h-3 rounded-full border ${plan.progress_percent >= 50 ? 'bg-success-primary border-success-primary' : 'bg-bg-page border-border-custom'}`} />
+                            <div className="text-xs font-semibold">1. Complete Personal & Professional Profile Wizard</div>
+                            <p className="text-[10px] text-txt-secondary">Populated fields must be verified, and missing items submitted.</p>
+                          </div>
+                          
+                          <div className="relative pl-6">
+                            <span className={`absolute left-[-22px] top-0 w-3 h-3 rounded-full border ${completedDocs === totalDocs && totalDocs > 0 ? 'bg-success-primary border-success-primary' : 'bg-bg-page border-border-custom'}`} />
+                            <div className="text-xs font-semibold">2. Upload Required Onboarding Documents</div>
+                            <p className="text-[10px] text-txt-secondary">
+                              All {totalDocs} configured documents must be uploaded and approved by HR admin. (Currently {completedDocs} approved)
+                            </p>
+                          </div>
+
+                          <div className="relative pl-6">
+                            <span className={`absolute left-[-22px] top-0 w-3 h-3 rounded-full border ${completedTasks === totalTasks && totalTasks > 0 ? 'bg-success-primary border-success-primary' : 'bg-bg-page border-border-custom'}`} />
+                            <div className="text-xs font-semibold">3. Complete Procedural Checkpoints</div>
+                            <p className="text-[10px] text-txt-secondary">
+                              Mark all {totalTasks} onboarding tasks completed. (Currently {completedTasks} complete)
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>

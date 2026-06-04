@@ -212,8 +212,9 @@ def get_my_profile(session: Session = Depends(get_session), current_user: User =
 def update_candidate_profile(body: CandidateProfileReq, session: Session = Depends(get_session), current_user: User = Depends(require_roles("candidate"))):
     profile = _candidate_profile(session, current_user.id)
     was_complete = profile.is_complete
-    data = body.model_dump()
-    data["date_of_birth"] = _parse_date(data.pop("date_of_birth", None))
+    data = body.model_dump(exclude_unset=True)
+    if "date_of_birth" in data:
+        data["date_of_birth"] = _parse_date(data.pop("date_of_birth", None))
     for key, value in data.items():
         setattr(profile, key, value.strip() if isinstance(value, str) else value)
     profile.updated_at = datetime.utcnow()
@@ -231,7 +232,7 @@ def update_employee_profile_completion(body: EmployeeProfileReq, session: Sessio
     profile = _employee_profile(session, current_user.id)
     employee = _employee_for_user(session, current_user.id)
     was_complete = profile.is_complete
-    for key, value in body.model_dump().items():
+    for key, value in body.model_dump(exclude_unset=True).items():
         setattr(profile, key, value.strip() if isinstance(value, str) else value)
         if employee and key in {"phone", "address", "emergency_contact", "skills", "certifications"}:
             setattr(employee, key, value.strip() if isinstance(value, str) else value)
@@ -241,9 +242,14 @@ def update_employee_profile_completion(body: EmployeeProfileReq, session: Sessio
         session.add(employee)
     session.commit()
     payload = _employee_payload(session, profile)
-    if payload["is_complete"] and not was_complete:
-        _notify(session, current_user.id, "Profile Completed", "Your employee profile is complete.", "profile_completed", profile.id)
+    if payload["is_complete"]:
+        profile.pre_populated = False
+        session.add(profile)
         session.commit()
+        payload = _employee_payload(session, profile)
+        if not was_complete:
+            _notify(session, current_user.id, "Profile Completed", "Your employee profile is complete.", "profile_completed", profile.id)
+            session.commit()
     return payload
 
 

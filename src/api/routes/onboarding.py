@@ -15,6 +15,8 @@ from src.models import (
     OnboardingTask,
     OnboardingTemplate,
     User,
+    OnboardingRequiredDocument,
+    EmployeeDocument,
 )
 
 
@@ -39,12 +41,14 @@ class OnboardingTemplateCreate(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     description: str = Field(default="", max_length=1000)
     tasks: list[OnboardingTaskCreate] = Field(default_factory=list)
+    required_documents: list[str] = Field(default_factory=list)
 
 
 class OnboardingTemplateUpdate(BaseModel):
     name: Optional[str] = Field(default=None, max_length=200)
     description: Optional[str] = Field(default=None, max_length=1000)
     is_active: Optional[bool] = None
+    required_documents: Optional[list[str]] = None
 
 
 class OnboardingAssignReq(BaseModel):
@@ -97,6 +101,10 @@ def _template_payload(session: Session, template: OnboardingTemplate) -> dict:
         .where(OnboardingTask.template_id == template.id)
         .order_by(OnboardingTask.order_index, OnboardingTask.id)
     ).all()
+    req_docs = session.exec(
+        select(OnboardingRequiredDocument)
+        .where(OnboardingRequiredDocument.template_id == template.id)
+    ).all()
     return {
         "id": template.id,
         "name": template.name,
@@ -106,6 +114,7 @@ def _template_payload(session: Session, template: OnboardingTemplate) -> dict:
         "created_at": template.created_at.isoformat() + "Z" if template.created_at else None,
         "updated_at": template.updated_at.isoformat() + "Z" if template.updated_at else None,
         "tasks": [_task_payload(task) for task in tasks],
+        "required_documents": [rd.document_type for rd in req_docs],
     }
 
 
@@ -117,12 +126,71 @@ def _plan_payload(session: Session, plan: EmployeeOnboarding) -> dict:
         .where(EmployeeOnboardingTask.employee_onboarding_id == plan.id)
         .order_by(EmployeeOnboardingTask.order_index, EmployeeOnboardingTask.id)
     ).all()
-    total = len(tasks)
-    completed = len([task for task in tasks if task.status == "Completed"])
-    progress = round((completed / total) * 100) if total else 0
+    
+    # Required documents from template
+    req_docs = session.exec(
+        select(OnboardingRequiredDocument)
+        .where(OnboardingRequiredDocument.template_id == plan.template_id)
+    ).all()
+    req_doc_types = [rd.document_type for rd in req_docs]
+
+    # Employee documents
+    emp_docs = []
+    if employee:
+        emp_docs = session.exec(
+            select(EmployeeDocument)
+            .where(EmployeeDocument.user_id == employee.user_id)
+        ).all()
+
+    # Progress computation using 50/50 formula
+    total_tasks = len(tasks)
+    completed_tasks = len([t for t in tasks if t.status == "Completed"])
+    task_percent = (completed_tasks / total_tasks * 100) if total_tasks else 100.0
+
+    total_req_docs = len(req_doc_types)
+    if total_req_docs > 0:
+        submitted_valid_types = 0
+        for doc_type in req_doc_types:
+            has_valid = any(
+                d.document_type == doc_type and d.verification_status != "Rejected"
+                for d in emp_docs
+            )
+            if has_valid:
+                submitted_valid_types += 1
+        doc_percent = (submitted_valid_types / total_req_docs * 100)
+    else:
+        doc_percent = 100.0
+
+    if total_tasks > 0 and total_req_docs > 0:
+        progress = round((task_percent + doc_percent) / 2)
+    elif total_tasks > 0:
+        progress = round(task_percent)
+    elif total_req_docs > 0:
+        progress = round(doc_percent)
+    else:
+        progress = 100
+
     effective_status = plan.status
     if plan.status != "Completed" and plan.due_date and plan.due_date < date.today():
         effective_status = "Overdue"
+
+    # Detail status for each required document
+    required_docs_status = []
+    for rd in req_docs:
+        # Find latest upload of this type
+        latest_doc = None
+        for d in emp_docs:
+            if d.document_type == rd.document_type:
+                if not latest_doc or d.uploaded_at > latest_doc.uploaded_at:
+                    latest_doc = d
+        required_docs_status.append({
+            "document_type": rd.document_type,
+            "status": latest_doc.verification_status if latest_doc else "Pending Submission",
+            "rejection_comment": latest_doc.rejection_comment if latest_doc else "",
+            "document_id": latest_doc.id if latest_doc else None,
+            "uploaded_at": latest_doc.uploaded_at.isoformat() + "Z" if latest_doc and latest_doc.uploaded_at else None,
+        })
+
     return {
         "id": plan.id,
         "employee_id": plan.employee_id,
@@ -134,8 +202,9 @@ def _plan_payload(session: Session, plan: EmployeeOnboarding) -> dict:
         "due_date": plan.due_date.isoformat() if plan.due_date else None,
         "progress_percent": progress,
         "pending_count": len([task for task in tasks if task.status != "Completed"]),
-        "completed_count": completed,
+        "completed_count": completed_tasks,
         "tasks": [_task_payload(task) for task in tasks],
+        "required_documents": required_docs_status,
         "created_at": plan.created_at.isoformat() + "Z" if plan.created_at else None,
         "completed_at": plan.completed_at.isoformat() + "Z" if plan.completed_at else None,
     }
@@ -197,6 +266,13 @@ def create_template(
                 order_index=item.display_order,
             )
         )
+    for doc_type in body.required_documents:
+        session.add(
+            OnboardingRequiredDocument(
+                template_id=template.id,
+                document_type=doc_type.strip(),
+            )
+        )
     session.commit()
     return _template_payload(session, template)
 
@@ -212,8 +288,25 @@ def update_template(
     if not template:
         raise HTTPException(status_code=404, detail="Onboarding template not found.")
     data = body.model_dump(exclude_none=True)
+    required_documents = data.pop("required_documents", None)
     for key, value in data.items():
         setattr(template, key, value.strip() if isinstance(value, str) else value)
+    
+    if required_documents is not None:
+        existing_docs = session.exec(
+            select(OnboardingRequiredDocument)
+            .where(OnboardingRequiredDocument.template_id == template.id)
+        ).all()
+        for doc in existing_docs:
+            session.delete(doc)
+        for doc_type in required_documents:
+            session.add(
+                OnboardingRequiredDocument(
+                    template_id=template.id,
+                    document_type=doc_type.strip(),
+                )
+            )
+            
     template.updated_at = datetime.utcnow()
     session.add(template)
     session.commit()
@@ -465,3 +558,59 @@ def onboarding_summary(
         "completed_plans": len([plan for plan in plans if plan.status == "Completed"]),
         "overdue_plans": len([plan for plan in plans if plan.status != "Completed" and plan.due_date and plan.due_date < today]),
     }
+
+
+class RequiredDocumentReq(BaseModel):
+    document_type: str = Field(min_length=1, max_length=80)
+
+
+@router.post("/templates/{template_id}/required-documents", status_code=201)
+def add_template_required_document(
+    template_id: int,
+    body: RequiredDocumentReq,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_roles("hr")),
+):
+    template = session.get(OnboardingTemplate, template_id)
+    if not template:
+        raise HTTPException(status_code=404, detail="Onboarding template not found.")
+    
+    existing = session.exec(
+        select(OnboardingRequiredDocument)
+        .where(OnboardingRequiredDocument.template_id == template.id)
+        .where(OnboardingRequiredDocument.document_type == body.document_type.strip())
+    ).first()
+    if existing:
+        raise HTTPException(status_code=409, detail="Document type already required for this template.")
+        
+    doc = OnboardingRequiredDocument(
+        template_id=template.id,
+        document_type=body.document_type.strip(),
+    )
+    session.add(doc)
+    session.commit()
+    return _template_payload(session, template)
+
+
+@router.delete("/templates/{template_id}/required-documents/{document_type}")
+def remove_template_required_document(
+    template_id: int,
+    document_type: str,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_roles("hr")),
+):
+    template = session.get(OnboardingTemplate, template_id)
+    if not template:
+        raise HTTPException(status_code=404, detail="Onboarding template not found.")
+        
+    doc = session.exec(
+        select(OnboardingRequiredDocument)
+        .where(OnboardingRequiredDocument.template_id == template.id)
+        .where(OnboardingRequiredDocument.document_type == document_type.strip())
+    ).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Required document not found for this template.")
+        
+    session.delete(doc)
+    session.commit()
+    return _template_payload(session, template)
