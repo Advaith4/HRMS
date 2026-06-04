@@ -17,6 +17,7 @@ from src.models import (
     User,
     OnboardingRequiredDocument,
     EmployeeDocument,
+    EmployeeLifecycleEvent,
 )
 
 
@@ -444,6 +445,16 @@ def assign_template(
                 is_required=task.is_required,
             )
         )
+    # Record Onboarding Started event
+    session.add(
+        EmployeeLifecycleEvent(
+            employee_id=employee.id,
+            event_type="Onboarding Started",
+            event_date=date.today(),
+            description=f"Onboarding started with plan: '{template.name}'.",
+            created_by=current_user.id
+        )
+    )
     _notify(
         session,
         employee.user_id,
@@ -518,6 +529,15 @@ def update_plan_task(
         plan.status = "Completed"
         plan.completed_at = now
         if employee:
+            session.add(
+                EmployeeLifecycleEvent(
+                    employee_id=employee.id,
+                    event_type="Onboarding Completed",
+                    event_date=date.today(),
+                    description="Completed all onboarding checkpoints and documentation.",
+                    created_by=current_user.id
+                )
+            )
             _notify(
                 session,
                 employee.user_id,

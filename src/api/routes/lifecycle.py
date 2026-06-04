@@ -80,7 +80,24 @@ def add_lifecycle_event(
     if not emp:
         raise HTTPException(status_code=404, detail="Employee not found.")
     
-    valid_types = {"Joined", "Probation", "Confirmed", "Promoted", "Transferred", "Exited"}
+    valid_types = {
+        "Joined",
+        "Profile Completed",
+        "Documents Submitted",
+        "Documents Verified",
+        "Document Rejected",
+        "Onboarding Started",
+        "Onboarding Completed",
+        "Training Assigned",
+        "Training Completed",
+        "Promoted",
+        "Promotion",
+        "Salary Revision",
+        "Probation",
+        "Confirmed",
+        "Transferred",
+        "Exited"
+    }
     if body.event_type not in valid_types:
         raise HTTPException(
             status_code=400,

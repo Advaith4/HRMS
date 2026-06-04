@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Check, AlertTriangle, RefreshCw, Briefcase, Calendar, DollarSign, Award } from 'lucide-react'
 import { AIScoreDonut } from '../ui/AIScoreDonut'
 import { StatusPill } from '../ui/StatusPill'
-import { reanalyzeApplication, hireCandidate } from '../../api'
+import { reanalyzeApplication, hireCandidate, listOnboardingTemplates } from '../../api'
 import { useAuthStore } from '../../store/authStore'
 import toast from 'react-hot-toast'
 
@@ -12,6 +12,10 @@ export const AnalysisDrawer = ({ isOpen, onClose, application, onUpdate }) => {
   const [isReanalyzing, setIsReanalyzing] = useState(false)
   const [isHiring, setIsHiring] = useState(false)
   const [showHireModal, setShowHireModal] = useState(false)
+
+  // Onboarding Templates State
+  const [templates, setTemplates] = useState([])
+  const [selectedTemplateId, setSelectedTemplateId] = useState('')
 
   // Hire Form States
   const [department, setDepartment] = useState('')
@@ -29,6 +33,20 @@ export const AnalysisDrawer = ({ isOpen, onClose, application, onUpdate }) => {
       setSalary('800000') // default mock salary
     }
   }, [application])
+
+  // Fetch onboarding templates when hire modal opens
+  useEffect(() => {
+    if (showHireModal) {
+      listOnboardingTemplates()
+        .then(data => {
+          setTemplates(data || [])
+          setSelectedTemplateId('')
+        })
+        .catch(err => {
+          console.error('Failed to load onboarding templates', err)
+        })
+    }
+  }, [showHireModal])
 
   // Handle Escape key close
   useEffect(() => {
@@ -99,7 +117,8 @@ export const AnalysisDrawer = ({ isOpen, onClose, application, onUpdate }) => {
         designation,
         salary: parsedSalary,
         joining_date: joiningDate,
-        employee_code: employeeCode || null
+        employee_code: employeeCode || null,
+        onboarding_template_id: selectedTemplateId ? parseInt(selectedTemplateId) : null
       }
       
       let updatedApp;
@@ -379,15 +398,32 @@ export const AnalysisDrawer = ({ isOpen, onClose, application, onUpdate }) => {
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-[11px] font-semibold text-txt-secondary uppercase block">Joining Date</label>
-                <input
-                  type="date"
-                  required
-                  value={joiningDate}
-                  onChange={(e) => setJoiningDate(e.target.value)}
-                  className="w-full bg-bg-page border border-border-custom focus:border-brand-indigo outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-txt-secondary uppercase block">Joining Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={joiningDate}
+                    onChange={(e) => setJoiningDate(e.target.value)}
+                    className="w-full bg-bg-page border border-border-custom focus:border-brand-indigo outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-txt-secondary uppercase block">Onboarding Plan</label>
+                  <select
+                    value={selectedTemplateId}
+                    onChange={(e) => setSelectedTemplateId(e.target.value)}
+                    className="w-full bg-bg-page border border-border-custom focus:border-brand-indigo outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary"
+                  >
+                    <option value="">Auto-Assign (Dept Match)</option>
+                    {templates.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="pt-4 flex items-center space-x-3 justify-end">

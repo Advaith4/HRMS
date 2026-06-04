@@ -6,6 +6,7 @@ import { StatusPill } from '../../components/ui/StatusPill'
 import { decideProfileDocument, downloadProfileDocumentUrl, listReviewDocuments } from '../../api'
 import api from '../../api/axios'
 import DocumentViewerModal from '../../components/DocumentViewerModal'
+import { DocumentDecisionModal } from '../../components/modals/DocumentDecisionModal'
 
 export const DocumentVerification = () => {
   const [documents, setDocuments] = useState([])
@@ -21,6 +22,11 @@ export const DocumentVerification = () => {
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewUrl, setPreviewUrl] = useState('')
   const [previewFilename, setPreviewFilename] = useState('')
+
+  // Decision Modal states
+  const [decisionOpen, setDecisionOpen] = useState(false)
+  const [selectedDoc, setSelectedDoc] = useState(null)
+  const [decisionMode, setDecisionMode] = useState('Approve')
 
   const fetchData = async () => {
     setLoading(true)
@@ -62,19 +68,28 @@ export const DocumentVerification = () => {
     }
   }
 
-  const decide = async (doc, status) => {
+  const handleOpenDecision = (doc, mode) => {
+    setSelectedDoc(doc)
+    setDecisionMode(mode)
+    setDecisionOpen(true)
+  }
+
+  const handleConfirmDecision = async ({ decision, reasonCategory, comments }) => {
+    if (!selectedDoc) return
+
     let rejection_comment = ''
-    if (status === 'Rejected') {
-      rejection_comment = window.prompt('Please enter the reason for rejection (required):')
-      if (rejection_comment === null) return // user cancelled
-      if (!rejection_comment.trim()) {
-        toast.error('Rejection reason is required')
-        return
-      }
+    if (decision === 'Rejected') {
+      rejection_comment = `[${reasonCategory}] ${comments}`
+    } else {
+      rejection_comment = comments
     }
+
     try {
-      await decideProfileDocument(doc.kind, doc.id, { status, rejection_comment: rejection_comment || '' })
-      toast.success(`Document ${status.toLowerCase()}`)
+      await decideProfileDocument(selectedDoc.kind, selectedDoc.id, { 
+        status: decision, 
+        rejection_comment: rejection_comment || '' 
+      })
+      toast.success(`Document ${decision.toLowerCase()}`)
       fetchData()
     } catch (err) {
       console.error(err)
@@ -161,6 +176,8 @@ export const DocumentVerification = () => {
                           <th className="py-2.5 px-4">User</th>
                           <th className="py-2.5 px-4">Document Type & File</th>
                           <th className="py-2.5 px-4">Submitted Date</th>
+                          <th className="py-2.5 px-4">Verification Date</th>
+                          <th className="py-2.5 px-4">Reviewer</th>
                           <th className="py-2.5 px-4">Status</th>
                           <th className="py-2.5 px-4 text-right">Actions</th>
                         </tr>
@@ -184,6 +201,16 @@ export const DocumentVerification = () => {
                             <td className="py-3 px-4 text-txt-secondary">
                               {doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString() : '-'}
                             </td>
+                            <td className="py-3 px-4 text-txt-secondary">
+                              {doc.reviewed_at ? new Date(doc.reviewed_at).toLocaleDateString() : '-'}
+                            </td>
+                            <td className="py-3 px-4 text-txt-secondary font-mono text-[10px]">
+                              {doc.reviewer_username ? (
+                                <span className="bg-bg-page border border-border-custom px-2 py-0.5 rounded text-txt-secondary">
+                                  {doc.reviewer_username}
+                                </span>
+                              ) : '-'}
+                            </td>
                             <td className="py-3 px-4">
                               <StatusPill status={doc.verification_status} />
                             </td>
@@ -206,8 +233,8 @@ export const DocumentVerification = () => {
                               </a>
                               {doc.verification_status !== 'Approved' && (
                                 <button
-                                  onClick={() => decide(doc, 'Approved')}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-success-primary/20 text-success-primary bg-success-bg/10 hover:bg-success-bg/25 rounded-lg text-[10px] font-semibold transition-all"
+                                  onClick={() => handleOpenDecision(doc, 'Approve')}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-success-primary/20 text-success-primary bg-success-bg/10 hover:bg-success-bg/25 rounded-lg text-[10px] font-semibold transition-all cursor-pointer"
                                 >
                                   <ShieldCheck size={12} />
                                   Approve
@@ -215,8 +242,8 @@ export const DocumentVerification = () => {
                               )}
                               {doc.verification_status !== 'Rejected' && (
                                 <button
-                                  onClick={() => decide(doc, 'Rejected')}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-danger-primary/20 text-danger-primary bg-danger-bg/10 hover:bg-danger-bg/25 rounded-lg text-[10px] font-semibold transition-all"
+                                  onClick={() => handleOpenDecision(doc, 'Reject')}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-danger-primary/20 text-danger-primary bg-danger-bg/10 hover:bg-danger-bg/25 rounded-lg text-[10px] font-semibold transition-all cursor-pointer"
                                 >
                                   <XCircle size={12} />
                                   Reject
@@ -245,6 +272,15 @@ export const DocumentVerification = () => {
         }}
         url={previewUrl}
         filename={previewFilename}
+      />
+
+      {/* Document Rejection/Approval Decision Modal */}
+      <DocumentDecisionModal
+        isOpen={decisionOpen}
+        onClose={() => setDecisionOpen(false)}
+        onConfirm={handleConfirmDecision}
+        documentType={selectedDoc?.document_type || 'Document'}
+        initialDecision={decisionMode}
       />
     </div>
   )

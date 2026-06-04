@@ -7,7 +7,7 @@ from sqlmodel import Session, select
 
 from src.api.dependencies import get_current_user, require_roles
 from src.database.connection import get_session
-from src.models import Employee, HRNotification, TrainingAssignment, TrainingProgram, User
+from src.models import Employee, HRNotification, TrainingAssignment, TrainingProgram, User, EmployeeLifecycleEvent
 
 
 router = APIRouter(prefix="/api/training", tags=["training"])
@@ -231,6 +231,16 @@ def assign_training(
     session.add(assignment)
     session.commit()
     session.refresh(assignment)
+    # Record Training Assigned lifecycle event
+    session.add(
+        EmployeeLifecycleEvent(
+            employee_id=employee.id,
+            event_type="Training Assigned",
+            event_date=date.today(),
+            description=f"Assigned training program: '{program.title}'.",
+            created_by=current_user.id
+        )
+    )
     _notify(
         session,
         employee.user_id,
@@ -296,6 +306,18 @@ def update_progress(
     session.add(assignment)
 
     if assignment.status == "Completed" and employee:
+        program = session.get(TrainingProgram, assignment.program_id)
+        program_title = program.title if program else "Training"
+        
+        session.add(
+            EmployeeLifecycleEvent(
+                employee_id=employee.id,
+                event_type="Training Completed",
+                event_date=date.today(),
+                description=f"Completed training program: '{program_title}'.",
+                created_by=current_user.id
+            )
+        )
         _notify(
             session,
             employee.user_id,

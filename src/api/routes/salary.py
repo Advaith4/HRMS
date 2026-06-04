@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 from src.api.dependencies import require_roles
 from src.database.connection import get_session
-from src.models import SalaryHistory, Employee, User, HRNotification
+from src.models import SalaryHistory, Employee, User, HRNotification, EmployeeLifecycleEvent
 
 router = APIRouter(prefix="/api/salary", tags=["salary"])
 
@@ -94,6 +94,17 @@ def add_salary_revision(
     # Update employee's current salary
     emp.salary = body.new_salary
     session.add(emp)
+
+    # Record lifecycle event
+    session.add(
+        EmployeeLifecycleEvent(
+            employee_id=employee_id,
+            event_type="Salary Revision",
+            event_date=body.effective_date,
+            description=f"Salary revised from {prev_salary or 0} to {body.new_salary} (+{increment_percent or 0}%). Reason: {body.reason}",
+            created_by=current_user.id
+        )
+    )
     
     session.commit()
     session.refresh(history)

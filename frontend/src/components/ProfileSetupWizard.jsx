@@ -192,7 +192,7 @@ export const ProfileSetupWizard = ({ role, onComplete }) => {
         <div className="rounded-lg border border-brand-indigo/30 bg-brand-indigo/10 p-3 text-xs text-txt-primary flex items-center gap-2">
           <AlertCircle size={16} className="text-brand-indigo flex-shrink-0" />
           <span>
-            <strong>Note:</strong> Some of your profile fields have been pre-populated from your candidate records. Please review and complete the remaining required details.
+            Your employee profile has been pre-populated using information from your candidate application.
           </span>
         </div>
       )}

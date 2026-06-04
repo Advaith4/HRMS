@@ -374,7 +374,7 @@ def get_employee_directory(
             "user_id": e.user_id,
             "username": username,
             "full_name": e.full_name or username or "",
-            "email": e.email or (f"{username}@talentforge.ai" if username else ""),
+            "email": e.email or "",
             "phone": e.phone or "",
             "employee_code": e.employee_code,
             "department": dept_name,

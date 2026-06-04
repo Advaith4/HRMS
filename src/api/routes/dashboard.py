@@ -307,9 +307,44 @@ def get_hr_reviews(
             "progress_percent": ta.progress_percent,
         })
         
+    # 5. Incomplete Candidate Profiles
+    incomplete_cands = session.exec(
+        select(CandidateProfile)
+        .where(CandidateProfile.is_complete == False)
+    ).all()
+    incomplete_candidate_list = []
+    for cp in incomplete_cands:
+        user = users.get(cp.user_id)
+        incomplete_candidate_list.append({
+            "id": cp.id,
+            "user_id": cp.user_id,
+            "name": cp.full_name or (user.username if user else "Candidate"),
+            "completion_percent": cp.completion_percent,
+            "updated_at": cp.updated_at.isoformat() if cp.updated_at else None,
+        })
+
+    # 6. Incomplete Employee Profiles
+    incomplete_emps = session.exec(
+        select(EmployeeProfile)
+        .where(EmployeeProfile.is_complete == False)
+    ).all()
+    incomplete_employee_list = []
+    for ep in incomplete_emps:
+        user = users.get(ep.user_id)
+        emp = employees.get(ep.employee_id) if ep.employee_id else None
+        incomplete_employee_list.append({
+            "id": ep.id,
+            "user_id": ep.user_id,
+            "name": emp.full_name if emp else (user.username if user else "Employee"),
+            "completion_percent": ep.completion_percent,
+            "updated_at": ep.updated_at.isoformat() if ep.updated_at else None,
+        })
+
     return {
         "pending_profiles": pending_profiles,
         "pending_documents": pending_docs,
         "pending_onboarding_assignments": pending_onboarding,
         "overdue_trainings": overdue_training_list,
+        "incomplete_candidates": incomplete_candidate_list,
+        "incomplete_employees": incomplete_employee_list,
     }

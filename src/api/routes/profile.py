@@ -20,6 +20,7 @@ from src.models import (
     EmployeeProfile,
     HRNotification,
     User,
+    EmployeeLifecycleEvent,
 )
 
 
@@ -249,6 +250,14 @@ def update_employee_profile_completion(body: EmployeeProfileReq, session: Sessio
         payload = _employee_payload(session, profile)
         if not was_complete:
             _notify(session, current_user.id, "Profile Completed", "Your employee profile is complete.", "profile_completed", profile.id)
+            if employee:
+                session.add(EmployeeLifecycleEvent(
+                    employee_id=employee.id,
+                    event_type="Profile Completed",
+                    event_date=date.today(),
+                    description="Completed personal and professional employee profile.",
+                    created_by=current_user.id
+                ))
             session.commit()
     return payload
 
@@ -273,11 +282,20 @@ def upload_document(
     with stored_path.open("wb") as dest:
         dest.write(content)
 
+    from datetime import date
     if current_user.role == "candidate":
         doc = CandidateDocument(user_id=current_user.id, document_type=document_type, original_filename=file.filename or stored_name, stored_path=str(stored_path))
     else:
         employee = _employee_for_user(session, current_user.id)
         doc = EmployeeDocument(user_id=current_user.id, employee_id=employee.id if employee else None, document_type=document_type, original_filename=file.filename or stored_name, stored_path=str(stored_path))
+        if employee:
+            session.add(EmployeeLifecycleEvent(
+                employee_id=employee.id,
+                event_type="Documents Submitted",
+                event_date=date.today(),
+                description=f"Submitted compliance document: {document_type}.",
+                created_by=current_user.id
+            ))
     session.add(doc)
     session.commit()
     session.refresh(doc)
@@ -292,7 +310,14 @@ def list_documents(session: Session = Depends(get_session), current_user: User =
         docs = session.exec(select(EmployeeDocument).where(EmployeeDocument.user_id == current_user.id)).all()
     else:
         docs = session.exec(select(EmployeeDocument).order_by(EmployeeDocument.uploaded_at.desc())).all()
-    return [_doc_payload(doc) for doc in docs]
+    
+    users = {user.id: user for user in session.exec(select(User)).all()}
+    payload = []
+    for doc in docs:
+        item = _doc_payload(doc)
+        item["reviewer_username"] = users.get(doc.reviewed_by).username if doc.reviewed_by in users else ""
+        payload.append(item)
+    return payload
 
 
 @router.get("/documents/{kind}/{document_id}/download")
@@ -320,6 +345,7 @@ def list_review_documents(session: Session = Depends(get_session), current_user:
             item = _doc_payload(doc)
             item["kind"] = kind
             item["username"] = users.get(doc.user_id).username if doc.user_id in users else ""
+            item["reviewer_username"] = users.get(doc.reviewed_by).username if doc.reviewed_by in users else ""
             payload.append(item)
     return sorted(payload, key=lambda item: item["uploaded_at"] or "", reverse=True)
 
@@ -335,6 +361,26 @@ def decide_document(kind: str, document_id: int, body: DocumentDecisionReq, sess
     doc.reviewed_at = datetime.utcnow()
     doc.reviewed_by = current_user.id
     session.add(doc)
+
+    # Generate document verification lifecycle events for employee
+    from datetime import date
+    if kind == "employee" and doc.employee_id:
+        if body.status == "Approved":
+            evt_type = "Documents Verified"
+            evt_desc = f"Verified compliance document: {doc.document_type}."
+        else:
+            evt_type = "Document Rejected"
+            evt_desc = f"Rejected compliance document: {doc.document_type}. Reason: {doc.rejection_comment}"
+        
+        session.add(EmployeeLifecycleEvent(
+            employee_id=doc.employee_id,
+            event_type=evt_type,
+            event_date=date.today(),
+            description=evt_desc,
+            created_by=current_user.id
+        ))
+
+    # Send Notification
     title = "Document Approved" if body.status == "Approved" else "Document Rejected"
     msg = f"{doc.document_type} was {body.status.lower()}."
     if doc.rejection_comment:
@@ -342,4 +388,7 @@ def decide_document(kind: str, document_id: int, body: DocumentDecisionReq, sess
     _notify(session, doc.user_id, title, msg, f"document_{body.status.lower()}", doc.id)
     session.commit()
     session.refresh(doc)
-    return _doc_payload(doc)
+    
+    payload = _doc_payload(doc)
+    payload["reviewer_username"] = current_user.username
+    return payload

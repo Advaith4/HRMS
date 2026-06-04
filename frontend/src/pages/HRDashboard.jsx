@@ -21,6 +21,9 @@ import { PromotionDashboard } from './hr/PromotionDashboard'
 import { OnboardingHub } from './hr/OnboardingHub'
 import { TrainingHub } from './hr/TrainingHub'
 import { DocumentVerification } from './hr/DocumentVerification'
+import { HRMetricsPanel } from '../components/HRMetricsPanel'
+import { HRReviewQueue } from '../components/HRReviewQueue'
+import { PendingActionsWidget } from '../components/PendingActionsWidget'
 
 
 export const HRDashboard = ({ activeTab = 'overview' }) => {
@@ -63,17 +66,22 @@ export const HRDashboard = ({ activeTab = 'overview' }) => {
   const fetchData = async () => {
     setLoading(true)
     try {
-      const [data, reviewsData] = await Promise.all([
+      const [data, reviewsData, leavesData] = await Promise.all([
         getHRDashboardData(),
         getHRReviews().catch(err => {
           console.error("Failed to load HR review queue:", err)
-          return { pending_profiles: [], pending_documents: [], pending_onboarding_assignments: [], overdue_trainings: [] }
+          return { pending_profiles: [], pending_documents: [], pending_onboarding_assignments: [], overdue_trainings: [], incomplete_candidates: [], incomplete_employees: [] }
+        }),
+        listLeaveRequests().catch(err => {
+          console.error("Failed to load leaves:", err)
+          return []
         })
       ])
       const jobsData = data.jobs || []
       const appsData = data.applications || []
       const candidatesData = data.candidates || []
       setReviewQueue(reviewsData)
+      setLeaves(leavesData)
 
       // Seed jobs if empty
       setJobs(jobsData.length > 0 ? jobsData : [
@@ -324,20 +332,14 @@ export const HRDashboard = ({ activeTab = 'overview' }) => {
         )}
       </div>
 
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-          <SkeletonCard mode="metric" count={5} />
-        </div>
-      ) : (
-        /* KPI Cards Grid */
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-          <MetricCard iconName="Briefcase" label="Open Job Postings" value={openJobsCount} delta="3 new" />
-          <MetricCard iconName="FileText" label="Total Applications" value={totalAppsCount} delta="12% vs last wk" />
-          <MetricCard iconName="Search" label="Pending Screenings" value={pendingReviewCount} delta="High priority" />
-          <MetricCard iconName="UserCheck" label="Hires Completed" value={hiredCount} delta="2 this month" hoverColor="teal" />
-          <MetricCard iconName="Award" label="Avg AI Fit Score" value={`${avgScore}/100`} delta="Optimal" hoverColor="teal" />
-        </div>
-      )}
+      <HRMetricsPanel
+        openJobsCount={openJobsCount}
+        totalAppsCount={totalAppsCount}
+        pendingReviewCount={pendingReviewCount}
+        hiredCount={hiredCount}
+        avgScore={avgScore}
+        loading={loading}
+      />
 
       {/* RENDER SUBVIEWS DEPENDING ON ACTIVETAB */}
       
@@ -360,158 +362,16 @@ export const HRDashboard = ({ activeTab = 'overview' }) => {
           </div>
 
           {/* Section: Action Items & Review Queue */}
-          <div className="space-y-3">
-            <h3 className="text-[10px] font-bold tracking-wider uppercase text-txt-secondary">HR Pending Reviews & Action Items</h3>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              
-              {/* Card 1: Profiles */}
-              <div className="bg-bg-surface border border-border-custom p-5 rounded-xl flex flex-col justify-between space-y-4 shadow-xs hover:border-border-hover-custom transition-all">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-txt-tertiary uppercase tracking-wider">Profile Reviews</span>
-                    <div className="p-1.5 rounded-lg bg-brand-indigo/10 text-brand-indigo">
-                      <UserCheck size={14} />
-                    </div>
-                  </div>
-                  <div className="text-2xl font-bold text-txt-primary">
-                    {reviewQueue.pending_profiles?.length || 0}
-                  </div>
-                  <p className="text-[10px] text-txt-secondary leading-normal">
-                    Profiles fully completed and awaiting HR verification.
-                  </p>
-                  {reviewQueue.pending_profiles?.length > 0 && (
-                    <div className="space-y-1.5 pt-1.5 border-t border-border-custom/30 mt-2">
-                      {reviewQueue.pending_profiles.slice(0, 2).map((item, idx) => (
-                        <div key={idx} className="flex justify-between items-center text-[10px] text-txt-secondary bg-bg-page/40 p-1.5 rounded">
-                          <span className="truncate max-w-[100px] font-medium">{item.name}</span>
-                          <span className="text-[8px] bg-slate-100 px-1.5 py-0.5 rounded text-txt-tertiary uppercase font-bold">{item.type}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <button
-                  onClick={() => {
-                    const first = reviewQueue.pending_profiles?.[0];
-                    if (first?.type === 'Candidate') {
-                      navigate('/hr/candidates');
-                    } else {
-                      navigate('/hr/directory');
-                    }
-                  }}
-                  disabled={!(reviewQueue.pending_profiles?.length > 0)}
-                  className="w-full py-1.5 bg-brand-indigo/10 hover:bg-brand-indigo/20 text-brand-indigo text-[10px] font-bold rounded-lg cursor-pointer transition-colors shadow-xs disabled:opacity-50 disabled:cursor-not-allowed text-center"
-                >
-                  Review Now
-                </button>
-              </div>
-
-              {/* Card 2: Documents */}
-              <div className="bg-bg-surface border border-border-custom p-5 rounded-xl flex flex-col justify-between space-y-4 shadow-xs hover:border-border-hover-custom transition-all">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-txt-tertiary uppercase tracking-wider">Document Verification</span>
-                    <div className="p-1.5 rounded-lg bg-teal-500/10 text-teal-500">
-                      <FileText size={14} />
-                    </div>
-                  </div>
-                  <div className="text-2xl font-bold text-txt-primary">
-                    {reviewQueue.pending_documents?.length || 0}
-                  </div>
-                  <p className="text-[10px] text-txt-secondary leading-normal">
-                    Uploaded documents requiring verification checks.
-                  </p>
-                  {reviewQueue.pending_documents?.length > 0 && (
-                    <div className="space-y-1.5 pt-1.5 border-t border-border-custom/30 mt-2">
-                      {reviewQueue.pending_documents.slice(0, 2).map((item, idx) => (
-                        <div key={idx} className="flex justify-between items-center text-[10px] text-txt-secondary bg-bg-page/40 p-1.5 rounded">
-                          <span className="truncate max-w-[100px] font-medium">@{item.username}</span>
-                          <span className="text-[8px] bg-slate-100 px-1.5 py-0.5 rounded text-txt-tertiary uppercase truncate max-w-[65px] font-bold">{item.document_type}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <button
-                  onClick={() => navigate('/hr/documents')}
-                  disabled={!(reviewQueue.pending_documents?.length > 0)}
-                  className="w-full py-1.5 bg-brand-indigo/10 hover:bg-brand-indigo/20 text-brand-indigo text-[10px] font-bold rounded-lg cursor-pointer transition-colors shadow-xs disabled:opacity-50 disabled:cursor-not-allowed text-center"
-                >
-                  Review Now
-                </button>
-              </div>
-
-              {/* Card 3: Onboarding Assignments */}
-              <div className="bg-bg-surface border border-border-custom p-5 rounded-xl flex flex-col justify-between space-y-4 shadow-xs hover:border-border-hover-custom transition-all">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-txt-tertiary uppercase tracking-wider">Onboarding Assignment</span>
-                    <div className="p-1.5 rounded-lg bg-orange-500/10 text-orange-500">
-                      <GitMerge size={14} />
-                    </div>
-                  </div>
-                  <div className="text-2xl font-bold text-txt-primary">
-                    {reviewQueue.pending_onboarding_assignments?.length || 0}
-                  </div>
-                  <p className="text-[10px] text-txt-secondary leading-normal">
-                    Hired staff requiring template assignment to begin.
-                  </p>
-                  {reviewQueue.pending_onboarding_assignments?.length > 0 && (
-                    <div className="space-y-1.5 pt-1.5 border-t border-border-custom/30 mt-2">
-                      {reviewQueue.pending_onboarding_assignments.slice(0, 2).map((item, idx) => (
-                        <div key={idx} className="flex justify-between items-center text-[10px] text-txt-secondary bg-bg-page/40 p-1.5 rounded">
-                          <span className="truncate max-w-[100px] font-medium">{item.name}</span>
-                          <span className="text-[8px] bg-slate-100 px-1.5 py-0.5 rounded text-txt-tertiary uppercase font-bold">{item.employee_code}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <button
-                  onClick={() => navigate('/hr/onboarding')}
-                  disabled={!(reviewQueue.pending_onboarding_assignments?.length > 0)}
-                  className="w-full py-1.5 bg-brand-indigo/10 hover:bg-brand-indigo/20 text-brand-indigo text-[10px] font-bold rounded-lg cursor-pointer transition-colors shadow-xs disabled:opacity-50 disabled:cursor-not-allowed text-center"
-                >
-                  Review Now
-                </button>
-              </div>
-
-              {/* Card 4: Overdue Training */}
-              <div className="bg-bg-surface border border-border-custom p-5 rounded-xl flex flex-col justify-between space-y-4 shadow-xs hover:border-border-hover-custom transition-all">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-txt-tertiary uppercase tracking-wider">Overdue Trainings</span>
-                    <div className="p-1.5 rounded-lg bg-danger-primary/10 text-danger-primary">
-                      <Award size={14} />
-                    </div>
-                  </div>
-                  <div className="text-2xl font-bold text-txt-primary">
-                    {reviewQueue.overdue_trainings?.length || 0}
-                  </div>
-                  <p className="text-[10px] text-txt-secondary leading-normal">
-                    Assigned courses past their scheduled due dates.
-                  </p>
-                  {reviewQueue.overdue_trainings?.length > 0 && (
-                    <div className="space-y-1.5 pt-1.5 border-t border-border-custom/30 mt-2">
-                      {reviewQueue.overdue_trainings.slice(0, 2).map((item, idx) => (
-                        <div key={idx} className="flex justify-between items-center text-[10px] text-txt-secondary bg-bg-page/40 p-1.5 rounded">
-                          <span className="truncate max-w-[100px] font-medium">{item.name}</span>
-                          <span className="text-[8px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded uppercase font-bold truncate max-w-[65px]">{item.program_title}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <button
-                  onClick={() => navigate('/hr/training')}
-                  disabled={!(reviewQueue.overdue_trainings?.length > 0)}
-                  className="w-full py-1.5 bg-brand-indigo/10 hover:bg-brand-indigo/20 text-brand-indigo text-[10px] font-bold rounded-lg cursor-pointer transition-colors shadow-xs disabled:opacity-50 disabled:cursor-not-allowed text-center"
-                >
-                  Review Now
-                </button>
-              </div>
-
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <HRReviewQueue reviewQueue={reviewQueue} navigate={navigate} />
+            </div>
+            <div>
+              <PendingActionsWidget
+                reviewQueue={reviewQueue}
+                leaves={leaves}
+                onActionClick={(id) => navigate(`/hr/${id}`)}
+              />
             </div>
           </div>
 

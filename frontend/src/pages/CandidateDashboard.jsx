@@ -8,6 +8,7 @@ import { SkeletonCard } from '../components/ui/SkeletonCard'
 import { EmptyState } from '../components/ui/EmptyState'
 import { JobDetailDrawer } from '../components/drawers/JobDetailDrawer'
 import { ProfileSetupWizard } from '../components/ProfileSetupWizard'
+import { ProfileCompletionWidget } from '../components/ProfileCompletionWidget'
 import { getCandidateDashboardData, getMyProfileCompletion, invalidateCache } from '../api'
 import toast from 'react-hot-toast'
 
@@ -188,55 +189,10 @@ export const CandidateDashboard = ({ activeTab = 'overview' }) => {
             
             {/* Profile Completion Card */}
             {profileCompletion && (
-              <div className="bg-white border border-border-custom rounded-xl p-5 space-y-4 shadow-xs">
-                <span className="text-[9px] font-bold tracking-wider uppercase text-txt-secondary block">Profile Completion</span>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-txt-primary">{profileCompletion.completion_percent}% Complete</span>
-                    {profileCompletion.is_complete ? (
-                      <span className="text-[10px] font-semibold text-success-primary bg-success-bg/30 border border-success-primary/20 px-2 py-0.5 rounded">Verified</span>
-                    ) : (
-                      <span className="text-[10px] font-semibold text-warning-primary bg-warning-bg/30 border border-warning-primary/20 px-2 py-0.5 rounded">Action Required</span>
-                    )}
-                  </div>
-                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-brand-indigo transition-all duration-500"
-                      style={{ width: `${profileCompletion.completion_percent}%` }}
-                    />
-                  </div>
-                  
-                  {profileCompletion.missing_information && profileCompletion.missing_information.length > 0 && (
-                    <div className="space-y-1.5 pt-2">
-                      <span className="text-[9px] font-bold text-txt-tertiary uppercase tracking-wider block">Missing Information</span>
-                      <div className="space-y-1">
-                        {profileCompletion.missing_information.map((item, idx) => (
-                          <div key={idx} className="text-[10px] text-txt-secondary flex items-center space-x-1">
-                            <span className="text-warning-primary font-bold">•</span>
-                            <span>{item}</span>
-                          </div>
-                        ))}
-                      </div>
-                      <button
-                        onClick={() => setProfileComplete(false)}
-                        className="text-[10px] font-semibold text-brand-indigo hover:underline block pt-2 cursor-pointer"
-                      >
-                        Complete Profile Setup →
-                      </button>
-                    </div>
-                  )}
-                  {profileCompletion.is_complete && (
-                    <div className="pt-2">
-                      <button
-                        onClick={() => setProfileComplete(false)}
-                        className="text-[10px] font-semibold text-brand-indigo hover:underline block cursor-pointer"
-                      >
-                        Edit Profile Details →
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
+              <ProfileCompletionWidget
+                profileCompletion={profileCompletion}
+                onAction={() => setProfileComplete(false)}
+              />
             )}
 
             {/* Resume Status Card */}

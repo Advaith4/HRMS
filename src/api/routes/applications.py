@@ -26,6 +26,7 @@ from src.models import (
     OnboardingTemplate,
     OnboardingTask,
     HRNotification,
+    EmployeeLifecycleEvent,
 )
 from src.resume_lab import parse_resume
 from src.services.recruitment_ai import (
@@ -225,8 +226,26 @@ def hire_application(
         employee_profile.address = candidate_profile.address or employee_profile.address
         employee_profile.skills = candidate_profile.technical_skills or employee_profile.skills
         employee_profile.certifications = candidate_profile.certifications or employee_profile.certifications
+        # Pre-populate previous experience combining previous work details and education
+        exp_parts = []
+        if candidate_profile.current_role or candidate_profile.current_company:
+            exp_parts.append(f"Previous Role: {candidate_profile.current_role} at {candidate_profile.current_company} ({candidate_profile.years_of_experience or 0} years experience)")
+        if candidate_profile.degree or candidate_profile.institution:
+            exp_parts.append(f"Education: {candidate_profile.degree} from {candidate_profile.institution} (Graduated: {candidate_profile.graduation_year or 'N/A'}, CGPA: {candidate_profile.cgpa_percentage or 'N/A'})")
+        if exp_parts:
+            employee_profile.previous_experience = "\n".join(exp_parts)
 
     session.add(employee_profile)
+
+    # Record Joined lifecycle event
+    joined_event = EmployeeLifecycleEvent(
+        employee_id=employee.id,
+        event_type="Joined",
+        event_date=date.today(),
+        description=f"Joined the company as {employee.designation} in {employee.department}.",
+        created_by=current_user.id
+    )
+    session.add(joined_event)
 
     # Migrate candidate documents to employee documents without duplicating file
     cand_docs = session.exec(select(CandidateDocument).where(CandidateDocument.user_id == candidate.id)).all()
@@ -251,9 +270,19 @@ def hire_application(
             )
             session.add(emp_doc)
 
-    # Automatically trigger onboarding assignment if onboarding_template_id is provided
-    if req.onboarding_template_id:
-        template = session.get(OnboardingTemplate, req.onboarding_template_id)
+    # Smart Onboarding Template Assignment (by department if not manually provided)
+    onboard_tmpl_id = req.onboarding_template_id
+    if not onboard_tmpl_id:
+        dept = req.department.strip() or job.department or ""
+        templates = session.exec(select(OnboardingTemplate).where(OnboardingTemplate.is_active == True)).all()
+        for t in templates:
+            if dept.lower() in t.name.lower() or t.name.lower() in dept.lower():
+                onboard_tmpl_id = t.id
+                break
+
+    # Automatically trigger onboarding assignment if template ID is provided or determined
+    if onboard_tmpl_id:
+        template = session.get(OnboardingTemplate, onboard_tmpl_id)
         if template and template.is_active:
             tasks = session.exec(
                 select(OnboardingTask)
@@ -303,6 +332,15 @@ def hire_application(
                             is_read=False,
                         )
                     )
+                    # Record Onboarding Started event
+                    onboarding_event = EmployeeLifecycleEvent(
+                        employee_id=employee.id,
+                        event_type="Onboarding Started",
+                        event_date=date.today(),
+                        description=f"Onboarding started with plan: '{template.name}'.",
+                        created_by=current_user.id
+                    )
+                    session.add(onboarding_event)
 
     try:
         session.commit()

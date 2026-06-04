@@ -15,6 +15,8 @@ import {
 } from '../../api'
 
 export const TrainingHub = () => {
+  const [editingProgramId, setEditingProgramId] = useState(null)
+  const [editingProgramTitle, setEditingProgramTitle] = useState('')
   const [summary, setSummary] = useState({})
   const [programs, setPrograms] = useState([])
   const [employees, setEmployees] = useState([])
@@ -103,12 +105,15 @@ export const TrainingHub = () => {
     }
   }
 
-  const handleRename = async (program) => {
-    const title = window.prompt('Program title', program.title)
-    if (!title || title.trim() === program.title) return
+  const handleSaveRename = async (programId) => {
+    if (!editingProgramTitle.trim()) {
+      toast.error('Program title cannot be empty')
+      return
+    }
     try {
-      await updateTrainingProgram(program.id, { title: title.trim() })
+      await updateTrainingProgram(programId, { title: editingProgramTitle.trim() })
       toast.success('Program updated')
+      setEditingProgramId(null)
       fetchData()
     } catch (err) {
       console.error(err)
@@ -208,24 +213,47 @@ export const TrainingHub = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border-custom/50">
-                {programs.map((program) => (
-                  <tr key={program.id}>
-                    <td className="py-3 px-3">
-                      <span className="font-semibold block">{program.title}</span>
-                      <span className="text-[10px] text-txt-secondary">{program.category} · {program.difficulty}</span>
-                    </td>
-                    <td className="py-3 px-3 text-txt-secondary">{program.skills_covered || 'General'}</td>
-                    <td className="py-3 px-3 text-txt-secondary">{program.duration_hours}h</td>
-                    <td className="py-3 px-3"><StatusPill status={program.status} /></td>
-                    <td className="py-3 px-3 text-right space-x-2">
-                      <button onClick={() => handleRename(program)} className="px-3 py-1.5 text-[11px] border border-border-custom rounded-lg">Edit</button>
-                      <button onClick={() => handleArchive(program.id)} className="px-3 py-1.5 text-[11px] border border-danger-primary/30 text-danger-primary rounded-lg inline-flex items-center gap-1">
-                        <Archive size={12} />
-                        Archive
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {programs.map((program) => {
+                  const isEditing = editingProgramId === program.id
+                  return (
+                    <tr key={program.id}>
+                      <td className="py-3 px-3">
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={editingProgramTitle}
+                            onChange={(e) => setEditingProgramTitle(e.target.value)}
+                            className="bg-bg-page border border-brand-indigo outline-none px-2 py-1 text-xs rounded-lg text-txt-primary w-full max-w-xs focus:border-brand-indigo"
+                          />
+                        ) : (
+                          <>
+                            <span className="font-semibold block">{program.title}</span>
+                            <span className="text-[10px] text-txt-secondary">{program.category} · {program.difficulty}</span>
+                          </>
+                        )}
+                      </td>
+                      <td className="py-3 px-3 text-txt-secondary">{program.skills_covered || 'General'}</td>
+                      <td className="py-3 px-3 text-txt-secondary">{program.duration_hours}h</td>
+                      <td className="py-3 px-3"><StatusPill status={program.status} /></td>
+                      <td className="py-3 px-3 text-right space-x-2">
+                        {isEditing ? (
+                          <>
+                            <button onClick={() => handleSaveRename(program.id)} className="px-3 py-1.5 text-[11px] bg-brand-indigo text-white rounded-lg font-semibold cursor-pointer">Save</button>
+                            <button onClick={() => setEditingProgramId(null)} className="px-3 py-1.5 text-[11px] border border-border-custom rounded-lg cursor-pointer">Cancel</button>
+                          </>
+                        ) : (
+                          <>
+                            <button onClick={() => { setEditingProgramId(program.id); setEditingProgramTitle(program.title); }} className="px-3 py-1.5 text-[11px] border border-border-custom rounded-lg cursor-pointer">Edit</button>
+                            <button onClick={() => handleArchive(program.id)} className="px-3 py-1.5 text-[11px] border border-danger-primary/30 text-danger-primary rounded-lg inline-flex items-center gap-1 cursor-pointer">
+                              <Archive size={12} />
+                              Archive
+                            </button>
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

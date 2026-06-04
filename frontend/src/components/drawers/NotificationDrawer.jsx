@@ -57,6 +57,25 @@ export const NotificationDrawer = ({ isOpen, onClose }) => {
         navigate('/dashboard/candidate')
       }
       onClose()
+    } else if (n.event_type === 'document_uploaded' || n.event_type === 'document_submitted' || n.title?.toLowerCase().includes('document uploaded') || n.title?.toLowerCase().includes('document submitted')) {
+      if (role === 'hr' || role === 'admin') {
+        navigate('/hr/documents')
+      }
+      onClose()
+    } else if (n.event_type === 'onboarding_assigned' || n.event_type === 'onboarding_started' || n.title?.toLowerCase().includes('onboarding assigned') || n.title?.toLowerCase().includes('onboarding started')) {
+      if (role === 'employee') {
+        navigate('/dashboard/employee?tab=onboarding')
+      } else if (role === 'hr' || role === 'admin') {
+        navigate('/hr/onboarding')
+      }
+      onClose()
+    } else if (n.event_type === 'training_assigned' || n.title?.toLowerCase().includes('training assigned')) {
+      if (role === 'employee') {
+        navigate('/dashboard/employee?tab=training')
+      } else if (role === 'hr' || role === 'admin') {
+        navigate('/hr/training')
+      }
+      onClose()
     } else if (n.event_type === 'profile_incomplete' || n.title?.toLowerCase().includes('profile incomplete')) {
       if (role === 'employee') {
         navigate('/dashboard/employee?tab=profile')
@@ -88,7 +107,7 @@ export const NotificationDrawer = ({ isOpen, onClose }) => {
         navigate('/dashboard/employee?tab=timeline')
       }
       onClose()
-    } else if (n.event_type === 'salary_revision') {
+    } else if (n.event_type === 'salary_revision' || n.title?.toLowerCase().includes('salary revision')) {
       if (role === 'employee') {
         navigate('/dashboard/employee?tab=profile')
       }

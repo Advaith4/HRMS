@@ -27,6 +27,10 @@ import {
   uploadProfileDocument
 } from '../api'
 import { CreateTicketModal } from '../components/modals/CreateTicketModal'
+import { ProfileCompletionWidget } from '../components/ProfileCompletionWidget'
+import { EmployeeProfileSection } from '../components/EmployeeProfileSection'
+import { EmployeeOnboardingSection } from '../components/EmployeeOnboardingSection'
+import { EmployeeTrainingSection } from '../components/EmployeeTrainingSection'
 import toast from 'react-hot-toast'
 
 
@@ -704,58 +708,10 @@ export const EmployeeDashboard = () => {
                 
                 {/* Profile Completion Card */}
                 {profileCompletion && (
-                  <div className="rounded-xl border border-border-custom bg-bg-surface p-6 shadow-xs space-y-4">
-                    <span className="text-[9px] font-bold tracking-wider uppercase text-txt-secondary block">Profile Completion</span>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-txt-primary">{profileCompletion.completion_percent}% Complete</span>
-                        {profileCompletion.is_complete ? (
-                          <span className="text-[10px] font-semibold text-success-primary bg-success-bg/30 border border-success-primary/20 px-2 py-0.5 rounded">Verified</span>
-                        ) : (
-                          <span className="text-[10px] font-semibold text-warning-primary bg-warning-bg/30 border border-warning-primary/20 px-2 py-0.5 rounded">Action Required</span>
-                        )}
-                      </div>
-                      <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-brand-indigo transition-all duration-500"
-                          style={{ width: `${profileCompletion.completion_percent}%` }}
-                        />
-                      </div>
-                      
-                      {profileCompletion.missing_information && profileCompletion.missing_information.length > 0 && (
-                        <div className="space-y-1.5 pt-2">
-                          <span className="text-[9px] font-bold text-txt-tertiary uppercase tracking-wider block">Missing Information</span>
-                          <div className="space-y-1">
-                            {profileCompletion.missing_information.map((item, idx) => (
-                              <div key={idx} className="text-[10px] text-txt-secondary flex items-center justify-between">
-                                <div className="flex items-center space-x-1">
-                                  <span className="text-warning-primary font-bold">•</span>
-                                  <span>{item}</span>
-                                </div>
-                                <button
-                                  onClick={() => {
-                                    if (item.includes("Upload") || item.includes("ID") || item.includes("Resume")) {
-                                      setActiveTab('onboarding');
-                                    } else {
-                                      setActiveTab('profile');
-                                      setIsEditingProfile(true);
-                                    }
-                                  }}
-                                  className="text-[9px] text-brand-indigo hover:underline font-semibold cursor-pointer"
-                                >
-                                  Complete →
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {profileCompletion.is_complete && (
-                        <p className="text-[10px] text-txt-secondary">Your official employee profile records are complete.</p>
-                      )}
-                    </div>
-                  </div>
+                  <ProfileCompletionWidget
+                    profileCompletion={profileCompletion}
+                    onAction={() => setProfileComplete(false)}
+                  />
                 )}
 
                 {/* Leave requests card (45%) */}
@@ -979,161 +935,22 @@ export const EmployeeDashboard = () => {
 
       {/* Profile Tab View */}
       {activeTab === 'profile' && (
-        <div className="space-y-6">
-          <div className="rounded-xl border border-border-custom bg-bg-surface p-6">
-            <div className="flex justify-between items-center border-b border-border-custom pb-4 mb-6">
-              <div>
-                <h4 className="text-sm font-semibold">Personal & Professional Records</h4>
-                <p className="text-[11px] text-txt-secondary">Official employee file and records</p>
-              </div>
-              <button
-                onClick={() => setIsEditingProfile(!isEditingProfile)}
-                className="px-3 py-1.5 border border-border-custom text-xs font-semibold text-txt-secondary hover:text-brand-indigo hover:border-brand-indigo/30 bg-bg-page rounded-lg cursor-pointer transition-colors"
-              >
-                {isEditingProfile ? 'Cancel' : 'Edit Contact Info'}
-              </button>
-            </div>
-
-            {loadingProfile ? (
-              <div className="flex justify-center py-12">
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
-              </div>
-            ) : profileData ? (
-              isEditingProfile ? (
-                <form onSubmit={handleUpdateProfile} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Mobile Phone</label>
-                      <input
-                        type="text"
-                        value={editPhone}
-                        onChange={(e) => setEditPhone(e.target.value)}
-                        className="w-full bg-bg-page border border-border-custom focus:border-brand-indigo outline-none px-3.5 py-1.5 text-xs rounded-xl text-txt-primary"
-                        placeholder="e.g. +91 98765 43210"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Emergency Contact</label>
-                      <input
-                        type="text"
-                        value={editEmergencyContact}
-                        onChange={(e) => setEditEmergencyContact(e.target.value)}
-                        className="w-full bg-bg-page border border-border-custom focus:border-brand-indigo outline-none px-3.5 py-1.5 text-xs rounded-xl text-txt-primary"
-                        placeholder="e.g. John Doe - Parent (+91 99999 88888)"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Residential Address</label>
-                    <textarea
-                      rows={2}
-                      value={editAddress}
-                      onChange={(e) => setEditAddress(e.target.value)}
-                      className="w-full bg-bg-page border border-border-custom focus:border-brand-indigo outline-none px-3.5 py-1.5 text-xs rounded-xl text-txt-primary resize-none"
-                      placeholder="Street, City, Zip"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Skills (comma-separated)</label>
-                    <input
-                      type="text"
-                      value={editSkills}
-                      onChange={(e) => setEditSkills(e.target.value)}
-                      className="w-full bg-bg-page border border-border-custom focus:border-brand-indigo outline-none px-3.5 py-1.5 text-xs rounded-xl text-txt-primary"
-                      placeholder="React, Node.js, Python"
-                    />
-                  </div>
-                  <div className="flex gap-2 justify-end pt-4 border-t border-border-custom">
-                    <button
-                      type="submit"
-                      className="h-8 px-4 bg-brand-indigo hover:bg-brand-indigo-hover text-white text-xs font-semibold rounded-lg flex items-center justify-center cursor-pointer transition-all active:scale-98"
-                    >
-                      Save Changes
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  {/* Left Column: Personal */}
-                  <div className="space-y-4">
-                    <h5 className="text-xs font-bold text-brand-indigo uppercase tracking-wider">Personal Information</h5>
-                    <div className="grid grid-cols-2 gap-4 text-xs">
-                      <div>
-                        <span className="text-txt-tertiary block font-semibold mb-1">Full Name</span>
-                        <span className="text-txt-primary font-medium">{profileData.full_name || user?.username}</span>
-                      </div>
-                      <div>
-                        <span className="text-txt-tertiary block font-semibold mb-1">Email Address</span>
-                        <span className="text-txt-primary font-medium">{profileData.email || 'N/A'}</span>
-                      </div>
-                      <div>
-                        <span className="text-txt-tertiary block font-semibold mb-1">Mobile Phone</span>
-                        <span className="text-txt-primary font-medium">{profileData.phone || 'N/A'}</span>
-                      </div>
-                      <div>
-                        <span className="text-txt-tertiary block font-semibold mb-1">Date of Birth</span>
-                        <span className="text-txt-primary font-medium">
-                          {profileData.date_of_birth ? new Date(profileData.date_of_birth).toLocaleDateString() : 'N/A'}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="text-xs">
-                      <span className="text-txt-tertiary block font-semibold mb-1">Residential Address</span>
-                      <span className="text-txt-primary font-medium">{profileData.address || 'N/A'}</span>
-                    </div>
-                    <div className="text-xs">
-                      <span className="text-txt-tertiary block font-semibold mb-1">Emergency Contact</span>
-                      <span className="text-txt-primary font-medium">{profileData.emergency_contact || 'N/A'}</span>
-                    </div>
-                  </div>
-
-                  {/* Right Column: Professional */}
-                  <div className="space-y-4">
-                    <h5 className="text-xs font-bold text-brand-indigo uppercase tracking-wider">Professional Information</h5>
-                    <div className="grid grid-cols-2 gap-4 text-xs">
-                      <div>
-                        <span className="text-txt-tertiary block font-semibold mb-1">Employee Code</span>
-                        <span className="text-txt-primary font-medium">{profileData.employee_code}</span>
-                      </div>
-                      <div>
-                        <span className="text-txt-tertiary block font-semibold mb-1">Current Status</span>
-                        <span className="text-txt-primary font-medium">
-                          <StatusPill status={profileData.status || 'Active'} />
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-txt-tertiary block font-semibold mb-1">Department</span>
-                        <span className="text-txt-primary font-medium">{profileData.department || 'N/A'}</span>
-                      </div>
-                      <div>
-                        <span className="text-txt-tertiary block font-semibold mb-1">Designation</span>
-                        <span className="text-txt-primary font-medium">{profileData.designation || 'N/A'}</span>
-                      </div>
-                      <div>
-                        <span className="text-txt-tertiary block font-semibold mb-1">Reporting Manager</span>
-                        <span className="text-txt-primary font-medium">{profileData.manager_name || 'N/A'}</span>
-                      </div>
-                      <div>
-                        <span className="text-txt-tertiary block font-semibold mb-1">Work Location</span>
-                        <span className="text-txt-primary font-medium">{profileData.work_location || 'N/A'}</span>
-                      </div>
-                    </div>
-                    <div className="text-xs">
-                      <span className="text-txt-tertiary block font-semibold mb-1">Certifications</span>
-                      <span className="text-txt-primary font-medium">{profileData.certifications || 'None recorded'}</span>
-                    </div>
-                    <div className="text-xs">
-                      <span className="text-txt-tertiary block font-semibold mb-1">Years of Experience</span>
-                      <span className="text-txt-primary font-medium">{profileData.years_of_experience ?? 'N/A'} yrs</span>
-                    </div>
-                  </div>
-                </div>
-              )
-            ) : (
-              <div className="text-center py-6 text-xs text-txt-tertiary">Failed to load profile record.</div>
-            )}
-          </div>
-        </div>
+        <EmployeeProfileSection
+          isEditingProfile={isEditingProfile}
+          setIsEditingProfile={setIsEditingProfile}
+          loadingProfile={loadingProfile}
+          profileData={profileData}
+          user={user}
+          editPhone={editPhone}
+          setEditPhone={setEditPhone}
+          editEmergencyContact={editEmergencyContact}
+          setEditEmergencyContact={setEditEmergencyContact}
+          editAddress={editAddress}
+          setEditAddress={setEditAddress}
+          editSkills={editSkills}
+          setEditSkills={setEditSkills}
+          handleUpdateProfile={handleUpdateProfile}
+        />
       )}
 
       {/* Tickets Tab View */}
@@ -1252,267 +1069,23 @@ export const EmployeeDashboard = () => {
         </div>
       )}
 
+      {/* Onboarding Tab View */}
       {activeTab === 'onboarding' && (
-        <div className="space-y-6">
-          <div className="rounded-xl border border-border-custom bg-bg-surface p-6">
-            <div className="border-b border-border-custom pb-4 mb-6">
-              <h4 className="text-sm font-semibold">My Onboarding Progress</h4>
-              <p className="text-[11px] text-txt-secondary leading-relaxed mt-1">
-                Complete the remaining items below, submit required documents, and mark task steps as done to finalize your employee onboarding.
-              </p>
-            </div>
-
-            {loadingOnboarding ? (
-              <div className="text-xs text-txt-tertiary py-8 text-center">Loading onboarding plan...</div>
-            ) : onboardingPlans.length === 0 ? (
-              <EmptyState title="No onboarding plan assigned" description="Your onboarding checklist will appear here once HR assigns it." />
-            ) : (
-              <div className="space-y-6">
-                {onboardingPlans.map((plan) => {
-                  const reqDocs = plan.required_documents || []
-                  const tasks = plan.tasks || []
-                  
-                  const totalTasks = tasks.length
-                  const completedTasks = tasks.filter(t => t.status === 'Completed').length
-                  const taskProgress = totalTasks ? Math.round((completedTasks / totalTasks) * 100) : 100
-
-                  const totalDocs = reqDocs.length
-                  const completedDocs = reqDocs.filter(d => d.status === 'Approved').length
-                  const docProgress = totalDocs ? Math.round((completedDocs / totalDocs) * 100) : 100
-
-                  return (
-                    <div key={plan.id} className="space-y-6">
-                      
-                      {/* Section 1: Progress Overview */}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 border-b border-border-custom pb-6">
-                        <div className="border border-border-custom bg-bg-page/40 rounded-xl p-4 flex flex-col justify-between">
-                          <div>
-                            <span className="text-[10px] uppercase font-bold text-txt-tertiary">Overall Onboarding</span>
-                            <h4 className="text-2xl font-bold mt-1 text-brand-indigo">{plan.progress_percent || 0}%</h4>
-                          </div>
-                          <div className="w-full h-2 bg-bg-surface rounded-full overflow-hidden border border-border-custom mt-4">
-                            <div className="h-full bg-brand-indigo transition-all duration-300" style={{ width: `${plan.progress_percent || 0}%` }} />
-                          </div>
-                        </div>
-
-                        <div className="border border-border-custom bg-bg-page/40 rounded-xl p-4 flex flex-col justify-between">
-                          <div>
-                            <span className="text-[10px] uppercase font-bold text-txt-tertiary">Tasks Completed</span>
-                            <h4 className="text-2xl font-bold mt-1 text-green-500">{completedTasks} / {totalTasks}</h4>
-                          </div>
-                          <div className="w-full h-2 bg-bg-surface rounded-full overflow-hidden border border-border-custom mt-4">
-                            <div className="h-full bg-green-500 transition-all duration-300" style={{ width: `${taskProgress}%` }} />
-                          </div>
-                        </div>
-
-                        <div className="border border-border-custom bg-bg-page/40 rounded-xl p-4 flex flex-col justify-between">
-                          <div>
-                            <span className="text-[10px] uppercase font-bold text-txt-tertiary">Documents Approved</span>
-                            <h4 className="text-2xl font-bold mt-1 text-blue-500">{completedDocs} / {totalDocs}</h4>
-                          </div>
-                          <div className="w-full h-2 bg-bg-surface rounded-full overflow-hidden border border-border-custom mt-4">
-                            <div className="h-full bg-blue-500 transition-all duration-300" style={{ width: `${docProgress}%` }} />
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Tasks & Documents Lists */}
-                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                        
-                        {/* Section 2: Tasks List */}
-                        <div className="space-y-4">
-                          <h5 className="text-xs font-bold text-txt-primary flex items-center gap-1.5 border-b border-border-custom pb-2">
-                            <span className="w-1.5 h-3 bg-brand-indigo rounded-full"></span>
-                            Onboarding Checkpoints ({tasks.length})
-                          </h5>
-                          <div className="space-y-3">
-                            {tasks.map((task) => (
-                              <div key={task.id} className="flex items-start justify-between p-3 border border-border-custom rounded-xl bg-bg-page/40 hover:border-border-custom/80 gap-4">
-                                <div className="space-y-1">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-xs font-semibold">{task.title}</span>
-                                    {task.required && <span className="text-[8px] font-bold text-red-400 bg-red-400/10 border border-red-400/20 px-1 rounded">Required</span>}
-                                  </div>
-                                  <p className="text-[10px] text-txt-secondary">{task.description || 'No description provided'}</p>
-                                </div>
-                                <div className="flex items-center gap-2 shrink-0">
-                                  <StatusPill status={task.status} />
-                                  {task.status !== 'Completed' && (
-                                    <div className="flex gap-1">
-                                      {task.status === 'Pending' && (
-                                        <button
-                                          onClick={() => handleOnboardingTaskStatus(plan.id, task.id, 'In Progress')}
-                                          className="px-2 py-1 border border-border-custom text-[10px] rounded hover:border-brand-indigo/40"
-                                        >
-                                          Start
-                                        </button>
-                                      )}
-                                      <button
-                                        onClick={() => handleOnboardingTaskStatus(plan.id, task.id, 'Completed')}
-                                        className="px-2 py-1 bg-success-primary hover:bg-success-primary/95 text-white text-[10px] rounded font-medium"
-                                      >
-                                        Done
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Section 3: Required Documents Upload */}
-                        <div className="space-y-4">
-                          <h5 className="text-xs font-bold text-txt-primary flex items-center gap-1.5 border-b border-border-custom pb-2">
-                            <span className="w-1.5 h-3 bg-brand-indigo rounded-full"></span>
-                            Required Compliance Documents ({reqDocs.length})
-                          </h5>
-                          {reqDocs.length === 0 ? (
-                            <div className="text-[11px] text-txt-tertiary bg-bg-page/35 border border-border-custom/50 rounded-xl p-4 text-center">
-                              No required documents configured for this template.
-                            </div>
-                          ) : (
-                            <div className="space-y-3">
-                              {reqDocs.map((doc) => {
-                                const isRejected = doc.status === 'Rejected'
-                                const isApproved = doc.status === 'Approved'
-                                const hasUploaded = doc.status !== 'Pending Submission'
-
-                                return (
-                                  <div key={doc.document_type} className={`p-4 border rounded-xl flex flex-col gap-3 bg-bg-page/40 ${isRejected ? 'border-red-500/20 bg-red-500/5' : 'border-border-custom'}`}>
-                                    <div className="flex items-center justify-between gap-3">
-                                      <div>
-                                        <span className="text-xs font-semibold block">{doc.document_type}</span>
-                                        {hasUploaded && (
-                                          <span className="text-[9px] text-txt-secondary block">
-                                            Uploaded: {doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString() : '-'}
-                                          </span>
-                                        )}
-                                      </div>
-                                      <StatusPill status={doc.status} />
-                                    </div>
-                                    
-                                    {isRejected && doc.rejection_comment && (
-                                      <div className="text-[10px] text-red-400 bg-red-500/10 p-2 rounded border border-red-500/20">
-                                        <strong>Rejection Reason:</strong> {doc.rejection_comment}
-                                      </div>
-                                    )}
-
-                                    {(!isApproved) && (
-                                      <label className="inline-flex items-center justify-center gap-1.5 py-1.5 px-3 border border-border-custom bg-bg-surface hover:border-brand-indigo/40 rounded-lg text-[10px] font-semibold cursor-pointer text-txt-secondary hover:text-txt-primary transition-all">
-                                        <FileUp size={12} className="text-brand-indigo" />
-                                        {hasUploaded ? 'Re-upload Document' : 'Upload Document'}
-                                        <input
-                                          type="file"
-                                          className="hidden"
-                                          onChange={(e) => handleUploadOnboardingDocument(doc.document_type, e.target.files?.[0])}
-                                        />
-                                      </label>
-                                    )}
-                                  </div>
-                                )
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Section 4: Onboarding Verification Status timeline */}
-                      <div className="border border-border-custom bg-bg-page/20 rounded-xl p-5 space-y-3">
-                        <h5 className="text-xs font-bold text-txt-primary flex items-center gap-1.5">
-                          <ShieldCheck size={14} className="text-brand-indigo" />
-                          Compliance & Verification Timeline
-                        </h5>
-                        <div className="space-y-4 pl-2 border-l border-border-custom/80 relative">
-                          <div className="relative pl-6">
-                            <span className={`absolute left-[-22px] top-0 w-3 h-3 rounded-full border ${plan.progress_percent >= 50 ? 'bg-success-primary border-success-primary' : 'bg-bg-page border-border-custom'}`} />
-                            <div className="text-xs font-semibold">1. Complete Personal & Professional Profile Wizard</div>
-                            <p className="text-[10px] text-txt-secondary">Populated fields must be verified, and missing items submitted.</p>
-                          </div>
-                          
-                          <div className="relative pl-6">
-                            <span className={`absolute left-[-22px] top-0 w-3 h-3 rounded-full border ${completedDocs === totalDocs && totalDocs > 0 ? 'bg-success-primary border-success-primary' : 'bg-bg-page border-border-custom'}`} />
-                            <div className="text-xs font-semibold">2. Upload Required Onboarding Documents</div>
-                            <p className="text-[10px] text-txt-secondary">
-                              All {totalDocs} configured documents must be uploaded and approved by HR admin. (Currently {completedDocs} approved)
-                            </p>
-                          </div>
-
-                          <div className="relative pl-6">
-                            <span className={`absolute left-[-22px] top-0 w-3 h-3 rounded-full border ${completedTasks === totalTasks && totalTasks > 0 ? 'bg-success-primary border-success-primary' : 'bg-bg-page border-border-custom'}`} />
-                            <div className="text-xs font-semibold">3. Complete Procedural Checkpoints</div>
-                            <p className="text-[10px] text-txt-secondary">
-                              Mark all {totalTasks} onboarding tasks completed. (Currently {completedTasks} complete)
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        </div>
+        <EmployeeOnboardingSection
+          onboardingPlans={onboardingPlans}
+          loadingOnboarding={loadingOnboarding}
+          handleOnboardingTaskStatus={handleOnboardingTaskStatus}
+          handleUploadOnboardingDocument={handleUploadOnboardingDocument}
+        />
       )}
 
+      {/* Training Tab View */}
       {activeTab === 'training' && (
-        <div className="space-y-6">
-          <div className="rounded-xl border border-border-custom bg-bg-surface p-6">
-            <div className="border-b border-border-custom pb-4 mb-6">
-              <h4 className="text-sm font-semibold">My Training</h4>
-              <p className="text-[11px] text-txt-secondary">Track training programs assigned by HR</p>
-            </div>
-
-            {loadingTraining ? (
-              <div className="text-xs text-txt-tertiary py-8">Loading training...</div>
-            ) : trainingAssignments.length === 0 ? (
-              <EmptyState title="No training assigned" description="Assigned programs will appear here." />
-            ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {trainingAssignments.map((assignment) => (
-                  <div key={assignment.id} className="border border-border-custom rounded-xl bg-bg-page p-4 space-y-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h5 className="text-sm font-semibold">{assignment.program_title}</h5>
-                        <p className="text-[11px] text-txt-secondary mt-1">
-                          {assignment.category} · {assignment.duration_hours}h · {assignment.difficulty}
-                        </p>
-                      </div>
-                      <StatusPill status={assignment.status} />
-                    </div>
-                    <p className="text-xs text-txt-secondary leading-relaxed">{assignment.description || 'No description provided'}</p>
-                    <div className="text-[11px] text-txt-secondary">
-                      <span className="font-semibold text-txt-primary">Skills:</span> {assignment.skills_covered || 'General'}
-                    </div>
-                    <div>
-                      <div className="flex items-center justify-between text-[11px] mb-1">
-                        <span className="text-txt-secondary">Progress</span>
-                        <span className="font-bold text-brand-indigo">{assignment.progress_percent || 0}%</span>
-                      </div>
-                      <div className="h-2 bg-bg-surface rounded-full overflow-hidden border border-border-custom">
-                        <div className="h-full bg-brand-indigo" style={{ width: `${assignment.progress_percent || 0}%` }} />
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap justify-end gap-2 pt-2 border-t border-border-custom">
-                      {[25, 50, 75, 100].map((value) => (
-                        <button
-                          key={value}
-                          onClick={() => handleTrainingProgress(assignment.id, value)}
-                          disabled={(assignment.progress_percent || 0) >= value}
-                          className="px-2.5 py-1 border border-border-custom text-[11px] rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                          {value === 100 ? 'Complete' : `${value}%`}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+        <EmployeeTrainingSection
+          trainingAssignments={trainingAssignments}
+          loadingTraining={loadingTraining}
+          handleTrainingProgress={handleTrainingProgress}
+        />
       )}
 
       {/* Floating AI HR Assistant Button */}
