@@ -7,7 +7,8 @@ import { StatusPill } from '../components/ui/StatusPill'
 import { SkeletonCard } from '../components/ui/SkeletonCard'
 import { EmptyState } from '../components/ui/EmptyState'
 import { JobDetailDrawer } from '../components/drawers/JobDetailDrawer'
-import { getCandidateDashboardData, invalidateCache } from '../api'
+import { ProfileSetupWizard } from '../components/ProfileSetupWizard'
+import { getCandidateDashboardData, getMyProfileCompletion, invalidateCache } from '../api'
 import toast from 'react-hot-toast'
 
 export const CandidateDashboard = ({ activeTab = 'overview' }) => {
@@ -16,6 +17,7 @@ export const CandidateDashboard = ({ activeTab = 'overview' }) => {
   const [applications, setApplications] = useState([])
   const [hasResume, setHasResume] = useState(false)
   const [resumeData, setResumeData] = useState(null)
+  const [profileComplete, setProfileComplete] = useState(null)
 
   // Drawer Trigger
   const [selectedJob, setSelectedJob] = useState(null)
@@ -32,11 +34,15 @@ export const CandidateDashboard = ({ activeTab = 'overview' }) => {
   const fetchData = async () => {
     setLoading(true)
     try {
-      const data = await getCandidateDashboardData()
+      const [data, profileData] = await Promise.all([
+        getCandidateDashboardData(),
+        getMyProfileCompletion(),
+      ])
       setJobs(data.jobs || [])
       setApplications(data.applications || [])
       setHasResume(data.has_resume || false)
       if (data.resume) setResumeData(data.resume)
+      setProfileComplete(!!profileData.profile?.is_complete)
     } catch (err) {
       console.error('Candidate dashboard fetch failed:', err)
       const msg = err?.response?.data?.detail || err?.message || 'Unknown error'
@@ -79,6 +85,10 @@ export const CandidateDashboard = ({ activeTab = 'overview' }) => {
 
   // List unique departments for filter chips
   const departments = ['All', ...new Set(seededJobs.map(j => j.department))]
+
+  if (profileComplete === false) {
+    return <ProfileSetupWizard role="candidate" onComplete={() => setProfileComplete(true)} />
+  }
 
   return (
     <div className="space-y-8 select-none text-txt-primary">

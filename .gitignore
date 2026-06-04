@@ -1,5 +1,6 @@
 .env
 venv/
+.venv/
 __pycache__/
 *.pyc
 data/
@@ -10,3 +11,4 @@ scratch*.py
 .vercel
 .agents/
 .opencode/
+.codex/

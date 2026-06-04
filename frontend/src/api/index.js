@@ -13,4 +13,6 @@ export * from './tickets'
 export * from './salary'
 export * from './promotions'
 export * from './notifications'
-
+export * from './onboarding'
+export * from './training'
+export * from './profile'

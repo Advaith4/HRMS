@@ -17,6 +17,9 @@ import { DepartmentManagement } from './hr/DepartmentManagement'
 import { DesignationManagement } from './hr/DesignationManagement'
 import { GrievanceDashboard } from './hr/GrievanceDashboard'
 import { PromotionDashboard } from './hr/PromotionDashboard'
+import { OnboardingHub } from './hr/OnboardingHub'
+import { TrainingHub } from './hr/TrainingHub'
+import { DocumentVerification } from './hr/DocumentVerification'
 
 
 export const HRDashboard = ({ activeTab = 'overview' }) => {
@@ -759,6 +762,9 @@ export const HRDashboard = ({ activeTab = 'overview' }) => {
       {activeTab === 'designations' && <DesignationManagement />}
       {activeTab === 'tickets' && <GrievanceDashboard />}
       {activeTab === 'promotions' && <PromotionDashboard />}
+      {activeTab === 'onboarding' && <OnboardingHub />}
+      {activeTab === 'training' && <TrainingHub />}
+      {activeTab === 'documents' && <DocumentVerification />}
 
 
       {/* Analysis Drawer */}

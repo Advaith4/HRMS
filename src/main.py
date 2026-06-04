@@ -71,7 +71,8 @@ from src.database.connection import create_db_and_tables
 from src.core.exceptions import http_exception_handler, validation_exception_handler
 from src.api.routes import (
     applications, auth, candidates, dashboard, employees, jobs, resume, interview,
-    departments, designations, lifecycle, tickets, salary, promotions, notifications
+    departments, designations, lifecycle, tickets, salary, promotions, notifications,
+    onboarding, training, profile
 )
 
 # ── Logging ───────────────────────────────────────────────────────────────────
@@ -155,6 +156,9 @@ app.include_router(tickets.router)
 app.include_router(salary.router)
 app.include_router(promotions.router)
 app.include_router(notifications.router)
+app.include_router(onboarding.router)
+app.include_router(training.router)
+app.include_router(profile.router)
 
 
 

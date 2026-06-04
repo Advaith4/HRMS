@@ -317,6 +317,88 @@ class HRNotification(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+class CandidateProfile(SQLModel, table=True):
+    __tablename__ = "candidate_profiles"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="users.id", index=True, unique=True)
+    full_name: str = Field(default="", max_length=200)
+    phone: str = Field(default="", max_length=30)
+    date_of_birth: Optional[date] = None
+    gender: str = Field(default="", max_length=40)
+    location: str = Field(default="", max_length=100)
+    address: str = Field(default="", max_length=500)
+    linkedin_url: str = Field(default="", max_length=500)
+    portfolio_url: str = Field(default="", max_length=500)
+    current_status: str = Field(default="", max_length=60)
+    current_company: str = Field(default="", max_length=200)
+    current_role: str = Field(default="", max_length=200)
+    years_of_experience: Optional[float] = None
+    expected_salary: str = Field(default="", max_length=100)
+    notice_period: str = Field(default="", max_length=100)
+    degree: str = Field(default="", max_length=200)
+    institution: str = Field(default="", max_length=200)
+    graduation_year: str = Field(default="", max_length=20)
+    cgpa_percentage: str = Field(default="", max_length=40)
+    technical_skills: str = Field(default="", max_length=1000)
+    soft_skills: str = Field(default="", max_length=1000)
+    certifications: str = Field(default="", max_length=1000)
+    is_complete: bool = Field(default=False)
+    completion_percent: int = Field(default=0)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class EmployeeProfile(SQLModel, table=True):
+    __tablename__ = "employee_profiles"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="users.id", index=True, unique=True)
+    employee_id: Optional[int] = Field(default=None, foreign_key="employees.id", index=True)
+    phone: str = Field(default="", max_length=30)
+    address: str = Field(default="", max_length=500)
+    emergency_contact: str = Field(default="", max_length=200)
+    blood_group: str = Field(default="", max_length=20)
+    marital_status: str = Field(default="", max_length=40)
+    previous_experience: str = Field(default="", max_length=1000)
+    skills: str = Field(default="", max_length=1000)
+    certifications: str = Field(default="", max_length=1000)
+    career_interests: str = Field(default="", max_length=1000)
+    career_goals: str = Field(default="", max_length=1000)
+    is_complete: bool = Field(default=False)
+    completion_percent: int = Field(default=0)
+    verification_status: str = Field(default="Pending Review", max_length=40)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class CandidateDocument(SQLModel, table=True):
+    __tablename__ = "candidate_documents"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="users.id", index=True)
+    document_type: str = Field(max_length=80)
+    original_filename: str = Field(max_length=255)
+    stored_path: str = Field(max_length=700)
+    verification_status: str = Field(default="Pending Review", max_length=40)
+    rejection_comment: str = Field(default="", max_length=1000)
+    uploaded_at: datetime = Field(default_factory=datetime.utcnow)
+    reviewed_at: Optional[datetime] = None
+    reviewed_by: Optional[int] = Field(default=None, foreign_key="users.id")
+
+
+class EmployeeDocument(SQLModel, table=True):
+    __tablename__ = "employee_documents"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="users.id", index=True)
+    employee_id: Optional[int] = Field(default=None, foreign_key="employees.id", index=True)
+    document_type: str = Field(max_length=80)
+    original_filename: str = Field(max_length=255)
+    stored_path: str = Field(max_length=700)
+    verification_status: str = Field(default="Pending Review", max_length=40)
+    rejection_comment: str = Field(default="", max_length=1000)
+    uploaded_at: datetime = Field(default_factory=datetime.utcnow)
+    reviewed_at: Optional[datetime] = None
+    reviewed_by: Optional[int] = Field(default=None, foreign_key="users.id")
+
+
 class OnboardingTemplate(SQLModel, table=True):
     """HR-created onboarding template with a set of tasks."""
     __tablename__ = "onboarding_templates"

@@ -6,6 +6,7 @@ import { SkillGapRadial } from '../components/charts/SkillGapRadial'
 import { StatusPill } from '../components/ui/StatusPill'
 import { SkeletonCard } from '../components/ui/SkeletonCard'
 import { EmptyState } from '../components/ui/EmptyState'
+import { ProfileSetupWizard } from '../components/ProfileSetupWizard'
 import {
   getEmployeeDashboard,
   checkIn,
@@ -17,7 +18,12 @@ import {
   updateEmployeeProfile,
   listTickets,
   createTicket,
-  getLifecycle
+  getLifecycle,
+  getMyOnboarding,
+  getMyTrainingAssignments,
+  getMyProfileCompletion,
+  updateOnboardingTaskStatus,
+  updateTrainingProgress
 } from '../api'
 import { CreateTicketModal } from '../components/modals/CreateTicketModal'
 import toast from 'react-hot-toast'
@@ -32,6 +38,7 @@ export const EmployeeDashboard = () => {
   const [attendance, setAttendance] = useState(null)
   const [leaveSummary, setLeaveSummary] = useState({ pending: 0, approved: 0, rejected: 0, recent: [] })
   const [skillGap, setSkillGap] = useState(null)
+  const [profileComplete, setProfileComplete] = useState(null)
 
   // Tabs navigation and operation states
   const [activeTab, setActiveTab] = useState('overview')
@@ -53,6 +60,12 @@ export const EmployeeDashboard = () => {
   // Lifecycle timeline state
   const [lifecycle, setLifecycle] = useState([])
   const [loadingLifecycle, setLoadingLifecycle] = useState(false)
+
+  // Talent management state
+  const [onboardingPlans, setOnboardingPlans] = useState([])
+  const [loadingOnboarding, setLoadingOnboarding] = useState(false)
+  const [trainingAssignments, setTrainingAssignments] = useState([])
+  const [loadingTraining, setLoadingTraining] = useState(false)
 
   const fetchProfile = async () => {
     if (!employee) return
@@ -99,6 +112,32 @@ export const EmployeeDashboard = () => {
     }
   }
 
+  const fetchOnboarding = async () => {
+    setLoadingOnboarding(true)
+    try {
+      const data = await getMyOnboarding()
+      setOnboardingPlans(data || [])
+    } catch (err) {
+      console.error(err)
+      toast.error('Failed to load onboarding plan')
+    } finally {
+      setLoadingOnboarding(false)
+    }
+  }
+
+  const fetchTraining = async () => {
+    setLoadingTraining(true)
+    try {
+      const data = await getMyTrainingAssignments()
+      setTrainingAssignments(data || [])
+    } catch (err) {
+      console.error(err)
+      toast.error('Failed to load training assignments')
+    } finally {
+      setLoadingTraining(false)
+    }
+  }
+
   useEffect(() => {
     if (employee) {
       if (activeTab === 'profile') {
@@ -107,6 +146,10 @@ export const EmployeeDashboard = () => {
         fetchTickets()
       } else if (activeTab === 'timeline') {
         fetchLifecycle()
+      } else if (activeTab === 'onboarding') {
+        fetchOnboarding()
+      } else if (activeTab === 'training') {
+        fetchTraining()
       }
     }
   }, [activeTab, employee])
@@ -141,6 +184,28 @@ export const EmployeeDashboard = () => {
     }
   }
 
+  const handleOnboardingTaskStatus = async (planId, taskId, status) => {
+    try {
+      await updateOnboardingTaskStatus(planId, taskId, { status })
+      toast.success(status === 'Completed' ? 'Onboarding task completed' : 'Task marked in progress')
+      fetchOnboarding()
+    } catch (err) {
+      console.error(err)
+      toast.error(err.response?.data?.detail || 'Failed to update onboarding task')
+    }
+  }
+
+  const handleTrainingProgress = async (assignmentId, progressPercent) => {
+    try {
+      await updateTrainingProgress(assignmentId, { progress_percent: progressPercent })
+      toast.success(progressPercent >= 100 ? 'Training completed' : 'Training progress updated')
+      fetchTraining()
+    } catch (err) {
+      console.error(err)
+      toast.error(err.response?.data?.detail || 'Failed to update training progress')
+    }
+  }
+
   // Leave Form States
   const [leaveType, setLeaveType] = useState('Annual')
   const [startDate, setStartDate] = useState('')
@@ -171,11 +236,15 @@ export const EmployeeDashboard = () => {
   // Fetch Dashboard details
   const fetchDashboardData = async () => {
     try {
-      const data = await getEmployeeDashboard()
+      const [data, profileData] = await Promise.all([
+        getEmployeeDashboard(),
+        getMyProfileCompletion(),
+      ])
       setEmployee(data.employee)
       setAttendance(data.attendance_status)
       setLeaveSummary(data.leave_summary)
       setSkillGap(data.skill_gap)
+      setProfileComplete(!!profileData.profile?.is_complete)
     } catch (err) {
       console.error('Employee dashboard fetch failed:', err)
       const msg = err?.response?.data?.detail || err?.message || 'Unknown error'
@@ -458,6 +527,10 @@ export const EmployeeDashboard = () => {
     return <SkeletonCard mode="card" count={2} />
   }
 
+  if (profileComplete === false) {
+    return <ProfileSetupWizard role="employee" onComplete={() => setProfileComplete(true)} />
+  }
+
   // Calculate skill gap progress metric
   const currentSkillsList = employee?.skills ? employee.skills.split(',').map(s => s.trim()) : []
   const missingSkillsList = skillGap?.missing_skills || []
@@ -502,7 +575,9 @@ export const EmployeeDashboard = () => {
           { id: 'overview', label: 'Overview' },
           { id: 'profile', label: 'My Profile' },
           { id: 'tickets', label: 'My Tickets' },
-          { id: 'timeline', label: 'Career Timeline' }
+          { id: 'timeline', label: 'Career Timeline' },
+          { id: 'onboarding', label: 'Onboarding' },
+          { id: 'training', label: 'Training' }
         ].map((tab) => (
           <button
             key={tab.id}
@@ -1081,6 +1156,133 @@ export const EmployeeDashboard = () => {
                       <p className="text-xs text-txt-secondary max-w-xl leading-relaxed">
                         {event.description}
                       </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'onboarding' && (
+        <div className="space-y-6">
+          <div className="rounded-xl border border-border-custom bg-bg-surface p-6">
+            <div className="border-b border-border-custom pb-4 mb-6">
+              <h4 className="text-sm font-semibold">My Onboarding</h4>
+              <p className="text-[11px] text-txt-secondary leading-relaxed mt-1">
+                Employee Onboarding helps new hires complete required documentation, company formalities, policy acknowledgements, and role preparation before becoming fully operational.
+              </p>
+            </div>
+
+            {loadingOnboarding ? (
+              <div className="text-xs text-txt-tertiary py-8">Loading onboarding...</div>
+            ) : onboardingPlans.length === 0 ? (
+              <EmptyState title="No onboarding plan assigned" description="Your onboarding checklist will appear here once HR assigns it." />
+            ) : (
+              <div className="space-y-5">
+                {onboardingPlans.map((plan) => (
+                  <div key={plan.id} className="border border-border-custom rounded-xl bg-bg-page p-4 space-y-4">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                      <div>
+                        <h5 className="text-sm font-semibold">{plan.template_name}</h5>
+                        <p className="text-[11px] text-txt-secondary">
+                          {plan.completed_count || 0} of {(plan.tasks || []).length} tasks complete
+                          {plan.due_date ? ` · Due ${new Date(plan.due_date).toLocaleDateString()}` : ''}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-32 h-2 bg-bg-surface rounded-full overflow-hidden border border-border-custom">
+                          <div className="h-full bg-brand-indigo" style={{ width: `${plan.progress_percent || 0}%` }} />
+                        </div>
+                        <span className="text-xs font-bold text-brand-indigo">{plan.progress_percent || 0}%</span>
+                        <StatusPill status={plan.status} />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      {(plan.tasks || []).map((task) => (
+                        <div key={task.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-border-custom bg-bg-surface px-3 py-3">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-semibold">{task.title}</span>
+                              {task.required && <span className="text-[9px] uppercase font-bold text-brand-indigo bg-brand-indigo-muted px-1.5 py-0.5 rounded">Required</span>}
+                            </div>
+                            <p className="text-[11px] text-txt-secondary mt-1">{task.description || 'No details provided'}</p>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <StatusPill status={task.status} />
+                            {task.status !== 'Completed' && (
+                              <>
+                                <button onClick={() => handleOnboardingTaskStatus(plan.id, task.id, 'In Progress')} className="px-2.5 py-1 border border-border-custom text-[11px] rounded-lg">
+                                  Start
+                                </button>
+                                <button onClick={() => handleOnboardingTaskStatus(plan.id, task.id, 'Completed')} className="px-2.5 py-1 bg-success-primary text-white text-[11px] rounded-lg">
+                                  Complete
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'training' && (
+        <div className="space-y-6">
+          <div className="rounded-xl border border-border-custom bg-bg-surface p-6">
+            <div className="border-b border-border-custom pb-4 mb-6">
+              <h4 className="text-sm font-semibold">My Training</h4>
+              <p className="text-[11px] text-txt-secondary">Track training programs assigned by HR</p>
+            </div>
+
+            {loadingTraining ? (
+              <div className="text-xs text-txt-tertiary py-8">Loading training...</div>
+            ) : trainingAssignments.length === 0 ? (
+              <EmptyState title="No training assigned" description="Assigned programs will appear here." />
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {trainingAssignments.map((assignment) => (
+                  <div key={assignment.id} className="border border-border-custom rounded-xl bg-bg-page p-4 space-y-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h5 className="text-sm font-semibold">{assignment.program_title}</h5>
+                        <p className="text-[11px] text-txt-secondary mt-1">
+                          {assignment.category} · {assignment.duration_hours}h · {assignment.difficulty}
+                        </p>
+                      </div>
+                      <StatusPill status={assignment.status} />
+                    </div>
+                    <p className="text-xs text-txt-secondary leading-relaxed">{assignment.description || 'No description provided'}</p>
+                    <div className="text-[11px] text-txt-secondary">
+                      <span className="font-semibold text-txt-primary">Skills:</span> {assignment.skills_covered || 'General'}
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between text-[11px] mb-1">
+                        <span className="text-txt-secondary">Progress</span>
+                        <span className="font-bold text-brand-indigo">{assignment.progress_percent || 0}%</span>
+                      </div>
+                      <div className="h-2 bg-bg-surface rounded-full overflow-hidden border border-border-custom">
+                        <div className="h-full bg-brand-indigo" style={{ width: `${assignment.progress_percent || 0}%` }} />
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap justify-end gap-2 pt-2 border-t border-border-custom">
+                      {[25, 50, 75, 100].map((value) => (
+                        <button
+                          key={value}
+                          onClick={() => handleTrainingProgress(assignment.id, value)}
+                          disabled={(assignment.progress_percent || 0) >= value}
+                          className="px-2.5 py-1 border border-border-custom text-[11px] rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          {value === 100 ? 'Complete' : `${value}%`}
+                        </button>
+                      ))}
                     </div>
                   </div>
                 ))}
