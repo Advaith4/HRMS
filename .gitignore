@@ -10,4 +10,3 @@ scratch*.py
 .vercel
 .agents/
 .opencode/
-graphify-out/

@@ -1,0 +1,2 @@
+/mnt/d/GitHub/HRMS/script_errors.txt
+/mnt/d/GitHub/HRMS/static/index.html

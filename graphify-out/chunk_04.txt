@@ -1,0 +1,11 @@
+/mnt/d/GitHub/HRMS/tests/test_resume_lab.py
+/mnt/d/GitHub/HRMS/utils/job_search.py
+/mnt/d/GitHub/HRMS/utils/resume_parser.py
+/mnt/d/GitHub/HRMS/utils/skill_scorer.py
+/mnt/d/GitHub/HRMS/vercel.json
+/mnt/d/GitHub/HRMS/AGENTS.md
+/mnt/d/GitHub/HRMS/README.md
+/mnt/d/GitHub/HRMS/docs/deployment.md
+/mnt/d/GitHub/HRMS/docs/migration-report.md
+/mnt/d/GitHub/HRMS/render.yaml
+/mnt/d/GitHub/HRMS/requirements.txt

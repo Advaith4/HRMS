@@ -1,0 +1,1 @@
+{"nodes": [{"id": "src_api_routes_jobs_py_candidates", "label": "GET /api/candidates", "file_type": "code", "source_file": "src/api/routes/candidates.py", "source_location": 13, "source_url": null, "captured_at": null, "author": null, "contributor": null}], "edges": [], "hyperedges": []}
