@@ -316,3 +316,89 @@ class HRNotification(SQLModel, table=True):
     is_read: bool = Field(default=False)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
+
+class OnboardingTemplate(SQLModel, table=True):
+    """HR-created onboarding template with a set of tasks."""
+    __tablename__ = "onboarding_templates"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(max_length=200)
+    description: str = Field(default="", max_length=1000)
+    is_active: bool = Field(default=True)
+    created_by: int = Field(foreign_key="users.id")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class OnboardingTask(SQLModel, table=True):
+    """A task within an onboarding template."""
+    __tablename__ = "onboarding_tasks"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    template_id: int = Field(foreign_key="onboarding_templates.id", index=True)
+    title: str = Field(max_length=200)
+    description: str = Field(default="", max_length=1000)
+    order_index: int = Field(default=0)
+    is_required: bool = Field(default=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class EmployeeOnboarding(SQLModel, table=True):
+    """An onboarding plan instance assigned to one employee."""
+    __tablename__ = "employee_onboarding"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    employee_id: int = Field(foreign_key="employees.id", index=True)
+    template_id: int = Field(foreign_key="onboarding_templates.id")
+    assigned_by: int = Field(foreign_key="users.id")
+    status: str = Field(default="Active", max_length=30)  # Active, Completed, Overdue
+    due_date: Optional[date] = None
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class EmployeeOnboardingTask(SQLModel, table=True):
+    """Per-employee clone of a template task with completion state."""
+    __tablename__ = "employee_onboarding_tasks"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    employee_onboarding_id: int = Field(foreign_key="employee_onboarding.id", index=True)
+    task_title: str = Field(max_length=200)
+    task_description: str = Field(default="", max_length=1000)
+    order_index: int = Field(default=0)
+    is_required: bool = Field(default=True)
+    status: str = Field(default="Pending", max_length=30)  # Pending, In Progress, Completed
+    completed_at: Optional[datetime] = None
+    notes: str = Field(default="", max_length=500)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class TrainingProgram(SQLModel, table=True):
+    """An HR-created training program that can be assigned to employees."""
+    __tablename__ = "training_programs"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    title: str = Field(max_length=200)
+    description: str = Field(default="", max_length=2000)
+    category: str = Field(default="General", max_length=100)
+    skills_covered: str = Field(default="", max_length=500)  # comma-separated
+    duration_hours: int = Field(default=1)
+    difficulty: str = Field(default="Beginner", max_length=30)  # Beginner, Intermediate, Advanced
+    status: str = Field(default="Draft", max_length=20)  # Draft, Active, Archived
+    created_by: int = Field(foreign_key="users.id")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class TrainingAssignment(SQLModel, table=True):
+    """Assignment of a training program to one employee."""
+    __tablename__ = "training_assignments"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    program_id: int = Field(foreign_key="training_programs.id", index=True)
+    employee_id: int = Field(foreign_key="employees.id", index=True)
+    assigned_by: int = Field(foreign_key="users.id")
+    status: str = Field(default="Not Started", max_length=30)  # Not Started, In Progress, Completed
+    progress_percent: int = Field(default=0)
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    due_date: Optional[date] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
