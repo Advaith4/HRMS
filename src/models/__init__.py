@@ -388,6 +388,28 @@ class TrainingProgram(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+class CandidateCredibilityReport(SQLModel, table=True):
+    """AI analysis comparing resume claims against interview evidence."""
+    __tablename__ = "candidate_credibility_reports"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    candidate_id: int = Field(foreign_key="users.id", index=True)
+    session_id: int = Field(foreign_key="interview_sessions.id", index=True, unique=True)
+    credibility_score: int = Field(default=0)
+    supported_claims: str = Field(default="[]")
+    weak_claims: str = Field(default="[]")
+    missing_evidence: str = Field(default="[]")
+    followup_topics: str = Field(default="[]")
+    resume_score: int = Field(default=0)
+    interview_avg_score: Optional[float] = None
+    recommendation: str = Field(default="Insufficient Evidence", max_length=40)
+    status: str = Field(default="pending", max_length=30, index=True)
+    error_message: Optional[str] = None
+    source: str = Field(default="fallback", max_length=40)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 class TrainingAssignment(SQLModel, table=True):
     """Assignment of a training program to one employee."""
     __tablename__ = "training_assignments"

@@ -1,0 +1,53 @@
+You are a graphify extraction subagent. Read ALL files listed below and extract a knowledge graph fragment.
+Output ONLY valid JSON matching the schema. No explanation, no markdown fences.
+
+Chunk 3 of 8:
+
+Files:
+  /mnt/d/GitHub/HRMS/frontend/src/components/drawers/AnalysisDrawer.jsx
+  /mnt/d/GitHub/HRMS/frontend/src/components/drawers/EmployeeProfileDrawer.jsx
+  /mnt/d/GitHub/HRMS/frontend/src/components/drawers/JobDetailDrawer.jsx
+  /mnt/d/GitHub/HRMS/frontend/src/components/drawers/NotificationDrawer.jsx
+  /mnt/d/GitHub/HRMS/frontend/src/components/interview/CandidateCredibilityCard.jsx
+  /mnt/d/GitHub/HRMS/frontend/src/components/interview/InterviewStatusCard.jsx
+  /mnt/d/GitHub/HRMS/frontend/src/components/interview/InterviewSummary.jsx
+  /mnt/d/GitHub/HRMS/frontend/src/components/interview/InterviewWorkspace.jsx
+  /mnt/d/GitHub/HRMS/frontend/src/components/layout/Layout.jsx
+  /mnt/d/GitHub/HRMS/frontend/src/components/layout/Sidebar.jsx
+  /mnt/d/GitHub/HRMS/frontend/src/components/layout/TopBar.jsx
+  /mnt/d/GitHub/HRMS/frontend/src/components/modals/AddPromotionModal.jsx
+  /mnt/d/GitHub/HRMS/frontend/src/components/modals/AddSalaryModal.jsx
+  /mnt/d/GitHub/HRMS/frontend/src/components/modals/CreateTicketModal.jsx
+  /mnt/d/GitHub/HRMS/frontend/src/components/modals/DepartmentModal.jsx
+  /mnt/d/GitHub/HRMS/frontend/src/components/modals/DesignationModal.jsx
+  /mnt/d/GitHub/HRMS/frontend/src/components/modals/PostJobModal.jsx
+  /mnt/d/GitHub/HRMS/frontend/src/components/ui/AIScoreDonut.jsx
+  /mnt/d/GitHub/HRMS/frontend/src/components/ui/EmptyState.jsx
+  /mnt/d/GitHub/HRMS/frontend/src/components/ui/MetricCard.jsx
+  /mnt/d/GitHub/HRMS/frontend/src/components/ui/SkeletonCard.jsx
+  /mnt/d/GitHub/HRMS/frontend/src/components/ui/StatusPill.jsx
+
+Rules:
+- EXTRACTED: relationship explicit in source (import, call, citation, see section references)
+- INFERRED: reasonable inference (shared data structure, implied dependency)
+- AMBIGUOUS: uncertain - flag for review
+- Code files: focus on semantic edges AST cannot find: call relationships, shared data, architecture patterns. Do NOT extract imports (AST already has those).
+- Doc files: extract named concepts, entities, citations
+- When adding 'calls' edges: source = caller, target = callee
+
+
+confidence_score REQUIRED on every edge:
+  EXTRACTED = 1.0 | INFERRED = 0.6-0.9 | AMBIGUOUS = 0.1-0.3
+
+Output exactly this JSON (no other text):
+{
+  "nodes": [
+    {"id": "snake_case_name", "label": "Human Readable", "file_type": "code|document|image", "source_file": "relative/path", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null}
+  ],
+  "edges": [
+    {"source": "node_id", "target": "node_id", "relation": "calls|references|cites|conceptually_related_to|shares_data_with", "confidence": "EXTRACTED|INFERRED|AMBIGUOUS", "confidence_score": 0.8, "source_file": "relative/path", "source_location": null, "weight": 1.0}
+  ],
+  "hyperedges": [],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

@@ -4,11 +4,24 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+import litellm
+litellm.drop_params = True
+
+_completion_original = litellm.completion
+
+def _groq_compat_completion(*args, **kwargs):
+    if kwargs.get("messages"):
+        for msg in kwargs["messages"]:
+            msg.pop("cache_breakpoint", None)
+    return _completion_original(*args, **kwargs)
+
+litellm.completion = _groq_compat_completion
+
 def create_resume_optimizer():
     llm = LLM(
         model="groq/llama-3.3-70b-versatile",
         temperature=0.15,
-        api_key=os.getenv("GROQ_API_KEY")
+        api_key=os.getenv("GROQ_API_KEY"),
     )
 
     return Agent(
@@ -29,7 +42,7 @@ def create_resume_rewriter():
     llm = LLM(
         model="groq/llama-3.3-70b-versatile",
         temperature=0.15,
-        api_key=os.getenv("GROQ_API_KEY")
+        api_key=os.getenv("GROQ_API_KEY"),
     )
     return Agent(
         role="Resume Rewriter",

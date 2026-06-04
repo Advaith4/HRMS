@@ -51,6 +51,7 @@ def create_db_and_tables() -> None:
     _ensure_interview_context_columns()
     _ensure_career_coach_memory_table()
     _ensure_phase1_employee_columns()
+    _ensure_candidate_credibility_table()
 
 
 def _ensure_user_role_column() -> None:
@@ -314,6 +315,32 @@ def _ensure_postgres_phase1_employee_columns() -> None:
         for statement in statements:
             session.exec(text(statement))
         session.commit()
+
+
+def _ensure_candidate_credibility_table() -> None:
+    try:
+        if _db_url.startswith("sqlite"):
+            with Session(engine) as session:
+                tables = {row[1] for row in session.exec(text("SELECT * FROM sqlite_master WHERE type='table'")).all()}
+                if "candidate_credibility_reports" in tables:
+                    existing = {row[1] for row in session.exec(text("PRAGMA table_info(candidate_credibility_reports)")).all()}
+                    for col in ("followup_topics", "resume_score", "interview_avg_score", "recommendation"):
+                        if col not in existing:
+                            session.exec(text(f"ALTER TABLE candidate_credibility_reports ADD COLUMN {col} TEXT"))
+                    session.commit()
+        else:
+            statements = [
+                "ALTER TABLE candidate_credibility_reports ADD COLUMN IF NOT EXISTS followup_topics TEXT DEFAULT '[]'",
+                "ALTER TABLE candidate_credibility_reports ADD COLUMN IF NOT EXISTS resume_score INTEGER DEFAULT 0",
+                "ALTER TABLE candidate_credibility_reports ADD COLUMN IF NOT EXISTS interview_avg_score DOUBLE PRECISION",
+                "ALTER TABLE candidate_credibility_reports ADD COLUMN IF NOT EXISTS recommendation VARCHAR(40) DEFAULT 'Insufficient Evidence'",
+            ]
+            with Session(engine) as session:
+                for stmt in statements:
+                    session.exec(text(stmt))
+                session.commit()
+    except Exception as exc:
+        logger.warning("Candidate credibility table migration skipped: %s", exc)
 
 
 def get_session():

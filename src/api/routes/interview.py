@@ -8,15 +8,16 @@ GET  /api/interview/sessions/{id} – get full message history of a session
 import uuid
 import json
 import logging
+import os
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
 from src.database.connection import get_session
-from src.models import CareerCoachMemory, InterviewSession, Resume, User
+from src.models import CareerCoachMemory, InterviewSession, Resume, User, CandidateCredibilityReport
 from src.api.dependencies import get_current_user, get_current_user_optional
 from src.resume_lab import analyze_resume, dumps_json, load_json_field, parse_resume
 
@@ -1360,3 +1361,459 @@ def delete_session(
     db.delete(rec)
     db.commit()
     return {"message": "Session deleted"}
+
+
+@router.post("/{session_id}/credibility")
+def get_credibility_report(
+    session_id: int,
+    force: bool = False,
+    db: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    """Run credibility analysis comparing resume claims against interview evidence."""
+    from src.services.interview_consistency import analyze_credibility, credibility_payload
+
+    try:
+        report = analyze_credibility(db, session_id, force=force)
+        return credibility_payload(report)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+# ── Intelligence Dashboard Endpoints ──────────────────────────────────────────
+
+
+def _compute_hiring_score(resume_score: float, interview_score: float, credibility_score: float) -> float:
+    """Composite hiring score: 35% resume + 40% interview + 25% credibility."""
+    return round(0.35 * resume_score + 0.40 * interview_score + 0.25 * credibility_score, 1)
+
+
+def _recommendation_label(score: float) -> str:
+    if score >= 92:
+        return "Strongly Recommended"
+    if score >= 80:
+        return "Recommended"
+    if score >= 65:
+        return "Needs Review"
+    return "Not Recommended"
+
+
+@router.get("/intelligence/leaderboard")
+def intelligence_leaderboard(
+    db: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    """Ranked candidate leaderboard combining resume, interview, and credibility scores."""
+    if current_user.role not in ("hr", "manager", "admin"):
+        raise HTTPException(status_code=403, detail="HR/manager access required")
+
+    from src.models import CandidateApplication, ApplicationAIAnalysis, CandidateApplication as CA
+
+    sessions = db.exec(
+        select(InterviewSession).where(InterviewSession.status == "complete").order_by(InterviewSession.created_at.desc())
+    ).all()
+
+    results = []
+    seen_candidates = set()
+
+    for session in sessions:
+        uid = session.user_id
+        if uid in seen_candidates:
+            continue
+        seen_candidates.add(uid)
+
+        user = db.get(User, uid)
+        if not user:
+            continue
+
+        app = db.exec(
+            select(CandidateApplication).where(CandidateApplication.candidate_user_id == uid).order_by(CandidateApplication.application_date.desc())
+        ).first()
+        if not app:
+            continue
+
+        analysis = db.exec(
+            select(ApplicationAIAnalysis).where(ApplicationAIAnalysis.application_id == app.id)
+        ).first()
+
+        credibility_report = db.exec(
+            select(CandidateCredibilityReport).where(CandidateCredibilityReport.candidate_id == uid)
+        ).first()
+
+        interview_avg = session.avg_score or 0
+        resume_score = analysis.fit_score if analysis else 0
+        credibility_score = credibility_report.credibility_score if credibility_report else 0
+        hiring_score = _compute_hiring_score(resume_score, interview_avg * 10, credibility_score)
+
+        strengths = json.loads(analysis.strengths) if analysis and analysis.strengths else []
+        weaknesses = json.loads(analysis.weaknesses) if analysis and analysis.weaknesses else []
+
+        results.append({
+            "candidate_id": uid,
+            "candidate_name": user.username,
+            "application_id": app.id,
+            "job_id": app.job_id,
+            "resume_score": resume_score,
+            "interview_score": round(interview_avg * 10, 1),
+            "credibility_score": credibility_score,
+            "hiring_score": hiring_score,
+            "recommendation": _recommendation_label(hiring_score),
+            "skill_match": round(resume_score, 1),
+            "strengths": strengths,
+            "weaknesses": weaknesses,
+            "status": app.status,
+            "session_id": session.id,
+            "last_interview": session.created_at.isoformat() if session.created_at else None,
+        })
+
+    results.sort(key=lambda r: r["hiring_score"], reverse=True)
+    return {"leaderboard": results, "total": len(results)}
+
+
+@router.get("/intelligence/report/{candidate_id}")
+def intelligence_candidate_report(
+    candidate_id: int,
+    db: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    """Full intelligence report for a single candidate."""
+    if current_user.role not in ("hr", "manager", "admin"):
+        raise HTTPException(status_code=403, detail="HR/manager access required")
+
+    from src.models import CandidateApplication, ApplicationAIAnalysis
+
+    candidate = db.get(User, candidate_id)
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+
+    app = db.exec(
+        select(CandidateApplication).where(CandidateApplication.candidate_user_id == candidate_id).order_by(CandidateApplication.application_date.desc())
+    ).first()
+
+    analysis = None
+    if app:
+        analysis = db.exec(select(ApplicationAIAnalysis).where(ApplicationAIAnalysis.application_id == app.id)).first()
+
+    sessions = db.exec(
+        select(InterviewSession).where(InterviewSession.user_id == candidate_id).order_by(InterviewSession.created_at.desc())
+    ).all()
+
+    credibility_report = db.exec(
+        select(CandidateCredibilityReport).where(CandidateCredibilityReport.candidate_id == candidate_id).order_by(CandidateCredibilityReport.created_at.desc())
+    ).first()
+
+    # Build timeline from interview messages
+    timeline = []
+    for s in sessions:
+        msgs = json.loads(s.messages) if s.messages else []
+        for m in msgs:
+            if m.get("role") == "assistant" and m.get("evaluation"):
+                ev = m["evaluation"]
+                timeline.append({
+                    "question": m.get("content", "")[:200],
+                    "score": ev.get("score", 0),
+                    "difficulty": ev.get("difficulty", s.difficulty),
+                    "feedback": ev.get("feedback", ""),
+                    "timestamp": m.get("timestamp", s.created_at.isoformat() if s.created_at else ""),
+                })
+
+    interview_avg = 0
+    completed = [s for s in sessions if s.status == "complete"]
+    if completed:
+        interview_avg = sum(s.avg_score or 0 for s in completed) / len(completed)
+
+    resume_score = analysis.fit_score if analysis else 0
+    credibility_score = credibility_report.credibility_score if credibility_report else 0
+    hiring_score = _compute_hiring_score(resume_score, interview_avg * 10, credibility_score)
+
+    strengths = json.loads(analysis.strengths) if analysis and analysis.strengths else []
+    weaknesses = json.loads(analysis.weaknesses) if analysis and analysis.weaknesses else []
+    observations = json.loads(analysis.observations) if analysis and analysis.observations else []
+    missing_skills = json.loads(analysis.missing_skills) if analysis and analysis.missing_skills else []
+
+    supported_claims = json.loads(credibility_report.supported_claims) if credibility_report and credibility_report.supported_claims else []
+    weak_claims = json.loads(credibility_report.weak_claims) if credibility_report and credibility_report.weak_claims else []
+    missing_evidence = json.loads(credibility_report.missing_evidence) if credibility_report and credibility_report.missing_evidence else []
+    followup_topics = json.loads(credibility_report.followup_topics) if credibility_report and credibility_report.followup_topics else []
+
+    return {
+        "candidate": {"id": candidate.id, "username": candidate.username, "role": candidate.role, "target_role": candidate.target_role},
+        "application": {"id": app.id, "job_id": app.job_id, "status": app.status, "resume_text": (app.resume_text[:500] + "...") if app and len(app.resume_text) > 500 else (app.resume_text if app else "")} if app else None,
+        "analysis": {
+            "fit_score": resume_score,
+            "recommendation": analysis.recommendation if analysis else "N/A",
+            "summary": analysis.summary if analysis else "",
+            "strengths": strengths,
+            "weaknesses": weaknesses,
+            "observations": observations,
+            "missing_skills": missing_skills,
+        } if analysis else None,
+        "credibility": {
+            "credibility_score": credibility_score,
+            "recommendation": credibility_report.recommendation if credibility_report else "N/A",
+            "supported_claims": supported_claims,
+            "weak_claims": weak_claims,
+            "missing_evidence": missing_evidence,
+            "followup_topics": followup_topics,
+            "source": credibility_report.source if credibility_report else None,
+        } if credibility_report else None,
+        "interview": {
+            "avg_score": round(interview_avg * 10, 1),
+            "sessions_count": len(sessions),
+            "completed_count": len(completed),
+            "timeline": timeline,
+            "sessions": [
+                {"id": s.id, "difficulty": s.difficulty, "training_mode": s.training_mode, "avg_score": s.avg_score, "status": s.status, "created_at": s.created_at.isoformat() if s.created_at else None}
+                for s in sessions
+            ],
+        },
+        "hiring": {
+            "hiring_score": hiring_score,
+            "recommendation": _recommendation_label(hiring_score),
+            "resume_weight": round(0.35 * resume_score, 1),
+            "interview_weight": round(0.40 * interview_avg * 10, 1),
+            "credibility_weight": round(0.25 * credibility_score, 1),
+        },
+    }
+
+
+@router.post("/intelligence/compare")
+def intelligence_compare(
+    candidate_ids: list[int],
+    db: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    """Compare two or more candidates side-by-side."""
+    if current_user.role not in ("hr", "manager", "admin"):
+        raise HTTPException(status_code=403, detail="HR/manager access required")
+
+    reports = []
+    for cid in candidate_ids:
+        try:
+            # Reuse the report logic inline
+            candidate = db.get(User, cid)
+            if not candidate:
+                continue
+
+            from src.models import CandidateApplication, ApplicationAIAnalysis
+            app = db.exec(
+                select(CandidateApplication).where(CandidateApplication.candidate_user_id == cid).order_by(CandidateApplication.application_date.desc())
+            ).first()
+            analysis = db.exec(select(ApplicationAIAnalysis).where(ApplicationAIAnalysis.application_id == app.id)).first() if app else None
+
+            sessions = db.exec(select(InterviewSession).where(InterviewSession.user_id == cid).order_by(InterviewSession.created_at.desc())).all()
+            cred = db.exec(select(CandidateCredibilityReport).where(CandidateCredibilityReport.candidate_id == cid).order_by(CandidateCredibilityReport.created_at.desc())).first()
+
+            interview_avg = 0
+            completed = [s for s in sessions if s.status == "complete"]
+            if completed:
+                interview_avg = sum(s.avg_score or 0 for s in completed) / len(completed)
+
+            resume_score = analysis.fit_score if analysis else 0
+            credibility_score = cred.credibility_score if cred else 0
+            hiring_score = _compute_hiring_score(resume_score, interview_avg * 10, credibility_score)
+
+            reports.append({
+                "candidate_id": cid,
+                "candidate_name": candidate.username,
+                "target_role": candidate.target_role,
+                "resume_score": resume_score,
+                "interview_score": round(interview_avg * 10, 1),
+                "credibility_score": credibility_score,
+                "hiring_score": hiring_score,
+                "recommendation": _recommendation_label(hiring_score),
+                "strengths": json.loads(analysis.strengths) if analysis and analysis.strengths else [],
+                "weaknesses": json.loads(analysis.weaknesses) if analysis and analysis.weaknesses else [],
+                "supported_claims": json.loads(cred.supported_claims) if cred and cred.supported_claims else [],
+                "weak_claims": json.loads(cred.weak_claims) if cred and cred.weak_claims else [],
+                "followup_topics": json.loads(cred.followup_topics) if cred and cred.followup_topics else [],
+                "session_count": len(sessions),
+            })
+        except Exception as e:
+            reports.append({"candidate_id": cid, "error": str(e)})
+
+    return {"comparison": reports}
+
+
+@router.post("/intelligence/{session_id}/advance")
+def intelligence_advance_candidate(
+    session_id: int,
+    db: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    """Advance a candidate to the next stage (HR only)."""
+    if current_user.role not in ("hr", "admin"):
+        raise HTTPException(status_code=403, detail="HR admin access required")
+
+    session = db.get(InterviewSession, session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    from src.models import CandidateApplication
+    app = db.exec(
+        select(CandidateApplication).where(CandidateApplication.candidate_user_id == session.user_id).order_by(CandidateApplication.application_date.desc())
+    ).first()
+
+    if app and app.status == "Under Review":
+        app.status = "Shortlisted"
+        db.add(app)
+        db.commit()
+        return {"success": True, "message": "Candidate advanced to Shortlisted", "status": app.status}
+
+    if app and app.status == "Applied":
+        app.status = "Under Review"
+        db.add(app)
+        db.commit()
+        return {"success": True, "message": "Candidate advanced to Under Review", "status": app.status}
+
+    return {"success": True, "message": f"Candidate already at {app.status if app else 'unknown'} stage", "status": app.status if app else "unknown"}
+
+
+@router.post("/intelligence/{session_id}/reject")
+def intelligence_reject_candidate(
+    session_id: int,
+    db: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    """Reject a candidate (HR only)."""
+    if current_user.role not in ("hr", "admin"):
+        raise HTTPException(status_code=403, detail="HR admin access required")
+
+    session = db.get(InterviewSession, session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    from src.models import CandidateApplication
+    app = db.exec(
+        select(CandidateApplication).where(CandidateApplication.candidate_user_id == session.user_id).order_by(CandidateApplication.application_date.desc())
+    ).first()
+
+    if app:
+        app.status = "Rejected"
+        db.add(app)
+        db.commit()
+        return {"success": True, "message": "Candidate rejected", "status": "Rejected"}
+
+    return {"success": True, "message": "No application found, but recorded as rejected"}
+
+
+@router.get("/intelligence/top-candidates")
+def intelligence_top_candidates(
+    db: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    """Top 5/10 candidates by various metrics."""
+    if current_user.role not in ("hr", "manager", "admin"):
+        raise HTTPException(status_code=403, detail="HR/manager access required")
+
+    from src.models import CandidateApplication, ApplicationAIAnalysis
+
+    sessions = db.exec(
+        select(InterviewSession).where(InterviewSession.status == "complete").order_by(InterviewSession.created_at.desc())
+    ).all()
+
+    candidates_data = []
+    seen = set()
+    for session in sessions:
+        uid = session.user_id
+        if uid in seen:
+            continue
+        seen.add(uid)
+        user = db.get(User, uid)
+        if not user:
+            continue
+
+        app = db.exec(select(CandidateApplication).where(CandidateApplication.candidate_user_id == uid).order_by(CandidateApplication.application_date.desc())).first()
+        analysis = db.exec(select(ApplicationAIAnalysis).where(ApplicationAIAnalysis.application_id == app.id)).first() if app else None
+        cred = db.exec(select(CandidateCredibilityReport).where(CandidateCredibilityReport.candidate_id == uid)).first()
+
+        interview_avg = session.avg_score or 0
+        resume_score = analysis.fit_score if analysis else 0
+        credibility_score = cred.credibility_score if cred else 0
+        hiring_score = _compute_hiring_score(resume_score, interview_avg * 10, credibility_score)
+
+        candidates_data.append({
+            "candidate_id": uid,
+            "candidate_name": user.username,
+            "hiring_score": hiring_score,
+            "credibility_score": credibility_score,
+            "interview_score": round(interview_avg * 10, 1),
+            "resume_score": resume_score,
+            "recommendation": _recommendation_label(hiring_score),
+        })
+
+    candidates_data.sort(key=lambda r: r["hiring_score"], reverse=True)
+
+    return {
+        "top_5": candidates_data[:5],
+        "top_10": candidates_data[:10],
+        "highest_credibility": sorted(candidates_data, key=lambda r: r["credibility_score"], reverse=True)[:5],
+        "highest_interview_score": sorted(candidates_data, key=lambda r: r["interview_score"], reverse=True)[:5],
+        "highest_overall": candidates_data[:5],
+    }
+
+
+@router.get("/intelligence/followup-questions/{session_id}")
+def intelligence_followup_questions(
+    session_id: int,
+    db: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    """Generate follow-up questions from credibility analysis for the next interview round."""
+    if current_user.role not in ("hr", "manager", "admin"):
+        raise HTTPException(status_code=403, detail="HR/manager access required")
+
+    cred = db.exec(
+        select(CandidateCredibilityReport).where(CandidateCredibilityReport.session_id == session_id)
+    ).first()
+
+    if not cred:
+        return {"followup_questions": [], "message": "No credibility data available for this session"}
+
+    followup_topics = json.loads(cred.followup_topics) if cred.followup_topics else []
+    weak_claims = json.loads(cred.weak_claims) if cred.weak_claims else []
+    missing_evidence = json.loads(cred.missing_evidence) if cred.missing_evidence else []
+
+    questions = list(followup_topics)
+
+    for wc in weak_claims:
+        claim = wc.get("claim", "") if isinstance(wc, dict) else wc
+        if claim and claim not in questions:
+            questions.append(f"Can you provide more detail about your experience with {claim}?")
+
+    for me in missing_evidence:
+        claim = me.get("claim", "") if isinstance(me, dict) else me
+        if claim and claim not in questions:
+            questions.append(f"Please elaborate on: {claim}")
+
+    return {"followup_questions": questions, "source": cred.source}
+
+
+@router.post("/transcribe")
+async def transcribe_audio(audio_file: UploadFile = File(...)):
+    """Transcribe an audio file using Groq Whisper."""
+    import tempfile
+
+    from src.services.transcription_service import transcribe_audio as do_transcribe
+
+    suffix = ".webm"
+    if audio_file.filename:
+        _, ext = os.path.splitext(audio_file.filename)
+        if ext:
+            suffix = ext
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        content = await audio_file.read()
+        tmp.write(content)
+        tmp_path = tmp.name
+
+    try:
+        transcript = do_transcribe(tmp_path)
+        return {"transcript": transcript}
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass

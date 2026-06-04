@@ -4,6 +4,19 @@ from crewai import Agent, LLM
 
 load_dotenv()
 
+import litellm
+litellm.drop_params = True
+
+_completion_original = litellm.completion
+
+def _groq_compat_completion(*args, **kwargs):
+    if kwargs.get("messages"):
+        for msg in kwargs["messages"]:
+            msg.pop("cache_breakpoint", None)
+    return _completion_original(*args, **kwargs)
+
+litellm.completion = _groq_compat_completion
+
 
 def create_job_finder():
     """
@@ -16,7 +29,8 @@ def create_job_finder():
     llm = LLM(
         model="groq/llama-3.1-8b-instant",
         temperature=0.2,
-        api_key=os.getenv("GROQ_API_KEY")
+        api_key=os.getenv("GROQ_API_KEY"),
+
     )
 
     job_finder = Agent(

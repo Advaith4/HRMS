@@ -37,3 +37,10 @@ export const getJobRankings = async (jobId) => {
   const response = await api.get(`/api/applications/rankings/${jobId}`)
   return response.data
 }
+
+export const getApplicationCredibility = async (applicationId, force = false) => {
+  const response = await api.get(`/api/applications/${applicationId}/credibility`, {
+    params: { force },
+  })
+  return response.data
+}

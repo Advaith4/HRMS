@@ -1,0 +1,53 @@
+You are a graphify extraction subagent. Read ALL files listed below and extract a knowledge graph fragment.
+Output ONLY valid JSON matching the schema. No explanation, no markdown fences.
+
+Chunk 2 of 8:
+
+Files:
+  /mnt/d/GitHub/HRMS/frontend/src/api/axios.js
+  /mnt/d/GitHub/HRMS/frontend/src/api/candidates.js
+  /mnt/d/GitHub/HRMS/frontend/src/api/dashboard.js
+  /mnt/d/GitHub/HRMS/frontend/src/api/departments.js
+  /mnt/d/GitHub/HRMS/frontend/src/api/designations.js
+  /mnt/d/GitHub/HRMS/frontend/src/api/employees.js
+  /mnt/d/GitHub/HRMS/frontend/src/api/index.js
+  /mnt/d/GitHub/HRMS/frontend/src/api/interview.js
+  /mnt/d/GitHub/HRMS/frontend/src/api/jobs.js
+  /mnt/d/GitHub/HRMS/frontend/src/api/lifecycle.js
+  /mnt/d/GitHub/HRMS/frontend/src/api/notifications.js
+  /mnt/d/GitHub/HRMS/frontend/src/api/onboarding.js
+  /mnt/d/GitHub/HRMS/frontend/src/api/promotions.js
+  /mnt/d/GitHub/HRMS/frontend/src/api/resume.js
+  /mnt/d/GitHub/HRMS/frontend/src/api/salary.js
+  /mnt/d/GitHub/HRMS/frontend/src/api/tickets.js
+  /mnt/d/GitHub/HRMS/frontend/src/api/training.js
+  /mnt/d/GitHub/HRMS/frontend/src/assets/react.svg
+  /mnt/d/GitHub/HRMS/frontend/src/assets/vite.svg
+  /mnt/d/GitHub/HRMS/frontend/src/components/charts/ApplicationTrend.jsx
+  /mnt/d/GitHub/HRMS/frontend/src/components/charts/ScoreDistribution.jsx
+  /mnt/d/GitHub/HRMS/frontend/src/components/charts/SkillGapRadial.jsx
+
+Rules:
+- EXTRACTED: relationship explicit in source (import, call, citation, see section references)
+- INFERRED: reasonable inference (shared data structure, implied dependency)
+- AMBIGUOUS: uncertain - flag for review
+- Code files: focus on semantic edges AST cannot find: call relationships, shared data, architecture patterns. Do NOT extract imports (AST already has those).
+- Doc files: extract named concepts, entities, citations
+- When adding 'calls' edges: source = caller, target = callee
+
+
+confidence_score REQUIRED on every edge:
+  EXTRACTED = 1.0 | INFERRED = 0.6-0.9 | AMBIGUOUS = 0.1-0.3
+
+Output exactly this JSON (no other text):
+{
+  "nodes": [
+    {"id": "snake_case_name", "label": "Human Readable", "file_type": "code|document|image", "source_file": "relative/path", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null}
+  ],
+  "edges": [
+    {"source": "node_id", "target": "node_id", "relation": "calls|references|cites|conceptually_related_to|shares_data_with", "confidence": "EXTRACTED|INFERRED|AMBIGUOUS", "confidence_score": 0.8, "source_file": "relative/path", "source_location": null, "weight": 1.0}
+  ],
+  "hyperedges": [],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

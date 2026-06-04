@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Check, AlertTriangle, RefreshCw, Briefcase, Calendar, DollarSign, Award } from 'lucide-react'
+import { X, Check, AlertTriangle, RefreshCw, Briefcase, Calendar, DollarSign, Award, Shield, HelpCircle } from 'lucide-react'
 import { AIScoreDonut } from '../ui/AIScoreDonut'
 import { StatusPill } from '../ui/StatusPill'
 import { reanalyzeApplication, hireCandidate } from '../../api'
+import { getApplicationCredibility } from '../../api/applications'
 import { useAuthStore } from '../../store/authStore'
 import toast from 'react-hot-toast'
 
@@ -12,6 +13,9 @@ export const AnalysisDrawer = ({ isOpen, onClose, application, onUpdate }) => {
   const [isReanalyzing, setIsReanalyzing] = useState(false)
   const [isHiring, setIsHiring] = useState(false)
   const [showHireModal, setShowHireModal] = useState(false)
+  const [credibility, setCredibility] = useState(null)
+  const [loadingCredibility, setLoadingCredibility] = useState(false)
+  const [showCredibility, setShowCredibility] = useState(false)
 
   // Hire Form States
   const [department, setDepartment] = useState('')
@@ -59,6 +63,21 @@ export const AnalysisDrawer = ({ isOpen, onClose, application, onUpdate }) => {
     ...(interviewPrep.behavioral_questions || []),
     ...(interviewPrep.probing_areas || []).map(area => `Probe Candidate's experience in: ${area}`)
   ].slice(0, 5)
+
+  const handleLoadCredibility = async (force = false) => {
+    if (!application?.id) return
+    setLoadingCredibility(true)
+    try {
+      const data = await getApplicationCredibility(application.id, force)
+      setCredibility(data)
+      setShowCredibility(true)
+    } catch (err) {
+      console.error('Failed to load credibility:', err)
+      toast.error('Could not load credibility report')
+    } finally {
+      setLoadingCredibility(false)
+    }
+  }
 
   const handleReanalyze = async () => {
     setIsReanalyzing(true)
@@ -283,6 +302,150 @@ export const AnalysisDrawer = ({ isOpen, onClose, application, onUpdate }) => {
                     </div>
                   </div>
                 )}
+
+                {/* Credibility Analysis Section */}
+                <div className="space-y-2">
+                  <span className="text-[10px] font-bold text-txt-tertiary uppercase tracking-wider flex items-center gap-1.5">
+                    <Shield size={12} /> Candidate Credibility
+                  </span>
+                  {!showCredibility ? (
+                    <button
+                      onClick={() => handleLoadCredibility()}
+                      disabled={loadingCredibility}
+                      className="w-full border border-dashed border-border-custom rounded-xl p-4 text-center hover:bg-bg-page transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      {loadingCredibility ? (
+                        <div className="flex items-center justify-center gap-2 text-txt-secondary">
+                          <RefreshCw size={14} className="animate-spin" />
+                          <span className="text-xs">Analyzing resume claims against interview evidence...</span>
+                        </div>
+                      ) : (
+                        <div className="space-y-1">
+                          <Shield size={20} className="mx-auto text-txt-tertiary" />
+                          <p className="text-xs text-txt-secondary">Compare resume claims with interview responses</p>
+                          <p className="text-[10px] text-txt-tertiary">Evidence-based skill verification</p>
+                        </div>
+                      )}
+                    </button>
+                  ) : (
+                    <div className="bg-bg-page border border-border-custom rounded-xl p-4 space-y-3">
+                      {credibility?.credibility_score !== null ? (
+                        <>
+                          <div className="flex items-center gap-4">
+                            <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
+                              credibility.credibility_score >= 75 ? 'bg-green-100' :
+                              credibility.credibility_score >= 60 ? 'bg-yellow-100' :
+                              credibility.credibility_score >= 40 ? 'bg-orange-100' : 'bg-red-100'
+                            }`}>
+                              <span className={`text-2xl font-bold ${
+                                credibility.credibility_score >= 75 ? 'text-green-600' :
+                                credibility.credibility_score >= 60 ? 'text-yellow-600' :
+                                credibility.credibility_score >= 40 ? 'text-orange-600' : 'text-red-600'
+                              }`}>{credibility.credibility_score}</span>
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold text-txt-primary">{credibility.recommendation}</p>
+                              <p className="text-[10px] text-txt-tertiary">
+                                Resume: {credibility.resume_score ?? '—'} | Interview: {credibility.interview_avg_score !== null ? `${credibility.interview_avg_score.toFixed(1)}/10` : 'N/A'}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => handleLoadCredibility(true)}
+                              className="ml-auto text-txt-tertiary hover:text-txt-secondary"
+                              title="Re-analyze"
+                            >
+                              <RefreshCw size={14} />
+                            </button>
+                          </div>
+
+                          {credibility.supported_claims?.length > 0 && (
+                            <div>
+                              <p className="text-[10px] font-semibold text-green-600 uppercase mb-1.5 flex items-center gap-1">
+                                <Check size={11} /> Supported ({credibility.supported_claims.length})
+                              </p>
+                              <div className="space-y-1">
+                                {credibility.supported_claims.map((item, i) => (
+                                  <div key={i} className="flex items-start gap-1.5 text-[11px] p-1.5 bg-green-50 rounded">
+                                    <Check size={11} className="text-green-500 mt-0.5 shrink-0" />
+                                    <div>
+                                      <span className="font-medium text-gray-700">{item.claim}</span>
+                                      <p className="text-gray-400">{item.explanation}</p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {credibility.weak_claims?.length > 0 && (
+                            <div>
+                              <p className="text-[10px] font-semibold text-yellow-600 uppercase mb-1.5 flex items-center gap-1">
+                                <AlertTriangle size={11} /> Weak ({credibility.weak_claims.length})
+                              </p>
+                              <div className="space-y-1">
+                                {credibility.weak_claims.map((item, i) => (
+                                  <div key={i} className="flex items-start gap-1.5 text-[11px] p-1.5 bg-yellow-50 rounded">
+                                    <AlertTriangle size={11} className="text-yellow-500 mt-0.5 shrink-0" />
+                                    <div>
+                                      <span className="font-medium text-gray-700">{item.claim}</span>
+                                      <p className="text-gray-400">{item.explanation}</p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {credibility.missing_evidence?.length > 0 && (
+                            <div>
+                              <p className="text-[10px] font-semibold text-red-500 uppercase mb-1.5 flex items-center gap-1">
+                                <X size={11} /> Missing Evidence ({credibility.missing_evidence.length})
+                              </p>
+                              <div className="space-y-1">
+                                {credibility.missing_evidence.map((item, i) => (
+                                  <div key={i} className="flex items-start gap-1.5 text-[11px] p-1.5 bg-red-50 rounded">
+                                    <X size={11} className="text-red-400 mt-0.5 shrink-0" />
+                                    <div>
+                                      <span className="font-medium text-gray-700">{item.claim}</span>
+                                      <p className="text-gray-400">{item.explanation}</p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {credibility.followup_topics?.length > 0 && (
+                            <div>
+                              <p className="text-[10px] font-semibold text-blue-600 uppercase mb-1.5 flex items-center gap-1">
+                                <HelpCircle size={11} /> Follow-Up Topics
+                              </p>
+                              <div className="flex flex-wrap gap-1">
+                                {credibility.followup_topics.map((topic, i) => (
+                                  <span key={i} className="text-[10px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full border border-blue-100">
+                                    {topic}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          <p className="text-[9px] text-txt-tertiary flex items-center gap-1 pt-1 border-t border-border-custom">
+                            <Shield size={10} /> Evidence-based skill verification. Not a lie detector.
+                          </p>
+                        </>
+                      ) : (
+                        <div className="text-center py-3">
+                          <p className="text-xs text-txt-secondary">
+                            {credibility?.status === 'no_interview_data'
+                              ? 'No interview sessions found for this candidate.'
+                              : 'Credibility data unavailable.'}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
 
               </div>
 

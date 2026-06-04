@@ -4,11 +4,24 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+import litellm
+litellm.drop_params = True
+
+_completion_original = litellm.completion
+
+def _groq_compat_completion(*args, **kwargs):
+    if kwargs.get("messages"):
+        for msg in kwargs["messages"]:
+            msg.pop("cache_breakpoint", None)
+    return _completion_original(*args, **kwargs)
+
+litellm.completion = _groq_compat_completion
+
 def _get_llm(temperature=0.5):
     return LLM(
         model="groq/llama-3.1-8b-instant",
         temperature=temperature,
-        api_key=os.getenv("GROQ_API_KEY")
+        api_key=os.getenv("GROQ_API_KEY"),
     )
 
 def create_interviewer():

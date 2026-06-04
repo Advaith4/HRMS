@@ -11,7 +11,7 @@ from sqlmodel import Session, select
 
 from src.api.dependencies import require_roles
 from src.database.connection import get_session
-from src.models import ApplicationAIAnalysis, CandidateApplication, Employee, JobPosting, User
+from src.models import ApplicationAIAnalysis, CandidateApplication, Employee, InterviewSession, JobPosting, User
 from src.resume_lab import parse_resume
 from src.services.recruitment_ai import (
     analysis_payload,
@@ -254,6 +254,46 @@ def _employee_payload(session: Session, employee: Employee) -> dict[str, Any]:
         "joining_date": employee.joining_date.isoformat() if employee.joining_date else None,
         "skills": employee.skills,
     }
+
+
+@router.get("/{application_id}/credibility")
+def get_application_credibility(
+    application_id: int,
+    force: bool = False,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_roles("hr", "admin")),
+):
+    """Get credibility analysis for a candidate (by application)."""
+    application = session.get(CandidateApplication, application_id)
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    from src.services.interview_consistency import analyze_credibility, credibility_payload
+
+    interview_session = session.exec(
+        select(InterviewSession).where(
+            InterviewSession.user_id == application.candidate_user_id,
+            InterviewSession.status == "completed",
+        ).order_by(InterviewSession.created_at.desc())
+    ).first()
+    if not interview_session:
+        return {
+            "credibility_score": None,
+            "supported_claims": [],
+            "weak_claims": [],
+            "missing_evidence": [],
+            "followup_topics": [],
+            "resume_score": None,
+            "interview_avg_score": None,
+            "recommendation": "No Interview Data",
+            "status": "no_interview_data",
+        }
+
+    try:
+        report = analyze_credibility(session, interview_session.id, force=force)
+        return credibility_payload(report)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 def _bulk_application_payloads(

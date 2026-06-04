@@ -26,6 +26,7 @@ import {
   BookOpen,
   Target,
   Star,
+  Brain,
   Milestone,
   UserCheck,
   Building2,
@@ -49,7 +50,8 @@ const HR_NAV = [
     children: [
       { path: '/hr/jobs',        label: 'Jobs',            icon: Briefcase  },
       { path: '/hr/candidates',  label: 'Candidates',      icon: Users      },
-      { path: '/hr/pipeline',    label: 'Hiring Pipeline', icon: GitMerge   },
+      { path: '/hr/pipeline',       label: 'Hiring Pipeline',  icon: GitMerge   },
+      { path: '/hr/intelligence',   label: 'Interview Intel',  icon: Brain      },
     ],
   },
   {
@@ -121,8 +123,9 @@ const MANAGER_NAV = [
     label: 'Recruitment',
     icon: Briefcase,
     children: [
-      { path: '/hr/pipeline',   label: 'Hiring Pipeline', icon: GitMerge },
-      { path: '/hr/candidates', label: 'Candidates',      icon: Users    },
+      { path: '/hr/pipeline',      label: 'Hiring Pipeline',  icon: GitMerge },
+      { path: '/hr/candidates',    label: 'Candidates',       icon: Users    },
+      { path: '/hr/intelligence',  label: 'Interview Intel',  icon: Brain    },
     ],
   },
   {

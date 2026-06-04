@@ -152,17 +152,19 @@ def create_evaluator_task(
 ):
     conversation_history = conversation_history or []
     interviewer_persona = interviewer_persona or {}
+    persona_json = _json_context(interviewer_persona)
+    history_json = _json_context(conversation_history[-6:])
     description = f"""
 You are the evaluator for a live mock interview. Evaluate the CANDIDATE ANSWER specifically against the QUESTION and RECENT CONVERSATION HISTORY. Be concrete and avoid generic, templated language.
 
 INTERVIEWER PERSONA:
-{interviewer_persona}
+{persona_json}
 
 CURRENT FOCUS AREA:
-{focus_area}
+{focus_area or "general depth"}
 
 RECENT CONVERSATION HISTORY (most recent items):
-{conversation_history}
+{history_json}
 
 QUESTION:
 {question}
@@ -177,25 +179,17 @@ STRICT INSTRUCTIONS (MUST FOLLOW):
 - Avoid phrases like "good job", "try to be more specific", or any vague stock feedback.
 
 REQUIRED OUTPUT SCHEMA (STRICT JSON ONLY):
-{{
-    "score": number,                   // 0-10 integer; overall quality of this answer
+{{"score": number,                   // 0-10 integer; overall quality of this answer
     "confidence": number,              // 0-10 integer; evaluator confidence in this judgment
     "what_went_well": ["str"],       // min 3 short strings, specific strengths tied to the answer
     "what_was_missing": ["str"],     // min 3 short strings, concrete missing elements or weaknesses
     "how_to_improve": ["str"],       // min 3 short action-oriented suggestions (brief)
     "next_focus": "str",             // one concise focus for the candidate's next answer
     "final_verdict": "Not Ready" | "Borderline" | "Ready",
-    "verdict_explanation": "str"     // 1-2 sentences explaining the verdict
-}}
+    "verdict_explanation": "str"     // 1-2 sentences explaining the verdict}}
 
 Be brief but specific in each array entry. Tailor every item to the candidate's answer.
-""".format(
-                interviewer_persona=_json_context(interviewer_persona),
-                focus_area=focus_area or "general depth",
-                conversation_history=_json_context(conversation_history[-6:]),
-                question=question,
-                answer=answer,
-        )
+"""
 
     return Task(
         description=description,
