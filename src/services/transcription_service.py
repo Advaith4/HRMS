@@ -1,27 +1,18 @@
 import logging
-import os
-
-from dotenv import load_dotenv
 from groq import Groq
-
-load_dotenv()
+from src.services.llm_router import key_manager
 
 logger = logging.getLogger(__name__)
 
-_client = None
-
-def _get_client() -> Groq:
-    global _client
-    if _client is None:
-        api_key = os.getenv("GROQ_API_KEY", "")
-        if not api_key:
-            raise RuntimeError("GROQ_API_KEY is not set")
-        _client = Groq(api_key=api_key)
-    return _client
-
+def _get_healthy_client() -> Groq:
+    """Always return a fresh client if needed, to respect router changes."""
+    api_key = key_manager.get_healthy_key()
+    if not api_key:
+        raise RuntimeError("No healthy GROQ_API_KEY available for transcription.")
+    return Groq(api_key=api_key)
 
 def transcribe_audio(file_path: str) -> str:
-    client = _get_client()
+    client = _get_healthy_client()
     model = "whisper-large-v3"
 
     try:

@@ -70,7 +70,7 @@ from src.config import settings
 from src.database.connection import create_db_and_tables
 from src.core.exceptions import http_exception_handler, validation_exception_handler
 from src.api.routes import (
-    applications, auth, candidates, dashboard, employees, jobs, resume, interview,
+    applications, auth, candidates, dashboard, employees, jobs, resume, interview, mock_interview,
     departments, designations, lifecycle, tickets, salary, promotions, notifications,
     onboarding, training, profile
 )
@@ -149,6 +149,7 @@ app.include_router(candidates.router)
 app.include_router(employees.router)
 app.include_router(dashboard.router)
 app.include_router(interview.router)
+app.include_router(mock_interview.router)
 app.include_router(departments.router)
 app.include_router(designations.router)
 app.include_router(lifecycle.router)

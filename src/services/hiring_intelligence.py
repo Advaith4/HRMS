@@ -2,6 +2,7 @@ import json
 import logging
 import re
 import os
+import src.services.llm_router
 from datetime import datetime
 from typing import Any, Optional
 from sqlmodel import Session, select
@@ -211,8 +212,8 @@ Return ONLY valid JSON matching this exact structure:
         response = litellm.completion(
             model="groq/llama-3.1-8b-instant",
             messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"},
             temperature=0.2,
-            api_key=os.getenv("GROQ_API_KEY"),
             timeout=20.0,
         )
         

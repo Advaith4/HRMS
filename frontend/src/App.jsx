@@ -12,6 +12,7 @@ const CandidateDashboard = lazy(() => import('./pages/CandidateDashboard').then(
 const ManagerDashboard = lazy(() => import('./pages/ManagerDashboard').then(m => ({ default: m.ManagerDashboard })))
 const EmployeeDashboard = lazy(() => import('./pages/EmployeeDashboard').then(m => ({ default: m.EmployeeDashboard })))
 const InterviewPage = lazy(() => import('./pages/interview/InterviewPage').then(m => ({ default: m.default })))
+const MockInterviewPage = lazy(() => import('./pages/interview/MockInterviewPage').then(m => ({ default: m.default })))
 const InterviewReports = lazy(() => import('./pages/hr/InterviewReports').then(m => ({ default: m.InterviewReports })))
 
 // Minimal loading fallback shown while a chunk downloads
@@ -136,8 +137,9 @@ export const App = () => {
             <Route path="/jobs" element={<RoleGuard allowedRoles={['candidate']}><CandidateDashboard activeTab="jobs" /></RoleGuard>} />
             <Route path="/applications" element={<RoleGuard allowedRoles={['candidate']}><CandidateDashboard activeTab="applications" /></RoleGuard>} />
 
-            {/* Interview Route */}
+            {/* Interview Routes */}
             <Route path="/interview" element={<RoleGuard allowedRoles={['candidate']}><InterviewPage /></RoleGuard>} />
+            <Route path="/mock-interview" element={<RoleGuard allowedRoles={['candidate']}><MockInterviewPage /></RoleGuard>} />
           </Route>
 
           {/* Catch-all root redirect */}

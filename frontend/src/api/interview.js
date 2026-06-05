@@ -117,6 +117,15 @@ export const deleteSession = async (sessionId) => {
 }
 
 /**
+ * Abandon an active interview session
+ * POST /api/interview/{session_id}/abandon
+ */
+export const abandonSession = async (sessionId) => {
+  const response = await api.post(`/api/interview/${sessionId}/abandon`)
+  return response.data
+}
+
+/**
  * Run credibility analysis comparing resume claims against interview evidence
  * POST /api/interview/{session_id}/credibility
  * Response: { credibility_score, supported_claims, weak_claims, missing_evidence, followup_topics, resume_score, interview_avg_score, recommendation, status }

@@ -719,6 +719,7 @@ def run_interview_answer(
         conversation_history=conversation_history,
         focus_area=current_focus_area or focus_mode,
         interviewer_persona=interviewer_persona,
+        resume_context=resume_context,
     )
     c_eval = Crew(agents=[ag_eval], tasks=[t_eval], verbose=False)
     raw_eval = getattr(c_eval.kickoff(), "raw", "").strip()

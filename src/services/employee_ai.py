@@ -57,10 +57,7 @@ def answer_hr_question(question: str) -> dict[str, str]:
 
 def _run_ai_skill_gap(employee: Employee, role_expectations: str) -> dict[str, Any]:
     from crewai import Agent, Crew, Task
-    from src.config import settings
-
-    if not settings.GROQ_API_KEY:
-        raise RuntimeError("GROQ_API_KEY is not configured")
+    # Router monkey-patch will inject the key automatically, no manual check needed
 
     agent = Agent(
         role="TalentForge Employee Development Analyst",

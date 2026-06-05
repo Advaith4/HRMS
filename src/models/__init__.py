@@ -84,6 +84,34 @@ class InterviewSession(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+class MockInterviewSession(SQLModel, table=True):
+    """Independent mock interview practice session for candidates."""
+    __tablename__ = "mock_interview_sessions"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="users.id", index=True)
+    session_token: str = Field(index=True, unique=True)
+    role: str = Field(max_length=100)
+    difficulty: int = Field(default=5)
+    training_mode: str = Field(default="adaptive", max_length=40)
+    interviewer_persona: str = Field(default="balanced", max_length=40)
+    interview_type: str = Field(default="mixed", max_length=50)  # technical, behavioral, mixed, system_design
+    resume_source: str = Field(default="none", max_length=50)    # existing, uploaded, none
+    messages: str = Field(default="[]")
+    personalization_context: str = Field(default="{}")
+    avg_score: Optional[float] = None
+    status: str = Field(default="active", max_length=20)
+    
+    # Mock specific completions
+    ai_summary: Optional[str] = None
+    strengths: str = Field(default="[]")
+    weaknesses: str = Field(default="[]")
+    improvement_recommendations: str = Field(default="[]")
+
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 class CareerCoachMemory(SQLModel, table=True):
     """Long-term coaching memory synthesized from resume analysis and interview sessions."""
     __tablename__ = "career_coach_memory"

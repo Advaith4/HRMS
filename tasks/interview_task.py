@@ -149,16 +149,22 @@ def create_evaluator_task(
     conversation_history=None,
     focus_area="",
     interviewer_persona=None,
+    resume_context=None,
 ):
     conversation_history = conversation_history or []
     interviewer_persona = interviewer_persona or {}
+    resume_context = resume_context or {}
     persona_json = _json_context(interviewer_persona)
     history_json = _json_context(conversation_history[-6:])
+    resume_json = _json_context(resume_context)
     description = f"""
 You are the evaluator for a live mock interview. Evaluate the CANDIDATE ANSWER specifically against the QUESTION and RECENT CONVERSATION HISTORY. Be concrete and avoid generic, templated language.
 
 INTERVIEWER PERSONA:
 {persona_json}
+
+RESUME CONTEXT (Candidate's Background):
+{resume_json}
 
 CURRENT FOCUS AREA:
 {focus_area or "general depth"}
@@ -177,6 +183,7 @@ STRICT INSTRUCTIONS (MUST FOLLOW):
 - All array fields must contain at least 3 concise, specific items. If fewer than 3 real observations exist, synthesize additional precise suggestions tied to the candidate's answer (not generic filler).
 - Use specific examples drawn from the provided answer where possible.
 - Avoid phrases like "good job", "try to be more specific", or any vague stock feedback.
+- IMPORTANT FAIRNESS RULE: Do NOT penalize the candidate for omitting basic context or background information that is already clearly documented in the provided RESUME CONTEXT. Focus the evaluation on the depth, structure, and quality of their response to the specific question asked.
 
 REQUIRED OUTPUT SCHEMA (STRICT JSON ONLY):
 {{"score": number,                   // 0-10 integer; overall quality of this answer

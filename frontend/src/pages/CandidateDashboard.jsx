@@ -246,7 +246,7 @@ export const CandidateDashboard = ({ activeTab = 'overview' }) => {
             </div>
 
             {/* AI Mock Interview Card */}
-            <Link to="/interview" className="block bg-white border border-border-custom rounded-xl p-5 space-y-4 shadow-xs hover:shadow-sm hover:border-brand-indigo/30 transition-all group">
+            <Link to="/mock-interview" className="block bg-white border border-border-custom rounded-xl p-5 space-y-4 shadow-xs hover:shadow-sm hover:border-brand-indigo/30 transition-all group">
               <div className="flex items-center space-x-3">
                 <div className="p-2.5 rounded-lg bg-brand-indigo/10 text-brand-indigo group-hover:bg-brand-indigo group-hover:text-white transition-colors">
                   <MessageCircle size={18} />
