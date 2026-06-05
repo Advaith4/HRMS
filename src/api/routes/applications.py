@@ -481,6 +481,7 @@ def _bulk_application_payloads(
     jobs_by_id: dict[int, JobPosting] = {}
     users_by_id: dict[int, User] = {}
     analyses_by_app_id: dict[int, ApplicationAIAnalysis] = {}
+    interviews_by_app_id: dict[int, InterviewSession] = {}
 
     if job_ids:
         for j in session.exec(select(JobPosting).where(JobPosting.id.in_(job_ids))).all():
@@ -493,12 +494,17 @@ def _bulk_application_payloads(
             select(ApplicationAIAnalysis).where(ApplicationAIAnalysis.application_id.in_(app_ids))
         ).all():
             analyses_by_app_id[an.application_id] = an
+        for s in session.exec(
+            select(InterviewSession).where(InterviewSession.application_id.in_(app_ids))
+        ).all():
+            interviews_by_app_id[s.application_id] = s
 
     result = []
     for app in applications:
         job = jobs_by_id.get(app.job_id)
         candidate = users_by_id.get(app.candidate_user_id)
         analysis = analyses_by_app_id.get(app.id)
+        interview = interviews_by_app_id.get(app.id)
         payload = {
             "id": app.id,
             "candidate_user_id": app.candidate_user_id,
@@ -509,6 +515,10 @@ def _bulk_application_payloads(
             "application_date": app.application_date.isoformat() if app.application_date else None,
             "status": app.status,
             "ai_analysis": analysis_payload(analysis) if analysis else None,
+            "interview_status": interview.status if interview else "pending",
+            "interview_score": interview.avg_score if interview else None,
+            "interview_session_id": interview.id if interview else None,
+            "interview_token": interview.session_token if interview else None,
         }
         if include_resume:
             payload["resume_text"] = app.resume_text

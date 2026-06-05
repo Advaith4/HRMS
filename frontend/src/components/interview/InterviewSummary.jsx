@@ -6,6 +6,53 @@ import CandidateCredibilityCard from './CandidateCredibilityCard'
 export default function InterviewSummary({ session, onRestart }) {
   if (!session) return null
 
+  if (session.status === 'cancelled') {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="max-w-xl mx-auto bg-white rounded-xl border border-red-200 shadow-xl overflow-hidden mt-8 text-txt-primary"
+      >
+        <div className="p-6 text-center space-y-4">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto text-red-600 animate-pulse">
+            <Shield className="w-8 h-8" />
+          </div>
+          
+          <div className="space-y-2">
+            <h1 className="text-2xl font-bold text-gray-900">Interview Cancelled</h1>
+            <p className="text-sm text-gray-500">
+              Your session for the <strong>{session.role}</strong> interview was terminated due to proctoring violations.
+            </p>
+          </div>
+
+          <div className="bg-red-50 border border-red-100 text-red-700 rounded-lg p-4 text-sm text-left space-y-2">
+            <p className="font-semibold flex items-center gap-1.5">
+              <span className="inline-block w-2 h-2 rounded-full bg-red-600"></span>
+              Reason for Cancellation:
+            </p>
+            <p className="text-gray-600 italic">
+              "{session.cancellation_reason || 'Proctoring violation limit exceeded (3).'}"
+            </p>
+          </div>
+
+          <p className="text-xs text-gray-500 leading-relaxed">
+            As part of the mandatory interview requirements, security violations are logged and reported to HR. 
+            Please contact the hiring manager or administrator if you believe this was an error.
+          </p>
+
+          <div className="pt-4 border-t border-gray-100">
+            <a
+              href="/dashboard"
+              className="inline-block bg-brand-indigo text-white text-xs font-semibold px-6 py-2.5 rounded-lg hover:bg-brand-indigo-hover transition-colors cursor-pointer"
+            >
+              Return to Careers Dashboard
+            </a>
+          </div>
+        </div>
+      </motion.div>
+    )
+  }
+
   const avgScore = session.avg_score || 0
   const finalFeedback = session.final_feedback || ''
   const finalVerdict = session.final_verdict || ''

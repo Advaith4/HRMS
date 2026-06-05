@@ -1,17 +1,61 @@
-import { useState, useEffect, useCallback } from 'react'
-import { startInterview, startInterviewFromResume } from '../../api/interview'
+import React, { useState, useEffect, useCallback } from 'react'
+import { startInterviewForApplication } from '../../api/interview'
+import { getCandidateDashboardData } from '../../api'
 import InterviewWorkspace from '../../components/interview/InterviewWorkspace'
+import { Briefcase, AlertTriangle, Shield, CheckCircle, Clock, ArrowRight } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export default function InterviewPage() {
-  const [role, setRole] = useState('Software Engineer')
-  const [difficulty, setDifficulty] = useState(5)
-  const [trainingMode, setTrainingMode] = useState('adaptive')
-  const [persona, setPersona] = useState('balanced')
-  const [useResume, setUseResume] = useState(true)
   const [session, setSession] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [appIdParam, setAppIdParam] = useState(null)
+  const [applications, setApplications] = useState([])
+  const [loadingApps, setLoadingApps] = useState(false)
+
+  const handleStartForApplication = async (appId) => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      const data = await startInterviewForApplication(appId)
+      setSession(data)
+      const url = new URL(window.location)
+      url.searchParams.set('appId', appId)
+      window.history.pushState({}, '', url)
+      setAppIdParam(appId)
+      toast.success('Interview started!')
+    } catch (err) {
+      console.error('Failed to start interview:', err)
+      setError(err.response?.data?.detail || err.message || 'Failed to start interview')
+      toast.error('Failed to start interview')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const fetchCandidateApplications = async () => {
+    setLoadingApps(true)
+    try {
+      const data = await getCandidateDashboardData()
+      setApplications(data.applications || [])
+    } catch (err) {
+      console.error('Failed to fetch applications:', err)
+      toast.error('Failed to load active applications.')
+    } finally {
+      setLoadingApps(false)
+    }
+  }
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const appId = params.get('appId')
+    if (appId) {
+      setAppIdParam(appId)
+      handleStartForApplication(appId)
+    } else {
+      fetchCandidateApplications()
+    }
+  }, [])
 
   useEffect(() => {
     if (!session) return
@@ -23,27 +67,14 @@ export default function InterviewPage() {
     return () => window.removeEventListener('beforeunload', handler)
   }, [session])
 
-  const handleStart = async () => {
-    setIsLoading(true)
-    setError(null)
-    try {
-      const data = useResume
-        ? await startInterviewFromResume({ role, difficulty, training_mode: trainingMode, interviewer_persona: persona })
-        : await startInterview({ role, difficulty, training_mode: trainingMode, interviewer_persona: persona })
-      setSession(data)
-      toast.success('Interview started!')
-    } catch (err) {
-      console.error('Failed to start interview:', err)
-      setError(err.response?.data?.detail || err.message || 'Failed to start interview')
-      toast.error('Failed to start interview')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   const handleEnd = useCallback(() => {
     if (window.confirm('Interview in progress. Are you sure you want to leave?')) {
       setSession(null)
+      const url = new URL(window.location)
+      url.searchParams.delete('appId')
+      window.history.pushState({}, '', url)
+      setAppIdParam(null)
+      fetchCandidateApplications()
     }
   }, [])
 
@@ -56,59 +87,115 @@ export default function InterviewPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">AI Interview</h1>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="border-b border-gray-200 pb-4">
+          <h1 className="text-3xl font-extrabold text-gray-950 flex items-center gap-2">
+            <Shield className="w-8 h-8 text-blue-600" />
+            AI Interview Portal
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Standardized, secure proctored job interviews. Complete your interview to finalize your application.
+          </p>
+        </div>
 
         {error && (
-          <div className="mb-4 p-4 bg-red-100 border border-red-300 rounded-lg text-red-700">
-            {error}
-            <button onClick={() => setError(null)} className="ml-4 text-sm underline">Dismiss</button>
+          <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm flex justify-between items-center">
+            <span>{error}</span>
+            <button onClick={() => setError(null)} className="text-xs font-bold underline hover:text-red-900">
+              Dismiss
+            </button>
           </div>
         )}
 
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-          <h2 className="text-xl font-semibold mb-4">Interview Setup</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
-              <input type="text" value={role} onChange={e => setRole(e.target.value)} placeholder="e.g. Software Engineer" className="w-full p-2 border border-gray-200 rounded-lg" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Difficulty (1-10)</label>
-              <input type="number" value={difficulty} onChange={e => setDifficulty(Number(e.target.value))} min="1" max="10" className="w-full p-2 border border-gray-200 rounded-lg" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Training Mode</label>
-              <select value={trainingMode} onChange={e => setTrainingMode(e.target.value)} className="w-full p-2 border border-gray-200 rounded-lg">
-                <option value="adaptive">Adaptive</option>
-                <option value="weak_area_only">Weak Area Only</option>
-                <option value="domain_specific">Domain Specific</option>
-                <option value="behavioral_only">Behavioral Only</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Persona</label>
-              <select value={persona} onChange={e => setPersona(e.target.value)} className="w-full p-2 border border-gray-200 rounded-lg">
-                <option value="balanced">Balanced</option>
-                <option value="strict">Strict</option>
-                <option value="technical">Technical</option>
-                <option value="friendly">Friendly</option>
-                <option value="behavioral">Behavioral</option>
-              </select>
-            </div>
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-20 space-y-3 bg-white rounded-2xl border border-gray-200 shadow-sm">
+            <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-sm font-semibold text-gray-600">Initializing secure proctored environment...</p>
           </div>
-          <div className="mt-4">
-            <label className="flex items-center cursor-pointer">
-              <input type="checkbox" checked={useResume} onChange={e => setUseResume(e.target.checked)} className="mr-2" />
-              <span className="text-sm">Use my uploaded resume for interview context</span>
-            </label>
+        ) : loadingApps ? (
+          <div className="space-y-4">
+            <div className="h-24 bg-gray-200 rounded-xl animate-pulse" />
+            <div className="h-24 bg-gray-200 rounded-xl animate-pulse" />
           </div>
-          <button onClick={handleStart} disabled={isLoading} className="mt-6 w-full bg-blue-600 text-white py-2.5 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">
-            {isLoading ? 'Starting...' : 'Start Interview'}
-          </button>
-        </div>
+        ) : (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="p-5 border-b border-gray-100 bg-gray-50/50">
+              <h2 className="text-base font-bold text-gray-900">Your Active Applications</h2>
+              <p className="text-xs text-gray-500 mt-0.5">Below is the status of AI interviews linked to your applications.</p>
+            </div>
+
+            {applications.length === 0 ? (
+              <div className="p-12 text-center space-y-3">
+                <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto text-gray-400">
+                  <Briefcase size={20} />
+                </div>
+                <h3 className="text-sm font-bold text-gray-900">No active applications found</h3>
+                <p className="text-xs text-gray-500 max-w-xs mx-auto">
+                  You haven't applied to any job vacancies yet. Apply for a career vacancy first to start the mandatory interview.
+                </p>
+                <a
+                  href="/jobs"
+                  className="inline-block bg-blue-600 text-white text-xs font-semibold px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Browse Career Board
+                </a>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {applications.map((app) => (
+                  <div key={app.id} className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-gray-900">{app.job_title}</span>
+                        <span className="text-[10px] text-gray-400 bg-gray-100 border px-2 py-0.5 rounded font-mono">
+                          ID: {app.id}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        Applied on {new Date(app.application_date).toLocaleDateString()}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      {/* Interview status badge */}
+                      {app.interview_status === 'pending' && (
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full uppercase tracking-wider">
+                            <Clock className="w-3.5 h-3.5" />
+                            Pending
+                          </span>
+                          <button
+                            onClick={() => handleStartForApplication(app.id)}
+                            className="inline-flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors cursor-pointer shadow-sm"
+                          >
+                            <span>Take Interview</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+                      {app.interview_status === 'completed' && (
+                        <span className="inline-flex items-center gap-1 text-xs font-bold text-green-700 bg-green-50 border border-green-200 px-3 py-1 rounded-full uppercase tracking-wider">
+                          <CheckCircle className="w-3.5 h-3.5" />
+                          Completed {app.interview_score !== null && `(${app.interview_score.toFixed(1)}/10)`}
+                        </span>
+                      )}
+                      {app.interview_status === 'cancelled' && (
+                        <span className="inline-flex items-center gap-1 text-xs font-bold text-red-700 bg-red-50 border border-red-200 px-3 py-1 rounded-full uppercase tracking-wider">
+                          <AlertTriangle className="w-3.5 h-3.5" />
+                          Cancelled
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
 }
+

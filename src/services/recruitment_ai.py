@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Any
 
 from sqlmodel import Session, select
-from src.models import ApplicationAIAnalysis, CandidateApplication, JobPosting, User
+from src.models import ApplicationAIAnalysis, CandidateApplication, JobPosting, User, InterviewSession
 from src.resume_lab import parse_resume
 
 logger = logging.getLogger(__name__)
@@ -89,6 +89,7 @@ def application_payload(session: Session, application: CandidateApplication, inc
     job = session.get(JobPosting, application.job_id)
     candidate = session.get(User, application.candidate_user_id)
     analysis = get_analysis_for_application(session, application.id)
+    interview = session.exec(select(InterviewSession).where(InterviewSession.application_id == application.id)).first()
     payload = {
         "id": application.id,
         "candidate_user_id": application.candidate_user_id,
@@ -99,6 +100,10 @@ def application_payload(session: Session, application: CandidateApplication, inc
         "application_date": application.application_date.isoformat() if application.application_date else None,
         "status": application.status,
         "ai_analysis": analysis_payload(analysis) if analysis else None,
+        "interview_status": interview.status if interview else "pending",
+        "interview_score": interview.avg_score if interview else None,
+        "interview_session_id": interview.id if interview else None,
+        "interview_token": interview.session_token if interview else None,
     }
     if include_resume:
         payload["resume_text"] = application.resume_text

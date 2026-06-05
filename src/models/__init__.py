@@ -65,7 +65,11 @@ class InterviewSession(SQLModel, table=True):
     messages: str = Field(default="[]")  # JSON: [{role, content, score?, timestamp}]
     personalization_context: str = Field(default="{}")  # JSON: resume weaknesses, section scores, focus mix
     avg_score: Optional[float] = None
-    status: str = Field(default="active", max_length=20)  # active | completed
+    application_id: Optional[int] = Field(default=None, foreign_key="candidate_applications.id", index=True)
+    violations_count: int = Field(default=0)
+    violations: str = Field(default="[]")  # JSON: [{type, detail, timestamp}]
+    cancellation_reason: Optional[str] = None
+    status: str = Field(default="active", max_length=20)  # active | completed | cancelled
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 

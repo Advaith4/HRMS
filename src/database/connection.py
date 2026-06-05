@@ -195,6 +195,10 @@ def _ensure_sqlite_interview_context_columns() -> None:
         "personalization_context": "TEXT DEFAULT '{}'",
         "training_mode": "VARCHAR(40) DEFAULT 'adaptive'",
         "interviewer_persona": "VARCHAR(40) DEFAULT 'balanced'",
+        "application_id": "INTEGER",
+        "violations_count": "INTEGER DEFAULT 0",
+        "violations": "TEXT DEFAULT '[]'",
+        "cancellation_reason": "TEXT",
     }
     with Session(engine) as session:
         existing = {row[1] for row in session.exec(text("PRAGMA table_info(interview_sessions)")).all()}
@@ -206,6 +210,8 @@ def _ensure_sqlite_interview_context_columns() -> None:
         session.exec(text("UPDATE interview_sessions SET personalization_context = '{}' WHERE personalization_context IS NULL OR personalization_context = ''"))
         session.exec(text("UPDATE interview_sessions SET training_mode = 'adaptive' WHERE training_mode IS NULL OR training_mode = ''"))
         session.exec(text("UPDATE interview_sessions SET interviewer_persona = 'balanced' WHERE interviewer_persona IS NULL OR interviewer_persona = ''"))
+        session.exec(text("UPDATE interview_sessions SET violations_count = 0 WHERE violations_count IS NULL"))
+        session.exec(text("UPDATE interview_sessions SET violations = '[]' WHERE violations IS NULL OR violations = ''"))
         session.commit()
 
 
@@ -214,9 +220,15 @@ def _ensure_postgres_interview_context_columns() -> None:
         "ALTER TABLE interview_sessions ADD COLUMN IF NOT EXISTS personalization_context TEXT DEFAULT '{}'",
         "ALTER TABLE interview_sessions ADD COLUMN IF NOT EXISTS training_mode VARCHAR(40) DEFAULT 'adaptive'",
         "ALTER TABLE interview_sessions ADD COLUMN IF NOT EXISTS interviewer_persona VARCHAR(40) DEFAULT 'balanced'",
+        "ALTER TABLE interview_sessions ADD COLUMN IF NOT EXISTS application_id INTEGER REFERENCES candidate_applications(id)",
+        "ALTER TABLE interview_sessions ADD COLUMN IF NOT EXISTS violations_count INTEGER DEFAULT 0",
+        "ALTER TABLE interview_sessions ADD COLUMN IF NOT EXISTS violations TEXT DEFAULT '[]'",
+        "ALTER TABLE interview_sessions ADD COLUMN IF NOT EXISTS cancellation_reason TEXT",
         "UPDATE interview_sessions SET personalization_context = '{}' WHERE personalization_context IS NULL OR personalization_context = ''",
         "UPDATE interview_sessions SET training_mode = 'adaptive' WHERE training_mode IS NULL OR training_mode = ''",
         "UPDATE interview_sessions SET interviewer_persona = 'balanced' WHERE interviewer_persona IS NULL OR interviewer_persona = ''",
+        "UPDATE interview_sessions SET violations_count = 0 WHERE violations_count IS NULL",
+        "UPDATE interview_sessions SET violations = '[]' WHERE violations IS NULL OR violations = ''",
     ]
     with Session(engine) as session:
         for statement in statements:

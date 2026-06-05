@@ -423,7 +423,32 @@ export const CandidateDashboard = ({ activeTab = 'overview' }) => {
                         </div>
                       </div>
 
-                      <div className="flex items-center space-x-4 self-end sm:self-auto">
+                       <div className="flex items-center space-x-4 self-end sm:self-auto">
+                        {app.interview_status === 'pending' && (
+                          <div className="flex items-center gap-2">
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-warning-bg/40 text-warning-primary border border-warning-primary/20">
+                              Interview Pending
+                            </span>
+                            <a
+                              href={`/interview?appId=${app.id}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="px-2.5 py-1 bg-brand-indigo hover:bg-brand-indigo-hover text-white text-[10px] font-bold rounded-lg cursor-pointer transition-colors shadow-xs"
+                            >
+                              Take Interview
+                            </a>
+                          </div>
+                        )}
+                        {app.interview_status === 'completed' && (
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-success-bg/40 text-success-primary border border-success-primary/20">
+                            Interview Completed {app.interview_score !== null && `(${app.interview_score.toFixed(1)}/10)`}
+                          </span>
+                        )}
+                        {app.interview_status === 'cancelled' && (
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-danger-bg/40 text-danger-primary border border-danger-primary/20">
+                            Interview Cancelled
+                          </span>
+                        )}
+
                         <div className="flex items-center space-x-2 text-xs">
                           <span className="text-txt-tertiary font-medium">Fit Score:</span>
                           <span className={`font-bold ${scoreColor}`}>{scoreVal}/100</span>

@@ -100,8 +100,8 @@
     "semantic_hash": ""
   },
   "frontend/src/api/interview.js": {
-    "mtime": 1780631762.1182284,
-    "ast_hash": "69912ff18e09b69fd38f8bba64a4d4f5",
+    "mtime": 1780649669.360896,
+    "ast_hash": "24ca1432bc27e89bc996736f15d281bb",
     "semantic_hash": ""
   },
   "frontend/src/api/jobs.js": {
@@ -225,8 +225,8 @@
     "semantic_hash": ""
   },
   "frontend/src/components/drawers/JobDetailDrawer.jsx": {
-    "mtime": 1780631077.8479972,
-    "ast_hash": "5a4ca5cd458b72efd384fd2f712f0286",
+    "mtime": 1780649651.5767205,
+    "ast_hash": "f00d4c7312720dddab537e52ecaeb3fb",
     "semantic_hash": ""
   },
   "frontend/src/components/drawers/NotificationDrawer.jsx": {
@@ -245,13 +245,13 @@
     "semantic_hash": ""
   },
   "frontend/src/components/interview/InterviewSummary.jsx": {
-    "mtime": 1780570535.1069255,
-    "ast_hash": "887ce88583f3244eb53f44d086516112",
+    "mtime": 1780649746.114337,
+    "ast_hash": "5930e6f1609b01e94f01fbcb35cc2405",
     "semantic_hash": ""
   },
   "frontend/src/components/interview/InterviewWorkspace.jsx": {
-    "mtime": 1780647476.427362,
-    "ast_hash": "ee4d276b3cc659f938334a329aaf0f44",
+    "mtime": 1780649741.0684383,
+    "ast_hash": "7cb2974339413b5645b33796816f0493",
     "semantic_hash": ""
   },
   "frontend/src/components/layout/Layout.jsx": {
@@ -345,8 +345,8 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/CandidateDashboard.jsx": {
-    "mtime": 1780645234.6794655,
-    "ast_hash": "d20503189a8c02b7aa3e73bc1cc7f2c7",
+    "mtime": 1780649661.282726,
+    "ast_hash": "9a2fd7153b90a61f2768f69c16c33bc6",
     "semantic_hash": ""
   },
   "frontend/src/pages/EmployeeDashboard.jsx": {
@@ -395,8 +395,8 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/hr/InterviewReports.jsx": {
-    "mtime": 1780580285.5826745,
-    "ast_hash": "c40bba4a23550452613a9e06af357a62",
+    "mtime": 1780649805.5298774,
+    "ast_hash": "ed3bbf4ade32347673a29d581b86a6d4",
     "semantic_hash": ""
   },
   "frontend/src/pages/hr/ManagerTrainingView.jsx": {
@@ -420,8 +420,8 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/interview/InterviewPage.jsx": {
-    "mtime": 1780647113.5115407,
-    "ast_hash": "380170c6f88d1ede835f3880a9597378",
+    "mtime": 1780649731.5582898,
+    "ast_hash": "fcc37b6ff4a898b2145ab22ced68aebf",
     "semantic_hash": ""
   },
   "frontend/src/store/authStore.js": {
@@ -480,8 +480,8 @@
     "semantic_hash": ""
   },
   "src/api/routes/applications.py": {
-    "mtime": 1780631084.0774775,
-    "ast_hash": "dd454bc32c19ba6db99b901c0e4f4831",
+    "mtime": 1780649616.2277448,
+    "ast_hash": "f53f16c38c26f221a0cca16e6c44cfb5",
     "semantic_hash": ""
   },
   "src/api/routes/auth.py": {
@@ -515,8 +515,8 @@
     "semantic_hash": ""
   },
   "src/api/routes/interview.py": {
-    "mtime": 1780647094.0036411,
-    "ast_hash": "589d238a4d15a1bc2a39cef36a06458e",
+    "mtime": 1780650368.3095243,
+    "ast_hash": "3dfac841fe2c2f5af3c9c7c7e94b6fb1",
     "semantic_hash": ""
   },
   "src/api/routes/jobs.py": {
@@ -595,8 +595,8 @@
     "semantic_hash": ""
   },
   "src/database/connection.py": {
-    "mtime": 1780631085.3944201,
-    "ast_hash": "bf81a0109cfd4a271fd3bf087aac6d57",
+    "mtime": 1780649475.8154964,
+    "ast_hash": "7748341b155b7d5c3505b878721aea16",
     "semantic_hash": ""
   },
   "src/main.py": {
@@ -605,8 +605,8 @@
     "semantic_hash": ""
   },
   "src/models/__init__.py": {
-    "mtime": 1780631085.4843626,
-    "ast_hash": "9f594ac12a2ddb0e09c66c8d59ba4500",
+    "mtime": 1780649469.6425822,
+    "ast_hash": "65ab4df56b701cb2cf80c2e8959bcb76",
     "semantic_hash": ""
   },
   "src/resume_lab.py": {
@@ -630,8 +630,8 @@
     "semantic_hash": ""
   },
   "src/services/recruitment_ai.py": {
-    "mtime": 1780631085.7036836,
-    "ast_hash": "a949b6dca034ed1756e95af45b9d284c",
+    "mtime": 1780649607.7302723,
+    "ast_hash": "b8d69175eaf607a092797417f90f6d46",
     "semantic_hash": ""
   },
   "src/services/transcription_service.py": {
@@ -1002,6 +1002,11 @@
   "static/assets/index-MXDL1OSQ.js": {
     "mtime": 1780647485.6452193,
     "ast_hash": "03cf8db6c221722db769ad9e0a06bd68",
+    "semantic_hash": ""
+  },
+  "tests/test_proctoring.py": {
+    "mtime": 1780650289.598955,
+    "ast_hash": "631b4cdf456cb371746e8c743a4cf2d0",
     "semantic_hash": ""
   }
 }

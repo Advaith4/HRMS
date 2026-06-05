@@ -1,16 +1,16 @@
 # Graph Report - HRMS  (2026-06-05)
 
 ## Corpus Check
-- 182 files · ~359,935 words
+- 183 files · ~362,796 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 3742 nodes · 9415 edges · 205 communities (175 shown, 30 thin omitted)
-- Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 349 edges (avg confidence: 0.8)
+- 3750 nodes · 9303 edges · 208 communities (178 shown, 30 thin omitted)
+- Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 350 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `26c07ff2`
+- Built from commit: `7106cce3`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -201,6 +201,9 @@
 - [[_COMMUNITY_Community 195|Community 195]]
 - [[_COMMUNITY_Community 196|Community 196]]
 - [[_COMMUNITY_Community 197|Community 197]]
+- [[_COMMUNITY_Community 205|Community 205]]
+- [[_COMMUNITY_Community 206|Community 206]]
+- [[_COMMUNITY_Community 207|Community 207]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `_()` - 613 edges
@@ -212,7 +215,7 @@
 7. `str` - 57 edges
 8. `str` - 57 edges
 9. `s()` - 55 edges
-10. `FastAPI` - 43 edges
+10. `FastAPI` - 42 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `TalentForge AI Project` --conceptually_related_to--> `Skill Matcher Agent (Empty Stub)`  [AMBIGUOUS]
@@ -221,10 +224,10 @@
   requirements.txt → frontend/src/api/applications.js
 - `FastAPI Application` --shares_data_with--> `Auth API Client`  [INFERRED]
   requirements.txt → frontend/src/api/auth.js
-- `Feature: AI Interview Engine` --references--> `Agent: Interview Coach`  [EXTRACTED]
-  docs/interview.md → agents/interview_coach.py
 - `RequestValidationError` --uses--> `str`  [INFERRED]
   D:/mnt/d/GitHub/HRMS/src/core/exceptions.py → src/main.py
+- `FastAPI Application` --references--> `Vite Build Configuration`  [EXTRACTED]
+  requirements.txt → frontend/vite.config.js
 
 ## Import Cycles
 - 1-file cycle: `C:/Users/ADVAITH G/Documents/HRMS/src/main.py -> C:/Users/ADVAITH G/Documents/HRMS/src/main.py`
@@ -241,7 +244,7 @@
 - **Deployment Targets** — docker_deployment, render_deployment, vercel_deployment, supabase_postgresql, env_vars, render_yaml_config, api_health_endpoint, api_docs_endpoint [EXTRACTED 1.00]
 - **React Frontend Architecture** — react_frontend, react_router, zustand, framermotion, recharts, frontend_index_html [EXTRACTED 1.00]
 
-## Communities (205 total, 30 thin omitted)
+## Communities (208 total, 30 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.08
@@ -249,7 +252,7 @@ Nodes (53): A(), at(), B(), be(), ce(), ct(), dt(), e() (+45 more)
 
 ### Community 1 - "Community 1"
 Cohesion: 0.01
-Nodes (77): _(), Ab(), aD(), aO(), bu(), by(), constructor(), copy() (+69 more)
+Nodes (91): _(), Ab(), aD(), aO(), arc(), bezierCurveTo(), bu(), by() (+83 more)
 
 ### Community 2 - "Community 2"
 Cohesion: 0.03
@@ -261,11 +264,11 @@ Nodes (35): Any, bool, int, str, analyze_resume_pipeline(), _build_job_feed_summ
 
 ### Community 4 - "Community 4"
 Cohesion: 0.02
-Nodes (44): $(), bo(), Cc(), Ea(), es(), Fa(), fo(), getGeneratorVelocity() (+36 more)
+Nodes (44): $(), bo(), build(), Cc(), es(), fo(), Ga(), getGeneratorVelocity() (+36 more)
 
 ### Community 5 - "Community 5"
-Cohesion: 0.07
-Nodes (117): Any, Session, str, UploadFile, User, Any, bool, int (+109 more)
+Cohesion: 0.08
+Nodes (102): Any, bool, int, str, float, str, pypdf, analyze_resume() (+94 more)
 
 ### Community 6 - "Community 6"
 Cohesion: 0.07
@@ -284,32 +287,28 @@ Cohesion: 0.09
 Nodes (21): Access Points, AI Interview Engine, AI Reliability, API Routes, Backend, Build React Frontend (deploy to `static/`), Data Migration, Deployment (+13 more)
 
 ### Community 10 - "Community 10"
-Cohesion: 0.11
-Nodes (21): Er(), hn(), Tr(), Ci(), exitAnimationComplete(), forEach(), Gn(), ic() (+13 more)
+Cohesion: 0.22
+Nodes (9): Er(), Tr(), Jn(), Lr(), Mr(), nr(), qn(), rr() (+1 more)
 
 ### Community 11 - "Community 11"
-Cohesion: 0.15
-Nodes (29): AnswerReq, _build_personalization_context(), _build_resume_context(), _choose_focus_mode(), _derive_section_scores(), _derive_weak_areas(), _format_feedback_message(), _normalize_and_repair_evaluation() (+21 more)
+Cohesion: 0.19
+Nodes (23): AnswerReq, _build_personalization_context(), _build_resume_context(), _choose_focus_mode(), _derive_section_scores(), _derive_weak_areas(), _format_feedback_message(), _normalize_and_repair_evaluation() (+15 more)
 
 ### Community 12 - "Community 12"
 Cohesion: 0.05
 Nodes (61): $(), Al(), Ar(), bd(), bn(), br(), Bt(), cs() (+53 more)
 
-### Community 13 - "Community 13"
-Cohesion: 0.16
-Nodes (7): create_recruitment_analyst(), _groq_compat_completion(), BaseSettings, str, Settings, create_application_analysis_task(), str
-
 ### Community 14 - "Community 14"
-Cohesion: 0.15
-Nodes (19): Any, JobPosting, Session, str, User, candidate_dashboard(), get_hr_reviews(), hr_dashboard() (+11 more)
+Cohesion: 0.14
+Nodes (20): Any, JobPosting, Session, str, User, candidate_dashboard(), get_hr_reviews(), hr_dashboard() (+12 more)
 
 ### Community 15 - "Community 15"
-Cohesion: 0.19
-Nodes (18): get_current_user(), get_current_user_optional(), src/api/dependencies.py FastAPI dependency injectors — DB session and JWT-authen, Extract and validate JWT. Raise 401 if missing or invalid., Return the current user when a valid bearer token is present, otherwise None., require_roles(), _resolve_current_user(), Session (+10 more)
+Cohesion: 0.20
+Nodes (16): get_current_user(), get_current_user_optional(), src/api/dependencies.py FastAPI dependency injectors — DB session and JWT-authen, Extract and validate JWT. Raise 401 if missing or invalid., Return the current user when a valid bearer token is present, otherwise None., _resolve_current_user(), Session, User (+8 more)
 
 ### Community 16 - "Community 16"
-Cohesion: 0.08
-Nodes (57): ApplicationAIAnalysis, AttendanceRecord, CandidateApplication, CandidateCredibilityReport, CandidateDocument, CandidateProfile, CareerCoachMemory, Department (+49 more)
+Cohesion: 0.07
+Nodes (60): require_roles(), str, get_session(), ApplicationAIAnalysis, AttendanceRecord, CandidateApplication, CandidateDocument, CandidateProfile (+52 more)
 
 ### Community 17 - "Community 17"
 Cohesion: 0.14
@@ -320,20 +319,20 @@ Cohesion: 0.12
 Nodes (16): Architecture Health Score, Day 3 Readiness Assessment, Files Modified, Files Recommended For Future Cleanup, Maintainability Score, Phase 1 - Legacy Code Audit, Phase 2 - Configuration Audit, Phase 3 - Database Audit (+8 more)
 
 ### Community 19 - "Community 19"
-Cohesion: 0.09
-Nodes (41): ag(), ay(), cg(), cy(), Dg(), dm(), dy(), eg() (+33 more)
+Cohesion: 0.05
+Nodes (81): a(), ag(), ay(), b(), C(), ca(), cg(), cy() (+73 more)
 
 ### Community 20 - "Community 20"
 Cohesion: 0.14
 Nodes (58): AttendanceRecord, Any, Employee, int, Session, str, User, Any (+50 more)
 
 ### Community 21 - "Community 21"
-Cohesion: 0.05
-Nodes (72): AGENTS.md Documentation, App Configuration, Applications API Client, Auth API Client, bcrypt Password Hashing, Bootstrap User Script, create_access_token(), decode_token() (+64 more)
+Cohesion: 0.08
+Nodes (50): AGENTS.md Documentation, App Configuration, Applications API Client, Auth API Client, Bootstrap User Script, CrewAI Orchestration Framework, Day 3 Completion Report, Day 3 Scope: Candidate-to-Employee (+42 more)
 
 ### Community 22 - "Community 22"
-Cohesion: 0.15
-Nodes (18): CompareReq, _compute_hiring_score(), intelligence_candidate_report(), intelligence_compare(), intelligence_leaderboard(), intelligence_top_candidates(), src/api/routes/interview.py POST /api/interview/start         – start new sessio, Composite hiring score: 35% resume + 40% interview + 25% credibility. (+10 more)
+Cohesion: 0.10
+Nodes (22): CompareReq, _compute_hiring_score(), intelligence_candidate_report(), intelligence_compare(), intelligence_leaderboard(), intelligence_top_candidates(), Composite hiring score: 35% resume + 40% interview + 25% credibility., Ranked candidate leaderboard combining resume, interview, and credibility scores (+14 more)
 
 ### Community 23 - "Community 23"
 Cohesion: 0.05
@@ -341,15 +340,15 @@ Nodes (47): Application Trend Area Chart, Backend Candidates API Route, Backend 
 
 ### Community 24 - "Community 24"
 Cohesion: 0.06
-Nodes (30): App Root Router, advanceCandidate(), compareCandidates(), getCandidateIntelligenceReport(), getCredibilityReport(), getFollowupQuestions(), getIntelligenceLeaderboard(), getTopCandidates() (+22 more)
+Nodes (31): App Root Router, advanceCandidate(), compareCandidates(), getCandidateIntelligenceReport(), getCredibilityReport(), getFollowupQuestions(), getIntelligenceLeaderboard(), getTopCandidates() (+23 more)
 
 ### Community 25 - "Community 25"
-Cohesion: 0.08
-Nodes (26): login(), register(), Layout(), CANDIDATE_NAV, EMPLOYEE_NAV, groupIsActive(), HR_NAV, MANAGER_NAV (+18 more)
+Cohesion: 0.07
+Nodes (31): login(), register(), listNotifications(), markAllRead(), markRead(), NotificationDrawer(), InterviewReports(), Layout() (+23 more)
 
 ### Community 26 - "Community 26"
-Cohesion: 0.10
-Nodes (47): Bc(), bm(), bw(), createDraft(), da(), delete(), deleteProperty(), dl() (+39 more)
+Cohesion: 0.09
+Nodes (51): aa(), Bc(), bm(), bw(), createDraft(), da(), delete(), deleteProperty() (+43 more)
 
 ### Community 27 - "Community 27"
 Cohesion: 0.16
@@ -357,15 +356,15 @@ Nodes (13): a(), n(), t(), de(), fe(), he(), le(), h() (+5 more)
 
 ### Community 28 - "Community 28"
 Cohesion: 0.05
-Nodes (52): aF(), Am(), aP(), bj(), br(), Cj(), cm(), Cn() (+44 more)
+Nodes (50): aF(), Am(), aP(), bj(), br(), Cj(), cm(), Cn() (+42 more)
 
 ### Community 29 - "Community 29"
 Cohesion: 0.15
 Nodes (23): int, Session, str, User, Table: users, Guard: candidate_required, Guard: employee_required, Guard: hr_admin_required (+15 more)
 
 ### Community 30 - "Community 30"
-Cohesion: 0.16
-Nodes (42): CandidateCredibilityReport, Credibility Analysis, Credibility Fallback Scorer, CrewAI Orchestration, Any, bool, float, int (+34 more)
+Cohesion: 0.19
+Nodes (39): CandidateCredibilityReport, Any, bool, float, int, InterviewSession, JobPosting, Session (+31 more)
 
 ### Community 31 - "Community 31"
 Cohesion: 0.18
@@ -376,12 +375,12 @@ Cohesion: 0.12
 Nodes (41): Background task pattern for AI analysis, CrewAI agent orchestration pattern, Candidate hire → Employee → Onboarding plan → Lifecycle events, Idempotent ALTER TABLE migrations (SQLite/Postgres), Composite hiring score: 35% resume + 40% interview + 25% credibility, CareerCoachMemory: persistent weak-area tracking + daily plan, Profile completion % with required fields + document types, Role-based access control via Depends() (+33 more)
 
 ### Community 33 - "Community 33"
-Cohesion: 0.09
-Nodes (45): bc(), cf(), dc(), ea(), eo(), fc(), fe(), hi() (+37 more)
+Cohesion: 0.08
+Nodes (49): bc(), bi(), cf(), dc(), Di(), ea(), eo(), fc() (+41 more)
 
 ### Community 34 - "Community 34"
-Cohesion: 0.17
-Nodes (10): Agent: Interview Coach, agents/ (CrewAI Agents), CandidateCredibilityReport, CareerCoachMemory, _compute_hiring_score, crew.py (Legacy Orchestration), InterviewSession, models/__init__.py (+2 more)
+Cohesion: 0.19
+Nodes (9): agents/ (CrewAI Agents), CandidateCredibilityReport, CareerCoachMemory, _compute_hiring_score, crew.py (Legacy Orchestration), InterviewSession, models/__init__.py, _sessions dict (+1 more)
 
 ### Community 35 - "Community 35"
 Cohesion: 0.15
@@ -392,28 +391,28 @@ Cohesion: 0.15
 Nodes (12): 10. Deployment, 11. Project Structure, 12. Environment Variables, 13. Known Constraints & Limitations, 1. Overview, 23. Roadmap — Planned Enhancements, 2. User Roles & Access, 3. Architecture (+4 more)
 
 ### Community 37 - "Community 37"
-Cohesion: 0.15
-Nodes (15): add(), addChild(), addDependent(), addVariantChild(), componentDidMount(), componentWillUnmount(), getClosestVariantNode(), getSnapshotBeforeUpdate() (+7 more)
+Cohesion: 0.09
+Nodes (32): add(), addChild(), addDependent(), addListeners(), addVariantChild(), as(), Ci(), componentDidMount() (+24 more)
 
 ### Community 38 - "Community 38"
-Cohesion: 0.10
-Nodes (33): ap(), bs(), cp(), dp(), gi(), gs(), gt(), gu() (+25 more)
+Cohesion: 0.09
+Nodes (37): ap(), Au(), bs(), cp(), d(), dp(), ep(), gi() (+29 more)
 
 ### Community 39 - "Community 39"
-Cohesion: 0.09
-Nodes (40): a(), b(), C(), ca(), D(), E(), ee(), fe() (+32 more)
+Cohesion: 0.17
+Nodes (21): bcrypt Password Hashing, create_access_token(), decode_token(), hash_password(), src/core/security.py Handles password hashing (bcrypt) and JWT creation/verifica, Returns the decoded payload or None if invalid/expired., verify_password(), Session (+13 more)
 
 ### Community 40 - "Community 40"
-Cohesion: 0.12
-Nodes (23): setTimeout(), ac(), ae(), b(), bi(), d(), Di(), ep() (+15 more)
+Cohesion: 0.17
+Nodes (17): setTimeout(), ac(), ae(), b(), ga(), i(), ia(), ie() (+9 more)
 
 ### Community 41 - "Community 41"
-Cohesion: 0.10
-Nodes (40): Notifications Router, App Configuration Settings, create_db_and_tables(), _ensure_application_ai_analysis_table(), _ensure_candidate_credibility_table(), _ensure_career_coach_memory_table(), _ensure_interview_context_columns(), _ensure_phase1_employee_columns() (+32 more)
+Cohesion: 0.07
+Nodes (41): App Configuration Settings, create_db_and_tables(), _ensure_application_ai_analysis_table(), _ensure_candidate_credibility_table(), _ensure_career_coach_memory_table(), _ensure_interview_context_columns(), _ensure_phase1_employee_columns(), _ensure_phase2_talent_tables() (+33 more)
 
 ### Community 42 - "Community 42"
-Cohesion: 0.09
-Nodes (25): gl(), Ba(), Ca(), Cl(), Gc(), getTransformPagePoint(), gl(), Hc() (+17 more)
+Cohesion: 0.10
+Nodes (23): gl(), Ba(), Ca(), Cl(), Gc(), gl(), Hc(), _l() (+15 more)
 
 ### Community 43 - "Community 43"
 Cohesion: 0.17
@@ -425,7 +424,7 @@ Nodes (12): AI Evaluation, Follow-Up Topics, Important Note, Inputs, Missing Evi
 
 ### Community 45 - "Community 45"
 Cohesion: 0.07
-Nodes (33): dependencies, autoprefixer, axios, framer-motion, lucide-react, postcss, react, react-dom (+25 more)
+Nodes (32): dependencies, autoprefixer, axios, framer-motion, lucide-react, postcss, react, react-dom (+24 more)
 
 ### Community 46 - "Community 46"
 Cohesion: 0.15
@@ -444,20 +443,20 @@ Cohesion: 0.09
 Nodes (32): add(), al(), applyPatches(), clear(), concat(), divide(), dp(), Gc() (+24 more)
 
 ### Community 50 - "Community 50"
-Cohesion: 0.15
-Nodes (17): aa(), Bk(), ea(), f(), gk(), hk(), Jk(), Kk() (+9 more)
+Cohesion: 0.21
+Nodes (13): Bk(), ea(), gk(), hk(), Jk(), Kk(), qk(), uk() (+5 more)
 
 ### Community 51 - "Community 51"
 Cohesion: 0.13
 Nodes (17): ar(), Au(), bt(), eu(), hr(), iu(), Jl(), ku() (+9 more)
 
 ### Community 52 - "Community 52"
-Cohesion: 0.26
-Nodes (16): CareerCoachMemory, InterviewSession, _ensure_intro_question(), _generate_daily_plan(), get_daily_plan(), _get_or_create_memory(), _latest_candidate_resume_text(), _memory_snapshot() (+8 more)
+Cohesion: 0.29
+Nodes (18): CareerCoachMemory, InterviewSession, _ensure_intro_question(), _generate_daily_plan(), get_coach_memory(), get_daily_plan(), _get_or_create_memory(), _memory_snapshot() (+10 more)
 
 ### Community 53 - "Community 53"
 Cohesion: 0.22
-Nodes (36): CandidateProfile, Employee, int, Session, str, UploadFile, User, EmployeeProfile (+28 more)
+Nodes (35): CandidateProfile, Employee, int, Session, str, UploadFile, User, EmployeeProfile (+27 more)
 
 ### Community 54 - "Community 54"
 Cohesion: 0.18
@@ -473,35 +472,35 @@ Nodes (40): create_resume_optimizer(), create_resume_rewriter(), analyze_resume_
 
 ### Community 57 - "Community 57"
 Cohesion: 0.08
-Nodes (42): addListeners(), Al(), Ar(), as(), attachTimeline(), createPanHandlers(), dirty(), Fs() (+34 more)
+Nodes (38): Al(), Ar(), attachTimeline(), clearAnimation(), commitStyles(), createPanHandlers(), dirty(), Fs() (+30 more)
 
 ### Community 58 - "Community 58"
-Cohesion: 0.09
-Nodes (27): cancel(), clear(), clearAnimation(), clearListeners(), commitStyles(), destroy(), en(), end() (+19 more)
+Cohesion: 0.16
+Nodes (14): cancel(), finish(), m(), notifyFinished(), pause(), sample(), setWithVelocity(), speed() (+6 more)
 
 ### Community 59 - "Community 59"
-Cohesion: 0.09
-Nodes (77): ApplicationAIAnalysis, BackgroundTasks, Any, bool, CandidateApplication, int, JobPosting, Session (+69 more)
+Cohesion: 0.08
+Nodes (64): ApplicationAIAnalysis, BackgroundTasks, str, CandidateApplication, Employee, apply_to_job(), _bulk_application_payloads(), _employee_payload() (+56 more)
 
 ### Community 60 - "Community 60"
 Cohesion: 0.22
 Nodes (33): bool, Employee, int, Session, str, User, archive_program(), assign_training() (+25 more)
 
 ### Community 61 - "Community 61"
-Cohesion: 0.11
-Nodes (11): api, _cache, createJob(), deleteJob(), updateJob(), getLifecycle(), listNotifications(), markAllRead() (+3 more)
+Cohesion: 0.10
+Nodes (12): getApplicationCredibility(), hireCandidate(), listApplications(), reanalyzeApplication(), api, _cache, createJob(), deleteJob() (+4 more)
 
 ### Community 62 - "Community 62"
-Cohesion: 0.22
-Nodes (10): archiveTrainingProgram(), assignTraining(), createTrainingProgram(), getMyTrainingAssignments(), getTeamTrainingAssignments(), getTrainingSummary(), listTrainingPrograms(), updateTrainingProgram() (+2 more)
+Cohesion: 0.19
+Nodes (11): archiveTrainingProgram(), assignTraining(), createTrainingProgram(), getMyTrainingAssignments(), getTeamTrainingAssignments(), getTrainingSummary(), listTrainingPrograms(), updateTrainingProgram() (+3 more)
 
 ### Community 63 - "Community 63"
-Cohesion: 0.12
-Nodes (16): get_coach_memory(), get_credibility_report(), intelligence_advance_candidate(), intelligence_followup_questions(), intelligence_reject_candidate(), Run credibility analysis comparing resume claims against interview evidence., Run credibility analysis comparing resume claims against interview evidence., Run credibility analysis comparing resume claims against interview evidence. (+8 more)
+Cohesion: 0.11
+Nodes (19): intelligence_advance_candidate(), intelligence_followup_questions(), intelligence_reject_candidate(), _latest_candidate_resume_text(), list_sessions(), Return all past interview sessions for the sidebar, newest first., Return all past interview sessions for the sidebar, newest first., Return all past interview sessions for the sidebar, newest first. (+11 more)
 
 ### Community 64 - "Community 64"
-Cohesion: 0.19
-Nodes (15): CrewAI Framework, Difficulty Controller, Evaluator, Follow-up Interviewer, Groq LLM Service, Interview Coach, Interviewer, Job Finder and Career Strategist (+7 more)
+Cohesion: 0.15
+Nodes (17): CrewAI Framework, Difficulty Controller, Evaluator, Follow-up Interviewer, Groq LLM Service, Interview Coach, Interviewer, Job Finder and Career Strategist (+9 more)
 
 ### Community 65 - "Community 65"
 Cohesion: 0.18
@@ -512,8 +511,8 @@ Cohesion: 0.11
 Nodes (26): Ah(), bh(), ch(), clamp(), dh(), displayable(), Eh(), fh() (+18 more)
 
 ### Community 67 - "Community 67"
-Cohesion: 0.20
-Nodes (9): applyToJob(), getApplicationCredibility(), hireCandidate(), listApplications(), reanalyzeApplication(), invalidateCache(), Application Analysis Drawer, JobDetailDrawer() (+1 more)
+Cohesion: 0.24
+Nodes (14): Any, Session, str, UploadFile, User, _extract_resume_text(), get_my_resume(), _resume_payload() (+6 more)
 
 ### Community 68 - "Community 68"
 Cohesion: 0.18
@@ -524,16 +523,16 @@ Cohesion: 0.14
 Nodes (24): AddPromotionModal, AddSalaryModal, AI Analysis System, AIScoreDonut, AnalysisDrawer, CandidateCredibilityCard, CreateTicketModal, Credibility Analysis (+16 more)
 
 ### Community 70 - "Community 70"
-Cohesion: 0.10
-Nodes (20): analyzeSkillGap(), askHRAssistant(), checkIn(), checkOut(), getEmployeeDashboard(), getEmployeeProfile(), submitLeave(), updateEmployeeProfile() (+12 more)
+Cohesion: 0.09
+Nodes (24): applyToJob(), invalidateCache(), analyzeSkillGap(), askHRAssistant(), checkIn(), checkOut(), getEmployeeDashboard(), getEmployeeProfile() (+16 more)
 
 ### Community 71 - "Community 71"
 Cohesion: 0.28
-Nodes (15): int, Session, str, User, HRNotification, add_salary_revision(), get_salary_history(), _notify_hr() (+7 more)
+Nodes (15): int, Session, str, User, EmployeeLifecycleEvent, add_salary_revision(), get_salary_history(), _notify_hr() (+7 more)
 
 ### Community 72 - "Community 72"
-Cohesion: 0.17
-Nodes (13): delete_session(), get_session_history(), list_sessions(), _normalize_persona(), Return all past interview sessions for the sidebar, newest first., Return all past interview sessions for the sidebar, newest first., Return the full message log for a specific past session., Return all past interview sessions for the sidebar, newest first. (+5 more)
+Cohesion: 0.22
+Nodes (9): delete_session(), get_session_history(), Return the full message log for a specific past session., Return the full message log for a specific past session., Return the full message log for a specific past session., Delete a specific interview session., Delete a specific interview session., Return the full message log for a specific past session. (+1 more)
 
 ### Community 73 - "Community 73"
 Cohesion: 0.20
@@ -544,28 +543,28 @@ Cohesion: 0.25
 Nodes (11): React App Root Component, Zustand Auth Store, Candidate Dashboard Component, Employee Dashboard Component, HR Dashboard Component, Interview Page Component, Layout Component (Sidebar + TopBar), Login Page Component (+3 more)
 
 ### Community 75 - "Community 75"
-Cohesion: 0.14
-Nodes (14): listEmployees(), addPromotion(), getPromotions(), getRecentPromotions(), addSalaryRevision(), getSalaryHistory(), assignTicket(), createTicket() (+6 more)
+Cohesion: 0.17
+Nodes (8): getLifecycle(), addPromotion(), getPromotions(), getRecentPromotions(), addSalaryRevision(), getSalaryHistory(), AddPromotionModal(), AddSalaryModal()
 
 ### Community 76 - "Community 76"
-Cohesion: 0.11
-Nodes (24): aa(), animation(), cn(), co(), complete(), constructor(), Fc(), finish() (+16 more)
+Cohesion: 0.12
+Nodes (22): aa(), animation(), cn(), co(), complete(), constructor(), Fc(), initAnimation() (+14 more)
 
 ### Community 77 - "Community 77"
-Cohesion: 0.08
-Nodes (39): addValue(), bindToMotionValue(), bn(), br(), da(), fi(), fn(), Ga() (+31 more)
+Cohesion: 0.13
+Nodes (25): addValue(), bindToMotionValue(), br(), da(), get(), getDefaultTransition(), getStaticValue(), getValue() (+17 more)
 
 ### Community 78 - "Community 78"
 Cohesion: 0.24
 Nodes (20): Any, int, JobPosting, Session, str, User, create_job(), delete_job() (+12 more)
 
 ### Community 79 - "Community 79"
-Cohesion: 0.26
-Nodes (10): _configure_console_encoding(), _disable_broken_local_proxies(), health_check(), lifespan(), _prepare_crewai_storage(), src/main.py FastAPI application entry point.  Run locally:     uvicorn src.main:, Prefer UTF-8 output on Windows without replacing pytest/stdout capture objects., Some Windows setups inject dead proxy vars like 127.0.0.1:9, which break     out (+2 more)
+Cohesion: 0.19
+Nodes (12): str, _configure_console_encoding(), _disable_broken_local_proxies(), health_check(), lifespan(), _prepare_crewai_storage(), str, src/main.py FastAPI application entry point.  Run locally:     uvicorn src.main: (+4 more)
 
 ### Community 80 - "Community 80"
-Cohesion: 0.17
-Nodes (12): createDepartment(), deactivateDepartment(), listDepartments(), updateDepartment(), archiveDesignation(), createDesignation(), listDesignations(), updateDesignation() (+4 more)
+Cohesion: 0.16
+Nodes (13): createDepartment(), deactivateDepartment(), listDepartments(), updateDepartment(), archiveDesignation(), createDesignation(), listDesignations(), updateDesignation() (+5 more)
 
 ### Community 81 - "Community 81"
 Cohesion: 0.22
@@ -576,8 +575,8 @@ Cohesion: 0.38
 Nodes (5): str, parse_args(), str, quote_identifier(), Copy an existing TalentForge SQLite database into configured PostgreSQL.
 
 ### Community 83 - "Community 83"
-Cohesion: 0.33
-Nodes (7): Bt(), dt(), ft(), ht(), It(), lt(), ut()
+Cohesion: 0.10
+Nodes (22): bn(), Bt(), dt(), fi(), fn(), ft(), getBaseTarget(), getBaseTargetFromProps() (+14 more)
 
 ### Community 84 - "Community 84"
 Cohesion: 0.16
@@ -600,8 +599,8 @@ Cohesion: 0.22
 Nodes (9): APIs, Audio Recording, Benefits, Features, Objective, Phase 2 — Voice Interview Layer, Speech-To-Text, Transcript Review (+1 more)
 
 ### Community 89 - "Community 89"
-Cohesion: 0.20
-Nodes (21): aa(), Au(), c(), Cc(), Ce(), Ci(), Fo(), Fu() (+13 more)
+Cohesion: 0.23
+Nodes (19): aa(), c(), Cc(), Ce(), Ci(), Fo(), Fu(), gc() (+11 more)
 
 ### Community 90 - "Community 90"
 Cohesion: 0.22
@@ -645,19 +644,19 @@ Nodes (8): Browser APIs, Camera Preview, Features, Important Design Principles, 
 
 ### Community 100 - "Community 100"
 Cohesion: 0.12
-Nodes (16): Agent: Difficulty Controller, Agent: Evaluator, Agent: Follow-Up Generator, Table: career_coach_memory, Table: interview_sessions, Feature: AI Interview Engine, Groq Whisper (whisper-large-v3), Persona: Balanced (+8 more)
+Nodes (17): Agent: Difficulty Controller, Agent: Evaluator, Agent: Follow-Up Generator, Agent: Interview Coach, Table: career_coach_memory, Table: interview_sessions, Feature: AI Interview Engine, Groq Whisper (whisper-large-v3) (+9 more)
 
 ### Community 101 - "Community 101"
-Cohesion: 0.29
-Nodes (7): Framer Motion, frontend/index.html, zustand, React 19 + Vite SPA, React Router 7, Recharts, Zustand
+Cohesion: 0.33
+Nodes (6): Framer Motion, frontend/index.html, zustand, React 19 + Vite SPA, React Router 7, Zustand
 
 ### Community 102 - "Community 102"
 Cohesion: 0.48
 Nodes (5): str, Groq, _get_client(), transcribe_audio(), str
 
 ### Community 103 - "Community 103"
-Cohesion: 0.13
-Nodes (16): Ao(), bl(), bs(), build(), Do(), io(), jo(), ko() (+8 more)
+Cohesion: 0.18
+Nodes (12): NA(), Ao(), bl(), bs(), Do(), jo(), ko(), Oo() (+4 more)
 
 ### Community 104 - "Community 104"
 Cohesion: 0.29
@@ -668,12 +667,12 @@ Cohesion: 0.32
 Nodes (15): int, Session, str, User, PromotionHistory, add_promotion(), get_promotion_history(), list_recent_promotions() (+7 more)
 
 ### Community 106 - "Community 106"
-Cohesion: 0.21
-Nodes (12): addOnboardingTask(), assignOnboardingTemplate(), createOnboardingTemplate(), deleteOnboardingTask(), deleteOnboardingTemplate(), getMyOnboarding(), getOnboardingSummary(), listOnboardingTemplates() (+4 more)
+Cohesion: 0.19
+Nodes (13): addOnboardingTask(), assignOnboardingTemplate(), createOnboardingTemplate(), deleteOnboardingTask(), deleteOnboardingTemplate(), getMyOnboarding(), getOnboardingSummary(), listOnboardingTemplates() (+5 more)
 
 ### Community 107 - "Community 107"
-Cohesion: 0.40
-Nodes (5): Transcribe an audio file using Groq Whisper., Transcribe an audio file using Groq Whisper., Transcribe an audio file using Groq Whisper., transcribe_audio(), UploadFile
+Cohesion: 0.33
+Nodes (6): Transcribe an audio file using Groq Whisper., Transcribe an audio file using Groq Whisper., Transcribe an audio file using Groq Whisper., Transcribe an audio file using Groq Whisper., transcribe_audio(), UploadFile
 
 ### Community 108 - "Community 108"
 Cohesion: 0.33
@@ -688,24 +687,24 @@ Cohesion: 0.38
 Nodes (14): int, Session, User, Designation, archive_designation(), create_designation(), _desig_payload(), DesignationCreate (+6 more)
 
 ### Community 111 - "Community 111"
-Cohesion: 0.14
-Nodes (21): str, Employee, Employee profile created after a candidate is hired., str, _register(), test_application_ai_analysis_and_ranking(), test_candidate_application_flow_and_rbac(), test_candidate_can_start_and_answer_mock_interview() (+13 more)
+Cohesion: 0.23
+Nodes (14): str, _register(), test_application_ai_analysis_and_ranking(), test_candidate_application_flow_and_rbac(), test_candidate_can_start_and_answer_mock_interview(), test_candidates_and_managers_cannot_use_employee_self_service(), test_day3_candidate_hire_to_employee_portal_flow(), test_employee_directory_routing() (+6 more)
 
 ### Community 112 - "Community 112"
 Cohesion: 0.33
 Nodes (6): Feature: Attendance Tracking, Feature: AI HR Assistant, Feature: Leave Management, Feature: Employee Lifecycle, Feature: Skill Gap Analysis, src/api/routes/employees.py
 
 ### Community 113 - "Community 113"
-Cohesion: 0.29
-Nodes (12): int, Session, User, get_session(), HRNotification, list_notifications(), mark_all_read(), mark_notification_read() (+4 more)
+Cohesion: 0.30
+Nodes (12): int, Session, User, FastAPI, HRNotification, list_notifications(), mark_all_read(), mark_notification_read() (+4 more)
 
 ### Community 114 - "Community 114"
 Cohesion: 0.23
 Nodes (11): Candidate Credibility Card Component, Interview Setup Page, Interview Status Card Component, Interview Summary Component, Interview Workspace Component, fs, html, ids (+3 more)
 
 ### Community 115 - "Community 115"
-Cohesion: 0.18
-Nodes (12): arc(), bezierCurveTo(), closePath(), draw(), lineEnd(), lineTo(), moveTo(), point() (+4 more)
+Cohesion: 0.24
+Nodes (11): clear(), clearListeners(), destroy(), en(), end(), endPanSession(), nn(), removeChild() (+3 more)
 
 ### Community 116 - "Community 116"
 Cohesion: 0.33
@@ -744,8 +743,8 @@ Cohesion: 0.24
 Nodes (11): Register Helper, Test Application AI Analysis And Ranking, Test Candidate Application Flow And RBAC, Test Candidate Hire To Employee Portal Flow, Test Employee Directory Routing, Test Employee Profiles HR Admin Only, Test HR Can Manage Jobs Candidate Read Only, Test Public Registration Rejects Role Escalation (+3 more)
 
 ### Community 125 - "Community 125"
-Cohesion: 0.15
-Nodes (15): Interview Router, Coach Memory Update System, Crew AI Orchestrator, Daily Coaching Plan Generator, Employee AI Service, Answer Evaluation Normalizer, Groq Whisper Integration, HR Question Answering (+7 more)
+Cohesion: 0.10
+Nodes (23): Interview Router, Coach Memory Update System, Credibility Analysis, Credibility Fallback Scorer, Crew AI Orchestrator, CrewAI Orchestration, Daily Coaching Plan Generator, Resume Model (+15 more)
 
 ### Community 126 - "Community 126"
 Cohesion: 0.22
@@ -760,12 +759,16 @@ Cohesion: 0.33
 Nodes (6): 7.1 Resume Analysis (Recruitment), 7.2 Resume Lab, 7.3 Skill Gap Analysis (Employees), 7.4 AI HR Chatbot (Employee), 7.5 Mock Interview Sessions, 7. AI / LLM Features
 
 ### Community 129 - "Community 129"
-Cohesion: 0.50
-Nodes (4): Persist updated message list to DB., Persist updated message list to DB., Persist updated message list to DB., _save_messages()
+Cohesion: 0.17
+Nodes (12): _question_mix_for_mode(), Persist updated message list to DB., Persist updated message list to DB., Persist live adaptive interview state to DB., Persist live adaptive interview state to DB., Persist updated message list to DB., Persist live adaptive interview state to DB., Persist updated message list to DB. (+4 more)
+
+### Community 130 - "Community 130"
+Cohesion: 0.33
+Nodes (7): str, Employee, Employee profile created after a candidate is hired., _register(), test_onboarding_assignment_and_progression(), test_onboarding_templates_and_tasks(), test_training_programs_and_assignments()
 
 ### Community 131 - "Community 131"
-Cohesion: 0.31
-Nodes (13): API Dependency Injectors, RBAC Guard System, Applications Router, Auth Router, Candidates Router, Dashboard Router, Jobs Router, ApplicationAIAnalysis Model (+5 more)
+Cohesion: 0.29
+Nodes (13): API Dependency Injectors, RBAC Guard System, Applications Router, Auth Router, Candidates Router, Dashboard Router, Jobs Router, Notifications Router (+5 more)
 
 ### Community 132 - "Community 132"
 Cohesion: 0.25
@@ -792,8 +795,8 @@ Cohesion: 0.40
 Nodes (5): en(), from(), throwIfRequested(), tn(), yt()
 
 ### Community 139 - "Community 139"
-Cohesion: 0.67
-Nodes (3): str, _normalize_db_url(), str
+Cohesion: 0.28
+Nodes (7): _notify_hr(), src/api/routes/interview.py POST /api/interview/start         – start new sessio, record_proctoring_violation(), StartForApplicationReq, StartFromResumeReq, StartReq, ViolationReq
 
 ### Community 140 - "Community 140"
 Cohesion: 0.40
@@ -867,6 +870,18 @@ Nodes (3): 18.1 Resume Submit Flow, 18.2 Leave Approval Flow, 18. Data Flow Diag
 Cohesion: 0.67
 Nodes (3): 22. Dependencies, Backend (`requirements.txt`), Frontend (`package.json`)
 
+### Community 205 - "Community 205"
+Cohesion: 0.29
+Nodes (8): Ea(), Fa(), Ia(), ja(), Ma(), Ra(), Ta(), Y()
+
+### Community 206 - "Community 206"
+Cohesion: 0.25
+Nodes (8): get_credibility_report(), Run credibility analysis comparing resume claims against interview evidence., Run credibility analysis comparing resume claims against interview evidence., Run credibility analysis comparing resume claims against interview evidence., Run credibility analysis comparing resume claims against interview evidence., _should_end_interview_early(), bool, test_should_end_interview_early()
+
+### Community 207 - "Community 207"
+Cohesion: 0.38
+Nodes (5): assignTicket(), createTicket(), listTickets(), updateTicketStatus(), GrievanceDashboard()
+
 ## Ambiguous Edges - Review These
 - `check_ids.js` → `Static Minified JS Bundle Artifacts`  [AMBIGUOUS]
   check_ids.js · relation: references
@@ -878,7 +893,7 @@ Nodes (3): 22. Dependencies, Backend (`requirements.txt`), Frontend (`package.js
   frontend/src/assets/vite.svg · relation: conceptually_related_to
 
 ## Knowledge Gaps
-- **523 isolated node(s):** `fs`, `html`, `js`, `ids`, `Any` (+518 more)
+- **522 isolated node(s):** `fs`, `html`, `js`, `ids`, `Any` (+517 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **30 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -893,9 +908,9 @@ _Questions this graph is uniquely positioned to answer:_
   _Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low._
 - **What is the exact relationship between `Frontend API Index Barrel` and `Vite Logo SVG Asset`?**
   _Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low._
-- **Why does `_()` connect `Community 1` to `Community 0`, `Community 66`, `Community 2`, `Community 4`, `Community 39`, `Community 40`, `Community 8`, `Community 10`, `Community 42`, `Community 12`, `Community 49`, `Community 50`, `Community 19`, `Community 51`, `Community 115`, `Community 26`, `Community 27`, `Community 28`?**
-  _High betweenness centrality (0.093) - this node is a cross-community bridge._
-- **Why does `$()` connect `Community 12` to `Community 1`, `Community 97`, `Community 33`, `Community 38`, `Community 39`, `Community 40`, `Community 8`, `Community 47`, `Community 17`, `Community 84`, `Community 89`, `Community 26`, `Community 27`?**
+- **Why does `_()` connect `Community 1` to `Community 0`, `Community 66`, `Community 2`, `Community 4`, `Community 103`, `Community 40`, `Community 8`, `Community 10`, `Community 42`, `Community 12`, `Community 49`, `Community 50`, `Community 19`, `Community 51`, `Community 26`, `Community 27`, `Community 28`?**
+  _High betweenness centrality (0.092) - this node is a cross-community bridge._
+- **Why does `$()` connect `Community 12` to `Community 1`, `Community 97`, `Community 33`, `Community 38`, `Community 40`, `Community 8`, `Community 47`, `Community 17`, `Community 19`, `Community 84`, `Community 89`, `Community 26`, `Community 27`?**
   _High betweenness centrality (0.060) - this node is a cross-community bridge._
-- **Why does `$()` connect `Community 4` to `Community 0`, `Community 1`, `Community 37`, `Community 134`, `Community 103`, `Community 42`, `Community 10`, `Community 76`, `Community 77`, `Community 83`, `Community 51`, `Community 117`, `Community 57`, `Community 58`, `Community 27`?**
-  _High betweenness centrality (0.045) - this node is a cross-community bridge._
+- **Why does `$()` connect `Community 4` to `Community 0`, `Community 1`, `Community 37`, `Community 134`, `Community 103`, `Community 42`, `Community 10`, `Community 76`, `Community 77`, `Community 205`, `Community 83`, `Community 115`, `Community 117`, `Community 51`, `Community 57`, `Community 58`, `Community 27`?**
+  _High betweenness centrality (0.044) - this node is a cross-community bridge._

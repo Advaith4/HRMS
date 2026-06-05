@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'
 import useRecorder from '../../hooks/useRecorder'
 import useInterviewMedia from '../../hooks/useInterviewMedia'
-import { submitAnswer, transcribeAudio } from '../../api/interview'
+import { submitAnswer, transcribeAudio, recordProctoringViolation } from '../../api/interview'
 import InterviewStatusCard from './InterviewStatusCard'
 import InterviewSummary from './InterviewSummary'
 import toast from 'react-hot-toast'
@@ -64,6 +64,13 @@ export default function InterviewWorkspace({ session, onEnd }) {
     setCurrentPhase(session?.phase || 'Introduction')
     setCurrentPhaseGoal(session?.phase_goal || '')
     setQuestionCount(session?.question ? 1 : 0)
+
+    if (session?.status === 'cancelled') {
+      setCompletedSession({
+        ...session,
+        id: session.db_id || session.id
+      })
+    }
   }, [session])
 
   useEffect(() => {
@@ -109,7 +116,7 @@ export default function InterviewWorkspace({ session, onEnd }) {
     doTranscribe()
   }, [audioBlob, clearRecording])
 
-  const addViolation = useCallback((type, detail) => {
+  const addViolation = useCallback(async (type, detail) => {
     const entry = {
       type,
       detail,
@@ -117,7 +124,23 @@ export default function InterviewWorkspace({ session, onEnd }) {
     }
     violationsRef.current = [...violationsRef.current, entry].slice(-20)
     setViolations(violationsRef.current)
-  }, [])
+
+    try {
+      const result = await recordProctoringViolation(session.session_id, type, detail)
+      if (result.cancelled) {
+        setCompletedSession({
+          ...session,
+          status: 'cancelled',
+          cancellation_reason: result.cancellation_reason || 'Proctoring violation limit exceeded (3).'
+        })
+        toast.error('Interview cancelled due to proctoring violations.')
+      } else {
+        toast.warning(`Security alert: ${detail} (${result.violations_count}/3 violations recorded)`)
+      }
+    } catch (err) {
+      console.error('Failed to log violation on backend:', err)
+    }
+  }, [session])
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -638,8 +661,9 @@ export default function InterviewWorkspace({ session, onEnd }) {
             <textarea
               value={transcript}
               onChange={handleEditTranscript}
+              disabled={!proctoringReady}
               rows={3}
-              className="w-full p-3 border border-purple-200 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-purple-300"
+              className="w-full p-3 border border-purple-200 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-purple-300 disabled:bg-gray-100 disabled:text-gray-400"
             />
             <div className="flex gap-2 mt-2">
               <button
@@ -688,9 +712,10 @@ export default function InterviewWorkspace({ session, onEnd }) {
             <textarea
               value={answer}
               onChange={e => setAnswer(e.target.value)}
-              placeholder="Type your answer here..."
+              placeholder={proctoringReady ? "Type your answer here..." : "Proctoring setup inactive. Reactivate camera/screenshare/fullscreen to answer."}
+              disabled={!proctoringReady}
               rows={2}
-              className="flex-1 p-3 border border-gray-200 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-300"
+              className="flex-1 p-3 border border-gray-200 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-gray-100 disabled:text-gray-400"
               onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSubmit(e) }}
             />
             <div className="flex flex-col gap-1">

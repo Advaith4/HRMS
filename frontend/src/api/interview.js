@@ -201,3 +201,29 @@ export const transcribeAudio = async (audioBlob) => {
   })
   return response.data
 }
+
+/**
+ * Start/resume a mandatory interview linked to a job application
+ * POST /api/interview/start-for-application
+ */
+export const startInterviewForApplication = async (applicationId) => {
+  const response = await api.post('/api/interview/start-for-application', {
+    application_id: applicationId,
+    difficulty: 5,
+    training_mode: 'domain_specific',
+    interviewer_persona: 'balanced'
+  })
+  return response.data
+}
+
+/**
+ * Record a proctoring violation for an active interview session
+ * POST /api/interview/{session_id}/violation
+ */
+export const recordProctoringViolation = async (sessionId, type, detail) => {
+  const response = await api.post(`/api/interview/${sessionId}/violation`, {
+    violation_type: type,
+    detail: detail
+  })
+  return response.data
+}

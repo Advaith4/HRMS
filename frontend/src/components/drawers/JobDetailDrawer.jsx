@@ -10,6 +10,7 @@ export const JobDetailDrawer = ({ isOpen, onClose, job, onApplySuccess }) => {
   const [file, setFile] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
+  const [appId, setAppId] = useState(null)
 
   // Clear state when drawer opens or changes
   useEffect(() => {
@@ -17,6 +18,7 @@ export const JobDetailDrawer = ({ isOpen, onClose, job, onApplySuccess }) => {
       setFile(null)
       setIsSuccess(false)
       setIsSubmitting(false)
+      setAppId(null)
     }
   }, [isOpen, job])
 
@@ -60,6 +62,7 @@ export const JobDetailDrawer = ({ isOpen, onClose, job, onApplySuccess }) => {
       const result = await applyToJob(job.id, file)
       toast.success('Application submitted! AI analysis is running in the background.')
       toast('Your AI fit score will appear in My Applications shortly.', { icon: '🤖', duration: 4000 })
+      setAppId(result.application.id)
       setIsSuccess(true)
       if (onApplySuccess) onApplySuccess(result.application)
       invalidateCache('/api/dashboard/candidate')
@@ -123,21 +126,32 @@ export const JobDetailDrawer = ({ isOpen, onClose, job, onApplySuccess }) => {
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="flex flex-col items-center justify-center text-center py-16 space-y-4"
+                  className="flex flex-col items-center justify-center text-center py-8 space-y-4"
                 >
                   <CheckCircle size={48} className="text-success-primary animate-bounce" />
-                  <div>
+                  <div className="space-y-2">
                     <h4 className="text-base font-bold text-txt-primary">Application Submitted!</h4>
-                    <p className="text-xs text-txt-secondary mt-2 max-w-xs leading-relaxed">
-                      Your resume has been successfully submitted and analyzed by TalentForge AI. Recruiter leads will notify you of updates.
+                    <p className="text-xs text-txt-secondary leading-relaxed max-w-xs mx-auto">
+                      A <strong>Mandatory Proctored AI Interview</strong> is required to finalize your application for the <strong>{job.title}</strong> role.
                     </p>
+                    <div className="bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-lg p-3 text-[11px] leading-relaxed text-left max-w-xs mx-auto">
+                      <strong>⚠️ Proctoring Notice:</strong> Full-screen mode, active camera sharing, and screen sharing are strictly enforced. Switching tabs or exiting full-screen more than 3 times will cancel the interview and report it to HR.
+                    </div>
                   </div>
-                  <button
-                    onClick={onClose}
-                    className="px-6 py-1.5 bg-brand-indigo hover:bg-brand-indigo-hover text-white text-xs font-semibold rounded-lg cursor-pointer transition-all"
-                  >
-                    Done
-                  </button>
+                  <div className="flex flex-col gap-2 w-full max-w-xs pt-2">
+                    <a
+                      href={`/interview?appId=${appId}`}
+                      className="px-4 py-2.5 bg-brand-indigo hover:bg-brand-indigo-hover text-white text-xs font-bold rounded-lg text-center cursor-pointer transition-all shadow-md"
+                    >
+                      Start Mandatory Interview
+                    </a>
+                    <button
+                      onClick={onClose}
+                      className="px-4 py-2 text-txt-secondary hover:text-txt-primary text-xs font-semibold rounded-lg transition-all"
+                    >
+                      Complete Later
+                    </button>
+                  </div>
                 </motion.div>
               ) : (
                 /* Application details & upload workflow */

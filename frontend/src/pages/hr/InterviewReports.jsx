@@ -284,7 +284,16 @@ export const InterviewReports = () => {
                       <td className="px-4 py-3 text-txt-tertiary">{(i + 1).toString().padStart(2, '0')}</td>
                       <td className="px-4 py-3 font-medium text-txt-primary">{c.candidate_name}</td>
                       <td className="px-4 py-3"><ScoreCircle score={c.resume_score} size="sm" /></td>
-                      <td className="px-4 py-3"><ScoreCircle score={c.interview_score} size="sm" /></td>
+                      <td className="px-4 py-3">
+                        {c.interview_status === 'cancelled' ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-500/10 text-red-400 border border-red-500/20">
+                            <AlertTriangle size={11} className="text-red-400" />
+                            Cancelled
+                          </span>
+                        ) : (
+                          <ScoreCircle score={c.interview_score} size="sm" />
+                        )}
+                      </td>
                       <td className="px-4 py-3"><ScoreCircle score={c.credibility_score} size="sm" /></td>
                       <td className="px-4 py-3"><span className="text-lg font-bold" style={{ color: scoreColor(c.hiring_score) }}>{c.hiring_score}</span></td>
                       <td className="px-4 py-3"><RecommendationBadge rec={c.recommendation} /></td>
@@ -456,6 +465,56 @@ export const InterviewReports = () => {
                     </div>
                   </div>
                 )}
+                {/* Proctoring Violations Log */}
+                {(() => {
+                  const proctoredSessions = candidateReport.interview?.sessions?.filter(s => s.violations_count > 0 || s.status === 'cancelled') || []
+                  if (proctoredSessions.length === 0) return null
+                  return (
+                    <div className="bg-red-500/5 rounded-lg p-4 border border-red-500/20 space-y-3">
+                      <h5 className="text-xs font-semibold text-red-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <Shield size={14} /> Proctoring Violations Log
+                      </h5>
+                      
+                      {proctoredSessions.map((session, idx) => (
+                        <div key={session.id || idx} className="space-y-2">
+                          <div className="flex items-center justify-between text-xs border-b border-red-500/10 pb-1.5">
+                            <span className="text-txt-secondary font-medium">Session: {session.training_mode} mode</span>
+                            <span className={`px-2 py-0.5 rounded font-bold uppercase tracking-wider text-[10px] ${
+                              session.status === 'cancelled' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                            }`}>
+                              {session.status === 'cancelled' ? 'Cancelled' : `${session.violations_count} Violations`}
+                            </span>
+                          </div>
+                          
+                          {session.cancellation_reason && (
+                            <div className="text-xs text-red-400 bg-red-950/20 border border-red-500/10 p-2.5 rounded-lg italic">
+                              <strong>Reason:</strong> "{session.cancellation_reason}"
+                            </div>
+                          )}
+                          
+                          {session.violations && session.violations.length > 0 ? (
+                            <div className="space-y-1.5 pt-1.5">
+                              {session.violations.map((v, vidx) => (
+                                <div key={vidx} className="bg-bg-page/40 p-2 rounded border border-border-hover-custom flex items-start gap-2 text-[11px]">
+                                  <AlertTriangle size={12} className="text-amber-500 mt-0.5 shrink-0" />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex justify-between text-txt-tertiary text-[10px] mb-0.5">
+                                      <span className="font-semibold text-txt-secondary uppercase tracking-wider text-[9px]">{v.type || v.violation_type || 'Violation'}</span>
+                                      <span>{v.timestamp ? new Date(v.timestamp).toLocaleTimeString() : ''}</span>
+                                    </div>
+                                    <p className="text-txt-primary">{v.detail}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-txt-tertiary italic">No detailed logs found.</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )
+                })()}
 
                 {/* Timeline */}
                 {candidateReport.interview?.timeline?.length > 0 && (
