@@ -466,10 +466,12 @@ def _validate_and_score_jobs(jobs: list[dict], all_real_jobs: list[dict], profil
 
 def run_with_retries(func, *args):
     """Exponential backoff for rate-limited LLM APIs."""
+    last_exc = None
     for attempt in range(4):
         try:
             return func(*args)
         except Exception as exc:
+            last_exc = exc
             err = str(exc).lower()
             if "rate limit" in err or "429" in err or "decommission" in err:
                 match = re.search(r"try again in ([0-9.]+)s", err)
@@ -483,7 +485,12 @@ def run_with_retries(func, *args):
                 time.sleep(delay)
             else:
                 raise
-    return func(*args)
+    logger.error(
+        "%s failed after 4 retries. Last error: %s",
+        func.__name__,
+        last_exc,
+    )
+    raise last_exc
 
 
 def run_job_crew(resume_content: str, prefs: dict = None) -> dict:

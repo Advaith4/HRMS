@@ -40,6 +40,7 @@ export const EmployeeDashboard = () => {
   // State Management
   const [loading, setLoading] = useState(true)
   const [employee, setEmployee] = useState(null)
+  const isMockEmployee = employee?.employee_code === 'TF-00042'
   const [attendance, setAttendance] = useState(null)
   const [leaveSummary, setLeaveSummary] = useState({ pending: 0, approved: 0, rejected: 0, recent: [] })
   const [skillGap, setSkillGap] = useState(null)
@@ -333,8 +334,7 @@ export const EmployeeDashboard = () => {
     }
 
     try {
-      if (employee.employee_code === 'TF-00042') {
-        // Mock employee! Handle locally.
+      if (isMockEmployee) {
         await new Promise(resolve => setTimeout(resolve, 500))
         if (!attendance || attendance.status === 'Checked Out' || !attendance.status) {
           setAttendance({
@@ -398,8 +398,7 @@ export const EmployeeDashboard = () => {
 
     setSubmittingLeave(true)
     try {
-      if (employee.employee_code === 'TF-00042') {
-        // Mock employee! Handle locally.
+      if (isMockEmployee) {
         await new Promise(resolve => setTimeout(resolve, 800))
         const newLeave = {
           id: Math.floor(Math.random() * 1000) + 100,
@@ -467,8 +466,7 @@ export const EmployeeDashboard = () => {
 
     setAnalyzingGap(true)
     try {
-      if (employee.employee_code === 'TF-00042') {
-        // Mock employee! Handle locally.
+      if (isMockEmployee) {
         await new Promise(resolve => setTimeout(resolve, 1000))
         setSkillGap({
           role_expectations: targetRole.trim(),
