@@ -1,11 +1,14 @@
 import hashlib
 import json
+import logging
 import re
 from functools import lru_cache
 from datetime import datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, ValidationError
+
+logger = logging.getLogger(__name__)
 
 
 SECTION_ALIASES = {
@@ -371,7 +374,8 @@ def analyze_resume(resume_text: str, target_role: str = "") -> dict[str, Any]:
         from crew import run_resume_analyzer
 
         llm_payload = run_resume_analyzer(resume_text, target_role)
-    except Exception:
+    except Exception as exc:
+        logger.warning("run_resume_analyzer failed, falling back. Error: %s", exc, exc_info=True)
         llm_payload = None
 
     analysis = validate_resume_analysis(llm_payload, resume_text, parsed)
@@ -402,7 +406,8 @@ def validate_resume_analysis(
 
     try:
         validated = ResumeAnalysisResult.model_validate(normalized).model_dump()
-    except ValidationError:
+    except ValidationError as exc:
+        logger.warning("Resume analysis validation failed. Normalized payload: %s. Error: %s", normalized, exc, exc_info=True)
         return _fallback_analysis(resume_text, parsed_resume, source="fallback")
 
     has_issues = any(section["issues"] for section in validated["sections"])

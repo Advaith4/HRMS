@@ -23,7 +23,7 @@ if not _db_url:
     raise RuntimeError("DATABASE_URL is required. Configure the Supabase PostgreSQL connection string in .env.")
 
 # SQLite and PostgreSQL use different driver connection arguments.
-_connect_args = {"check_same_thread": False} if _db_url.startswith("sqlite") else {}
+_connect_args = {"check_same_thread": False, "timeout": 30.0} if _db_url.startswith("sqlite") else {}
 if _db_url.startswith("postgresql"):
     _connect_args["connect_timeout"] = settings.DATABASE_CONNECT_TIMEOUT
 

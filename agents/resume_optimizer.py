@@ -1,28 +1,12 @@
-from crewai import Agent, LLM
+from crewai import Agent
 import os
 from dotenv import load_dotenv
+from src.services.llm_router import get_llm
 
 load_dotenv()
 
-import litellm
-litellm.drop_params = True
-
-_completion_original = litellm.completion
-
-def _groq_compat_completion(*args, **kwargs):
-    if kwargs.get("messages"):
-        for msg in kwargs["messages"]:
-            msg.pop("cache_breakpoint", None)
-    return _completion_original(*args, **kwargs)
-
-litellm.completion = _groq_compat_completion
-
 def create_resume_optimizer():
-    llm = LLM(
-        model="groq/llama-3.3-70b-versatile",
-        temperature=0.15,
-        api_key=os.getenv("GROQ_API_KEY"),
-    )
+    llm = get_llm(temperature=0.15, provider="groq", model="llama-3.3-70b-versatile")
 
     return Agent(
         role="Resume Analyzer",
@@ -39,11 +23,7 @@ def create_resume_optimizer():
     )
 
 def create_resume_rewriter():
-    llm = LLM(
-        model="groq/llama-3.3-70b-versatile",
-        temperature=0.15,
-        api_key=os.getenv("GROQ_API_KEY"),
-    )
+    llm = get_llm(temperature=0.15, provider="groq", model="llama-3.3-70b-versatile")
     return Agent(
         role="Resume Rewriter",
         goal="Rewrite weak resume bullet points to improve impact, clarity, and ATS compatibility.",

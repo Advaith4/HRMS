@@ -1,22 +1,9 @@
 import os
 from dotenv import load_dotenv
-from crewai import Agent, LLM
+from crewai import Agent
+from src.services.llm_router import get_llm
 
 load_dotenv()
-
-import litellm
-litellm.drop_params = True
-
-_completion_original = litellm.completion
-
-def _groq_compat_completion(*args, **kwargs):
-    if kwargs.get("messages"):
-        for msg in kwargs["messages"]:
-            msg.pop("cache_breakpoint", None)
-    return _completion_original(*args, **kwargs)
-
-litellm.completion = _groq_compat_completion
-
 
 def create_job_finder():
     """
@@ -26,12 +13,7 @@ def create_job_finder():
       Phase 1 — infer the best matching job roles from the resume.
       Phase 3 — format pre-fetched real search results into clean JSON.
     """
-    llm = LLM(
-        model="groq/llama-3.1-8b-instant",
-        temperature=0.2,
-        api_key=os.getenv("GROQ_API_KEY"),
-
-    )
+    llm = get_llm(temperature=0.2, provider="groq", model="llama-3.1-8b-instant")
 
     job_finder = Agent(
         role="Job Finder and Career Strategist",

@@ -1,28 +1,9 @@
-from crewai import Agent, LLM
+from crewai import Agent
 import os
 from dotenv import load_dotenv
+from src.services.llm_router import get_llm
 
 load_dotenv()
-
-import litellm
-litellm.drop_params = True
-
-_completion_original = litellm.completion
-
-def _groq_compat_completion(*args, **kwargs):
-    if kwargs.get("messages"):
-        for msg in kwargs["messages"]:
-            msg.pop("cache_breakpoint", None)
-    return _completion_original(*args, **kwargs)
-
-litellm.completion = _groq_compat_completion
-
-def _get_llm(temperature=0.5):
-    return LLM(
-        model="groq/llama-3.1-8b-instant",
-        temperature=temperature,
-        api_key=os.getenv("GROQ_API_KEY"),
-    )
 
 def create_interviewer():
     return Agent(
@@ -31,7 +12,7 @@ def create_interviewer():
         backstory="You are an elite technical interviewer at a top-tier tech company. You test candidates on problem-solving, system design, and behavioral adaptability.",
         verbose=True,
         allow_delegation=False,
-        llm=_get_llm(0.6)
+        llm=get_llm(0.6)
     )
 
 def create_evaluator():
@@ -41,7 +22,7 @@ def create_evaluator():
         backstory="You are a strict but fair interview panelist who looks for depth, clarity, and structural soundness in a candidate's answer.",
         verbose=True,
         allow_delegation=False,
-        llm=_get_llm(0.3)
+        llm=get_llm(0.3)
     )
 
 def create_followup_coach():
@@ -51,17 +32,7 @@ def create_followup_coach():
         backstory="You dig deep into a candidate's stated knowledge to test the edges of their understanding. You don't accept superficial answers.",
         verbose=True,
         allow_delegation=False,
-        llm=_get_llm(0.6)
-    )
-
-def create_difficulty_controller():
-    return Agent(
-        role="Difficulty Controller",
-        goal="Determine the new interview difficulty level (1-10) based on the current evaluation score.",
-        backstory="You are a dynamic adaptive testing system that ensures the candidate remains in their 'zone of proximal development'.",
-        verbose=True,
-        allow_delegation=False,
-        llm=_get_llm(0.2)
+        llm=get_llm(0.6)
     )
 
 def create_interview_coach():
@@ -74,5 +45,5 @@ def create_interview_coach():
         ),
         verbose=True,
         allow_delegation=False,
-        llm=_get_llm(0.4)
+        llm=get_llm(0.4)
     )

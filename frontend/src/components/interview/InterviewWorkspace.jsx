@@ -44,6 +44,7 @@ export default function InterviewWorkspace({ session, onEnd }) {
     typeof document !== 'undefined' ? Boolean(document.fullscreenElement) : false
   )
   const [proctoringStarted, setProctoringStarted] = useState(false)
+  const [setupCompleted, setSetupCompleted] = useState(false)
   const [proctoringError, setProctoringError] = useState('')
   const [violations, setViolations] = useState([])
 
@@ -56,14 +57,53 @@ export default function InterviewWorkspace({ session, onEnd }) {
     if (session?.session_intro) {
       initialMessages.push({ type: 'intro', content: session.session_intro })
     }
-    if (session?.question) {
+    if (session?.messages && session.messages.length > 0) {
+      session.messages.forEach(msg => {
+        if (msg.role === 'ai') {
+          initialMessages.push({ type: 'question', content: msg.content })
+        } else if (msg.role === 'user') {
+          initialMessages.push({ type: 'answer', content: msg.content })
+        } else if (msg.role === 'feedback') {
+          initialMessages.push({
+            type: 'feedback',
+            content: msg.content,
+            data: { score: msg.score }
+          })
+        }
+      })
+    } else if (session?.question) {
       initialMessages.push({ type: 'question', content: session.question })
     }
     setConversation(initialMessages)
-    setCurrentQuestion(session?.question || '')
-    setCurrentPhase(session?.phase || 'Introduction')
+
+    const aiMsgs = session?.messages?.filter(m => m.role === 'ai') || []
+    if (aiMsgs.length > 0) {
+      const lastAi = aiMsgs[aiMsgs.length - 1]
+      setCurrentQuestion(lastAi.content || '')
+      setCurrentPhase(lastAi.phase || 'Introduction')
+      setQuestionCount(aiMsgs.length)
+    } else {
+      setCurrentQuestion(session?.question || '')
+      setCurrentPhase(session?.phase || 'Introduction')
+      setQuestionCount(session?.question ? 1 : 0)
+    }
     setCurrentPhaseGoal(session?.phase_goal || '')
-    setQuestionCount(session?.question ? 1 : 0)
+
+    const feedbackScores = session?.messages?.filter(m => m.role === 'feedback' && typeof m.score === 'number').map(m => m.score) || []
+    if (feedbackScores.length > 0) {
+      const avg = feedbackScores.reduce((a, b) => a + b, 0) / feedbackScores.length
+      setAvgScore(avg)
+      const lastF = session.messages.filter(m => m.role === 'feedback')
+      if (lastF.length > 0) {
+        setLastFeedback({
+          feedback_message: lastF[lastF.length - 1].content,
+          evaluation: { score: lastF[lastF.length - 1].score }
+        })
+      }
+    } else {
+      setAvgScore(null)
+      setLastFeedback(null)
+    }
 
     if (session?.status === 'cancelled') {
       setCompletedSession({
@@ -146,12 +186,12 @@ export default function InterviewWorkspace({ session, onEnd }) {
     const handleFullscreenChange = () => {
       const active = Boolean(document.fullscreenElement)
       setIsFullscreen(active)
-      if (proctoringStarted && !active) {
+      if (setupCompleted && !active) {
         addViolation('fullscreen_exit', 'Candidate exited fullscreen mode.')
       }
     }
     const handleVisibilityChange = () => {
-      if (proctoringStarted && document.hidden) {
+      if (setupCompleted && document.hidden) {
         addViolation('tab_switch', 'Candidate switched away from the interview tab.')
       }
     }
@@ -162,19 +202,19 @@ export default function InterviewWorkspace({ session, onEnd }) {
       document.removeEventListener('fullscreenchange', handleFullscreenChange)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
-  }, [addViolation, proctoringStarted])
+  }, [addViolation, setupCompleted])
 
   useEffect(() => {
-    if (proctoringStarted && cameraStatus !== 'active' && cameraStatus !== 'requesting') {
+    if (setupCompleted && cameraStatus !== 'active') {
       addViolation('camera_off', 'Camera was turned off or became unavailable.')
     }
-  }, [addViolation, cameraStatus, proctoringStarted])
+  }, [addViolation, cameraStatus, setupCompleted])
 
   useEffect(() => {
-    if (proctoringStarted && screenShareStatus !== 'active' && screenShareStatus !== 'requesting') {
+    if (setupCompleted && screenShareStatus !== 'active') {
       addViolation('screen_share_off', 'Screen sharing was stopped or became unavailable.')
     }
-  }, [addViolation, proctoringStarted, screenShareStatus])
+  }, [addViolation, screenShareStatus, setupCompleted])
 
   const isEntireScreenShared = !screenShareSurface || screenShareSurface === 'monitor'
   const proctoringReady = (
@@ -184,6 +224,12 @@ export default function InterviewWorkspace({ session, onEnd }) {
     isFullscreen &&
     isEntireScreenShared
   )
+
+  useEffect(() => {
+    if (proctoringReady) {
+      setSetupCompleted(true)
+    }
+  }, [proctoringReady])
 
   const enterFullscreen = useCallback(async () => {
     if (document.fullscreenElement) return true

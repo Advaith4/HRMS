@@ -213,6 +213,7 @@ Return ONLY valid JSON matching this exact structure:
             messages=[{"role": "user", "content": prompt}],
             temperature=0.2,
             api_key=os.getenv("GROQ_API_KEY"),
+            timeout=20.0,
         )
         
         raw_text = response.choices[0].message.content.strip()

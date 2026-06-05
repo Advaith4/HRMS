@@ -1,34 +1,16 @@
 import os
 
-from crewai import Agent, LLM
+from crewai import Agent
 from dotenv import load_dotenv
+from src.services.llm_router import get_llm
 
 from src.config import settings
 
 load_dotenv()
 
-import litellm
-litellm.drop_params = True
-
-_completion_original = litellm.completion
-
-def _groq_compat_completion(*args, **kwargs):
-    if kwargs.get("messages"):
-        for msg in kwargs["messages"]:
-            msg.pop("cache_breakpoint", None)
-    return _completion_original(*args, **kwargs)
-
-litellm.completion = _groq_compat_completion
-
-
 def create_recruitment_analyst():
     model_name = settings.MODEL_NAME or "llama-3.1-8b-instant"
-    llm = LLM(
-        model=f"groq/{model_name}" if not model_name.startswith("groq/") else model_name,
-        temperature=0.15,
-        api_key=os.getenv("GROQ_API_KEY") or settings.GROQ_API_KEY,
-
-    )
+    llm = get_llm(temperature=0.15, provider="groq", model=model_name)
 
     return Agent(
         role="Recruitment Intelligence Analyst",

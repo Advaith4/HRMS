@@ -311,31 +311,3 @@ OUTPUT FORMAT:
         expected_output="Valid JSON with a single realistic follow-up interviewer turn.",
         agent=agent,
     )
-
-
-def create_difficulty_task(agent, current_difficulty, score):
-    description = """
-You are the Difficulty Controller.
-Current Difficulty: {current_difficulty}/10
-Last Answer Score: {score}/10
-
-Adjust the difficulty for the next question.
-Rule of thumb:
-- If score >= 8: increase difficulty by 1.
-- If score <= 4: decrease difficulty by 1.
-- Else: keep it the same.
-Difficulty must stay between 1 and 10.
-
-Return ONLY JSON. Do not include any extra text.
-
-OUTPUT FORMAT (STRICT JSON ONLY):
-{{
-  "new_difficulty": 5
-}}
-""".format(current_difficulty=current_difficulty, score=score)
-
-    return Task(
-        description=description,
-        expected_output="Valid JSON with the new integer difficulty.",
-        agent=agent,
-    )

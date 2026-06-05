@@ -7,7 +7,7 @@ const baseURL = isDevServer ? '' : window.location.origin
 
 const api = axios.create({
   baseURL,
-  timeout: 12000, // 12s — fail fast so users see an error instead of a spinner forever
+  timeout: 60000, // 60s — generous timeout to accommodate CrewAI / LLM response times
 })
 
 // ── Simple in-memory GET cache (30s TTL) ──────────────────────────────────────

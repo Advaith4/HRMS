@@ -26,6 +26,22 @@ export default function useInterviewMedia() {
     }
   }, [])
 
+  useEffect(() => {
+    if (cameraStatus === 'active' && cameraVideoRef.current && cameraStreamRef.current) {
+      if (cameraVideoRef.current.srcObject !== cameraStreamRef.current) {
+        cameraVideoRef.current.srcObject = cameraStreamRef.current
+      }
+    }
+  }, [cameraStatus])
+
+  useEffect(() => {
+    if (screenShareStatus === 'active' && screenVideoRef.current && screenStreamRef.current) {
+      if (screenVideoRef.current.srcObject !== screenStreamRef.current) {
+        screenVideoRef.current.srcObject = screenStreamRef.current
+      }
+    }
+  }, [screenShareStatus])
+
   const startCamera = useCallback(async () => {
     if (cameraEnabled) return true
     setCameraStatus('requesting')
@@ -34,9 +50,6 @@ export default function useInterviewMedia() {
       cameraStreamRef.current = stream
       setCameraEnabled(true)
       setCameraStatus('active')
-      if (cameraVideoRef.current) {
-        cameraVideoRef.current.srcObject = stream
-      }
       return true
     } catch (err) {
       if (err.name === 'NotAllowedError') {
@@ -84,9 +97,6 @@ export default function useInterviewMedia() {
       }
       setScreenShareEnabled(true)
       setScreenShareStatus('active')
-      if (screenVideoRef.current) {
-        screenVideoRef.current.srcObject = stream
-      }
       return true
     } catch (err) {
       if (err.name === 'NotAllowedError' || err.name === 'AbortError') {

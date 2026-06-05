@@ -33,15 +33,41 @@ def analyze_application(session: Session, application_id: int, force: bool = Fal
             existing,
         )
 
+    # 1. Store plain variables to execute CrewAI analysis safely
+    resume_text = application.resume_text
+    
+    # Store job properties to avoid database access during CrewAI run
+    job_info = {
+        "title": job.title,
+        "description": job.description,
+        "required_skills": job.required_skills,
+        "department": job.department,
+        "salary_range": job.salary_range,
+        "experience_required": job.experience_required,
+    }
+    
+    # Release the SQLite lock by committing the read transaction
+    session.commit()
+
+    # 2. Run CrewAI analysis (no database transaction active during network I/O)
     try:
-        payload = _run_crewai_analysis(application.resume_text, job)
-        normalized = _normalize_ai_payload(payload, application.resume_text, job, source="ai")
+        temp_job = JobPosting(**job_info)
+        payload = _run_crewai_analysis(resume_text, temp_job)
+        normalized = _normalize_ai_payload(payload, resume_text, temp_job, source="ai")
     except Exception as exc:
         logger.warning("AI application analysis failed; using fallback. application_id=%s error=%s", application_id, exc)
-        normalized = _fallback_analysis(application.resume_text, job)
+        temp_job = JobPosting(**job_info)
+        normalized = _fallback_analysis(resume_text, temp_job)
         normalized["status"] = "completed"
         normalized["source"] = "fallback"
         normalized["error_message"] = f"AI provider unavailable; deterministic fallback used. {exc}"
+
+    # 3. Start a new transaction to write results
+    # Re-fetch application and existing to ensure they are attached to the current session transaction
+    application = session.get(CandidateApplication, application_id)
+    existing = session.exec(
+        select(ApplicationAIAnalysis).where(ApplicationAIAnalysis.application_id == application_id)
+    ).first()
 
     return _upsert_analysis(session, application, normalized, existing)
 

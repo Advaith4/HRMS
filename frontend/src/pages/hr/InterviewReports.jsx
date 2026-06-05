@@ -891,9 +891,6 @@ export const InterviewReports = () => {
           </div>
         </div>
       )}
-          </div>
-        </div>
-      )}
 
       {/* ── TOP CANDIDATES TAB ── */}
       {activeTab === 'top' && (

@@ -982,6 +982,7 @@ def start_interview(
         "session_intro": session_intro,
         "phase": current_phase,
         "phase_goal": phase_details["goal"],
+        "messages": [first_msg],
     }
 
 
@@ -1145,6 +1146,7 @@ def start_interview_from_resume(
         "session_intro": session_intro,
         "phase": current_phase,
         "phase_goal": phase_details["goal"],
+        "messages": [first_msg],
     }
 
 
@@ -1189,6 +1191,7 @@ def start_interview_for_application(
                 "training_mode": existing_session.training_mode,
                 "interviewer_persona": existing_session.interviewer_persona,
                 "status": existing_session.status,
+                "messages": msgs,
                 "message": "Resuming existing active interview session."
             }
         elif existing_session.status == "cancelled":
@@ -1356,6 +1359,7 @@ def start_interview_for_application(
         "session_intro": session_intro,
         "phase": current_phase,
         "phase_goal": phase_details["goal"],
+        "messages": [first_msg],
     }
 
 
@@ -1451,8 +1455,10 @@ def submit_answer(
     elif state.get("user_id") is not None and state.get("user_id") != current_user.id:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
+    import copy
+    state = copy.deepcopy(state)
+    context = state.setdefault("personalization_context", {})
     focus_mode = _choose_focus_mode(state)
-    context = state.get("personalization_context") or {}
     current_phase = context.get("current_phase", "Introduction")
     phase_details = _phase_meta(current_phase)
 
@@ -1615,6 +1621,7 @@ def submit_answer(
     memory = _update_coach_memory(db, current_user.id, state, score)
     context["coach_memory"] = _memory_snapshot(memory)
     _save_session_state(db, req.session_id, state, avg)
+    _sessions[req.session_id] = state
     if next_phase == "Final Evaluation":
         rec = db.exec(select(InterviewSession).where(InterviewSession.session_token == req.session_id)).first()
         if rec:

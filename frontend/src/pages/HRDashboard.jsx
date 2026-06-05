@@ -249,16 +249,7 @@ export const HRDashboard = ({ activeTab = 'overview' }) => {
       }
       toast.success('Job posting deleted')
       setJobs(jobs.filter(j => j.id !== jobId))
-
-      if (jobId >= 100 && jobId <= 110) {
-        const job = jobs.find(j => j.id === jobId)
-        if (job) {
-          setApplications(applications.filter(a => a.job_title !== job.title))
-        }
-      } else {
-        const appsData = await listApplications().catch(() => [])
-        setApplications(appsData)
-      }
+      await fetchData().catch(() => {})
     } catch (err) {
       console.error(err)
       toast.error(err.response?.data?.detail || 'Cannot delete a job with active applications.')

@@ -18,7 +18,6 @@ from typing import Any
 from crewai import Crew
 
 from agents.interview_coach import (
-    create_difficulty_controller,
     create_evaluator,
     create_followup_coach,
     create_interview_coach,
@@ -27,7 +26,6 @@ from agents.interview_coach import (
 from agents.job_finder import create_job_finder
 from agents.resume_optimizer import create_resume_optimizer, create_resume_rewriter
 from tasks.interview_task import (
-    create_difficulty_task,
     create_evaluator_task,
     create_followup_task,
     create_interview_start_task,
@@ -785,23 +783,25 @@ def run_interview_answer(
             "answer_expectation": "Answer in 5-10 lines with a real example, tradeoff, and outcome.",
         }
 
-    def _run_diff():
-        ag_d = create_difficulty_controller()
-        t_d = create_difficulty_task(ag_d, current_diff, numeric_score)
-        c_d = Crew(agents=[ag_d], tasks=[t_d], verbose=False)
-        raw_d = getattr(c_d.kickoff(), "raw", "").strip()
-        return extract_json(raw_d, "difficulty") or {"new_difficulty": current_diff}
+    def calculate_new_difficulty(current: int, score: int) -> int:
+        if score >= 8:
+            return min(10, current + 1)
+        if score <= 4:
+            return max(1, current - 1)
+        return current
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-        future_followup = executor.submit(run_with_retries, _run_followup)
-        future_diff = executor.submit(run_with_retries, _run_diff)
-        followup_json = future_followup.result()
-        diff_json = future_diff.result()
+    try:
+        followup_json = run_with_retries(_run_followup)
+    except Exception as e:
+        logger.warning("Followup question generation failed: %s; using fallback.", e)
+        followup_json = {}
+
+    new_diff = calculate_new_difficulty(current_diff, numeric_score)
 
     return {
         "evaluation": normalized_eval,
         "next_question": followup_json.get("question", "Can you explain that with a more specific example?"),
-        "new_difficulty": diff_json.get("new_difficulty", current_diff),
+        "new_difficulty": new_diff,
         "focus_area": followup_json.get("focus_area", current_focus_area or (weak_areas[0] if weak_areas else "general")),
         "focus_type": followup_json.get("focus_type", "weak_area" if "weak" in adaptive_focus_mode else "general"),
         "adaptive_mode": adaptive_focus_mode,

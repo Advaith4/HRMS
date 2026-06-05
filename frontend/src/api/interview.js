@@ -16,6 +16,8 @@ export const startInterview = async (data) => {
     training_mode: data.training_mode || 'adaptive',
     interviewer_persona: data.interviewer_persona || 'balanced',
     domain_focus: data.domain_focus || '',
+  }, {
+    timeout: 60000,
   })
   return response.data
 }
@@ -33,6 +35,8 @@ export const startInterviewFromResume = async (data) => {
     training_mode: data.training_mode || 'adaptive',
     interviewer_persona: data.interviewer_persona || 'balanced',
     domain_focus: data.domain_focus || '',
+  }, {
+    timeout: 60000,
   })
   return response.data
 }
@@ -47,6 +51,8 @@ export const submitAnswer = async (sessionId, answer) => {
   const response = await api.post('/api/interview/answer', {
     session_id: sessionId,
     answer: answer,
+  }, {
+    timeout: 60000,
   })
   return response.data
 }
@@ -212,6 +218,8 @@ export const startInterviewForApplication = async (applicationId) => {
     difficulty: 5,
     training_mode: 'domain_specific',
     interviewer_persona: 'balanced'
+  }, {
+    timeout: 60000,
   })
   return response.data
 }
