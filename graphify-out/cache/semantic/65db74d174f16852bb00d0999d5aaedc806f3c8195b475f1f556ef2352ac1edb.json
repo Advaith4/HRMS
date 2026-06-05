@@ -1,0 +1,1 @@
+{"nodes": [{"id": "src_api_routes_candidates", "label": "src/api/routes/candidates.py", "file_type": "code", "source_file": "src/api/routes/candidates.py", "source_location": "src/api/routes/candidates.py", "source_url": null, "captured_at": null, "author": null, "contributor": null, "rationale": "Candidate listing routes for HR and managers"}], "edges": [], "hyperedges": []}

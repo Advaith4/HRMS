@@ -1431,7 +1431,7 @@ def intelligence_leaderboard(
     from src.models import CandidateApplication, ApplicationAIAnalysis, CandidateApplication as CA
 
     sessions = db.exec(
-        select(InterviewSession).where(InterviewSession.status == "complete").order_by(InterviewSession.created_at.desc())
+        select(InterviewSession).where(InterviewSession.status == "completed").order_by(InterviewSession.created_at.desc())
     ).all()
 
     results = []
@@ -1550,7 +1550,7 @@ def intelligence_candidate_report(
                 })
 
     interview_avg = 0
-    completed = [s for s in sessions if s.status == "complete"]
+    completed = [s for s in sessions if s.status == "completed"]
     if completed:
         interview_avg = sum(s.avg_score or 0 for s in completed) / len(completed)
 
@@ -1637,7 +1637,7 @@ def intelligence_compare(
             cred = db.exec(select(CandidateCredibilityReport).where(CandidateCredibilityReport.candidate_id == cid).order_by(CandidateCredibilityReport.created_at.desc())).first()
 
             interview_avg = 0
-            completed = [s for s in sessions if s.status == "complete"]
+            completed = [s for s in sessions if s.status == "completed"]
             if completed:
                 interview_avg = sum(s.avg_score or 0 for s in completed) / len(completed)
 
@@ -1741,7 +1741,7 @@ def intelligence_top_candidates(
     from src.models import CandidateApplication, ApplicationAIAnalysis
 
     sessions = db.exec(
-        select(InterviewSession).where(InterviewSession.status == "complete").order_by(InterviewSession.created_at.desc())
+        select(InterviewSession).where(InterviewSession.status == "completed").order_by(InterviewSession.created_at.desc())
     ).all()
 
     candidates_data = []

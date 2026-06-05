@@ -1,0 +1,1 @@
+{"nodes": [{"id": "docker_deployment", "label": "Docker", "file_type": "code", "source_file": "Dockerfile", "source_location": "Dockerfile", "source_url": null, "captured_at": null, "author": null, "contributor": null, "rationale": "Containerization via Docker; single-container deployment"}], "edges": [], "hyperedges": []}
