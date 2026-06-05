@@ -12,7 +12,7 @@ import os
 from datetime import datetime
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
@@ -1437,6 +1437,7 @@ def record_proctoring_violation(
 @router.post("/answer")
 def submit_answer(
     req: AnswerReq,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
@@ -1454,6 +1455,52 @@ def submit_answer(
     context = state.get("personalization_context") or {}
     current_phase = context.get("current_phase", "Introduction")
     phase_details = _phase_meta(current_phase)
+
+    # Claim Verification Engine
+    resume_text = ""
+    res_ctx = context.get("resume_context", {})
+    if isinstance(res_ctx, dict):
+        resume_text = res_ctx.get("summary", "") + " " + " ".join(res_ctx.get("skills", []))
+    
+    from src.services.interview_consistency import _extract_claims
+    resume_claims = _extract_claims(resume_text)
+    
+    if "verified_claims" not in context:
+        context["verified_claims"] = []
+        
+    verification_active = context.get("verification_active", False)
+    current_verification_claim = context.get("current_verification_claim", None)
+    verification_depth = context.get("verification_depth", 0)
+
+    if verification_active:
+        verification_depth += 1
+        if verification_depth >= 2:
+            context["verified_claims"].append(current_verification_claim)
+            verification_active = False
+            current_verification_claim = None
+            verification_depth = 0
+            context["current_focus_area"] = "general"
+        else:
+            context["verification_depth"] = verification_depth
+            context["current_focus_area"] = f"claim verification: {current_verification_claim}"
+    else:
+        detected_claim = None
+        answer_lower = req.answer.lower()
+        for claim in resume_claims:
+            if claim.lower() in answer_lower and claim not in context["verified_claims"]:
+                detected_claim = claim
+                break
+        if detected_claim:
+            verification_active = True
+            current_verification_claim = detected_claim
+            verification_depth = 0
+            context["verification_active"] = True
+            context["current_verification_claim"] = current_verification_claim
+            context["verification_depth"] = verification_depth
+            context["current_focus_area"] = f"claim verification: {current_verification_claim}"
+
+    context["verification_active"] = verification_active
+    context["current_verification_claim"] = current_verification_claim
     try:
         from crew import run_interview_answer
         result = run_interview_answer(
@@ -1522,7 +1569,10 @@ def submit_answer(
     context["last_score"] = score
     context["last_adaptive_mode"] = result.get("adaptive_mode", focus_mode)
     resume_score = context.get("resume_score")
-    next_phase = _pick_next_phase(current_phase, len(state["answers"]), state["scores"], resume_score)
+    if verification_active:
+        next_phase = current_phase
+    else:
+        next_phase = _pick_next_phase(current_phase, len(state["answers"]), state["scores"], resume_score)
     context["current_phase"] = next_phase
     phase_history = context.get("phase_history") or []
     if not phase_history:
@@ -1571,6 +1621,10 @@ def submit_answer(
             rec.status = "completed"
             db.add(rec)
             db.commit()
+            
+            # Enqueue asynchronous hiring intelligence compilation task
+            from src.services.hiring_intelligence import compile_hiring_intelligence
+            background_tasks.add_task(compile_hiring_intelligence, rec.id)
     state["personalization_context"] = context
 
     # Derive a compact final verdict from rolling scores
@@ -1626,6 +1680,7 @@ def submit_answer(
         "final_feedback": final_feedback,
         "final_verdict": final_verdict,
         "verdict_explanation": verdict_explanation,
+        "personalization_context": context,
     }
 
 @router.get("/coach-memory")
@@ -1730,6 +1785,13 @@ def get_session_history(
         "application_id": rec.application_id,
         "messages": _safe_json_load(rec.messages, []),
         "personalization_context": _safe_json_load(rec.personalization_context, {}),
+        "competency_scores": _safe_json_load(rec.competency_scores, None),
+        "job_fit_report": _safe_json_load(rec.job_fit_report, None),
+        "communication_metrics": _safe_json_load(rec.communication_metrics, None),
+        "behavioral_report": _safe_json_load(rec.behavioral_report, None),
+        "hiring_risks": _safe_json_load(rec.hiring_risks, None),
+        "timeline_replay": _safe_json_load(rec.timeline_replay, None),
+        "benchmarking": _safe_json_load(rec.benchmarking, None),
         "created_at": rec.created_at.isoformat(),
     }
 
@@ -1976,6 +2038,13 @@ def intelligence_candidate_report(
                     "violations_count": s.violations_count,
                     "violations": json.loads(s.violations) if s.violations else [],
                     "cancellation_reason": s.cancellation_reason,
+                    "competency_scores": _safe_json_load(s.competency_scores, None),
+                    "job_fit_report": _safe_json_load(s.job_fit_report, None),
+                    "communication_metrics": _safe_json_load(s.communication_metrics, None),
+                    "behavioral_report": _safe_json_load(s.behavioral_report, None),
+                    "hiring_risks": _safe_json_load(s.hiring_risks, None),
+                    "timeline_replay": _safe_json_load(s.timeline_replay, None),
+                    "benchmarking": _safe_json_load(s.benchmarking, None),
                     "created_at": s.created_at.isoformat() if s.created_at else None
                 }
                 for s in sessions

@@ -460,14 +460,50 @@ export default function InterviewWorkspace({ session, onEnd }) {
         </button>
       </div>
 
-      <div className="flex-1 grid grid-cols-12 gap-3 min-h-0">
-        {/* LEFT PANEL — Question + Feedback */}
-        <div className="col-span-12 lg:col-span-4 flex flex-col gap-3 min-h-0">
+      {/* stepper progress tracker at top */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Interview Progression</h3>
+        <div className="flex items-center justify-between gap-1 overflow-x-auto pb-1 text-[11px] font-medium text-gray-400 scrollbar-thin">
+          {["Introduction", "Resume Deep Dive", "Core Technical Round", "Problem Solving", "Behavioral Round", "Pressure / Cross-questioning", "Candidate Questions", "Final Evaluation"].map((p, idx, arr) => {
+            const isCurrent = currentPhase === p;
+            const isPast = arr.indexOf(currentPhase) > idx;
+            return (
+              <div key={p} className="flex items-center gap-1.5 shrink-0">
+                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
+                  isCurrent ? 'bg-blue-600 text-white font-bold animate-pulse' :
+                  isPast ? 'bg-green-100 text-green-700 border border-green-200' :
+                  'bg-gray-100 text-gray-400 border border-gray-200'
+                }`}>
+                  {isPast ? '✓' : idx + 1}
+                </span>
+                <span className={isCurrent ? 'text-blue-700 font-semibold' : isPast ? 'text-gray-700' : 'text-gray-400'}>
+                  {p}
+                </span>
+                {idx < arr.length - 1 && <span className="text-gray-300 mx-1">→</span>}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      <div className="flex-1 grid grid-cols-12 gap-3 min-h-0 overflow-hidden">
+        {/* LEFT COLUMN — AI Interviewer Message Log */}
+        <div className="col-span-12 lg:col-span-8 flex flex-col gap-3 min-h-0">
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm flex-1 flex flex-col min-h-0">
-            <div className="p-4 border-b border-gray-100">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Interviewer</h3>
-              <p className="text-sm font-medium text-gray-700 capitalize">{session.interviewer_persona || 'Balanced'} Persona</p>
+            <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Interviewer</h3>
+                <p className="text-sm font-medium text-gray-700 capitalize">
+                  {session.interviewer_persona || 'Balanced'} Persona (Phase: {currentPhase})
+                </p>
+              </div>
+              {session.personalization_context && JSON.parse(session.personalization_context || '{}').verification_active && (
+                <span className="bg-amber-100 border border-amber-200 text-amber-800 text-[10px] px-2.5 py-1 rounded-full animate-pulse font-semibold">
+                  Claim Verification: {JSON.parse(session.personalization_context || '{}').current_verification_claim}
+                </span>
+              )}
             </div>
+            
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {conversation.length === 0 && (
                 <p className="text-sm text-blue-700 bg-blue-50 rounded-lg p-3">
@@ -496,167 +532,131 @@ export default function InterviewWorkspace({ session, onEnd }) {
               <div ref={messagesEndRef} />
             </div>
           </div>
-
-          <InterviewStatusCard
-            questionCount={questionCount}
-            duration={sessionDuration}
-            micStatus={statusForCard(micStatus)}
-            cameraStatus={statusForCard(cameraStatus)}
-            screenShareStatus={statusForCard(screenShareStatus)}
-          />
         </div>
 
-        {/* CENTER PANEL — Camera Preview */}
-        <div className="col-span-12 lg:col-span-5 flex flex-col gap-3 min-h-0">
-          <div className="bg-gray-900 rounded-xl border border-gray-700 shadow-sm flex-1 relative overflow-hidden flex items-center justify-center">
-            {cameraStatus === 'active' ? (
-              <>
-                <video ref={cameraVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
-                <div className="absolute bottom-3 left-3 bg-black/60 text-white text-xs px-2 py-1 rounded-md flex items-center gap-1.5">
-                  <Camera className="w-3 h-3" />
-                  Camera Active
-                </div>
-              </>
-            ) : cameraStatus === 'requesting' ? (
-              <div className="text-center text-gray-400">
-                <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
-                <p className="text-sm">Requesting camera...</p>
-              </div>
-            ) : (
-              <div className="text-center text-gray-500 p-6">
-                <Video className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p className="text-sm font-medium mb-1">Camera Preview</p>
-                <p className="text-xs opacity-70 mb-3">Local preview only. Not recorded or analyzed.</p>
-                <button
-                  onClick={startCamera}
-                  className="inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white text-sm px-4 py-2 rounded-lg transition-colors"
-                >
-                  <Camera className="w-4 h-4" />
-                  Enable Camera
-                </button>
-              </div>
-            )}
-            <div className="absolute bottom-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded-md flex items-center gap-1">
-              <Shield className="w-3 h-3 text-green-400" />
-              Local Only
-            </div>
-          </div>
-
-          {lastFeedback && (
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Latest Feedback</h4>
-              <p className="text-sm text-gray-700">
-                Score: <span className="font-semibold text-green-600">{lastFeedback.evaluation?.score}/10</span>
-                {' '}- {lastFeedback.evaluation?.final_verdict}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                {lastFeedback.evaluation?.verdict_explanation}
-              </p>
-              {lastFeedback.answer_expectation && (
-                <p className="text-xs text-gray-500 mt-2">
-                  Expected answer shape: {lastFeedback.answer_expectation}
-                </p>
-              )}
-            </div>
-          )}
-
-          <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 flex items-start gap-2">
-            <Shield className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
-            <p className="text-xs text-blue-700">
-              Camera preview is local only. Video is not recorded, stored, streamed, or analyzed.
-              Screen sharing and browser fullscreen are required while the interview is active.
-            </p>
-          </div>
-        </div>
-
-        {/* RIGHT PANEL — Screen Share Preview */}
-        <div className="col-span-12 lg:col-span-3 flex flex-col gap-3 min-h-0">
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm flex-1 flex flex-col">
-            <div className="p-3 border-b border-gray-100">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400">Screen Share</h3>
-            </div>
-            <div className="flex-1 flex items-center justify-center p-4">
-              {isMobile ? (
-                <div className="text-center text-gray-400">
-                  <MonitorOff className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">Screen sharing unavailable on this device.</p>
-                </div>
-              ) : screenShareStatus === 'active' ? (
-                <div className="w-full h-full relative">
-                  <video ref={screenVideoRef} autoPlay playsInline muted className="w-full h-full object-contain rounded-lg bg-gray-900" />
-                  <button
-                    onClick={stopScreenShare}
-                    className="absolute top-2 right-2 bg-red-600 text-white text-xs px-3 py-1.5 rounded-md hover:bg-red-700 transition-colors"
-                  >
-                    Stop Sharing
-                  </button>
-                  <div className="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded-md flex items-center gap-1">
-                    <Monitor className="w-3 h-3" />
-                    Sharing
+        {/* RIGHT COLUMN — Candidate Camera Preview & Proctoring Indicators */}
+        <div className="col-span-12 lg:col-span-4 flex flex-col gap-3 min-h-0 overflow-y-auto pr-1">
+          {/* Webcam Live Stream Panel */}
+          <div className="bg-gray-950 rounded-xl border border-gray-800 shadow-sm overflow-hidden flex flex-col shrink-0">
+            <div className="relative aspect-video bg-gray-900 flex items-center justify-center">
+              {cameraStatus === 'active' ? (
+                <>
+                  <video ref={cameraVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+                  <div className="absolute bottom-3 left-3 bg-black/60 text-white text-xs px-2 py-1 rounded-md flex items-center gap-1.5">
+                    <Camera className="w-3 h-3 text-green-400" />
+                    Feed Active
                   </div>
+                </>
+              ) : cameraStatus === 'requesting' ? (
+                <div className="text-center text-gray-400">
+                  <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
+                  <p className="text-sm">Requesting camera...</p>
                 </div>
               ) : (
-                <div className="text-center">
-                  {screenShareStatus === 'denied' && (
-                    <p className="text-sm text-red-500 mb-2">Screen share permission denied.</p>
-                  )}
+                <div className="text-center text-gray-500 p-6">
+                  <Video className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p className="text-sm font-medium mb-1">Camera Stream Required</p>
                   <button
-                    onClick={startScreenShare}
-                    className="inline-flex items-center gap-1.5 text-gray-500 hover:text-gray-700 text-sm px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                    onClick={startCamera}
+                    className="inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white text-xs px-3 py-1.5 rounded-lg transition-colors"
                   >
-                    <Monitor className="w-4 h-4" />
+                    Enable Camera
+                  </button>
+                </div>
+              )}
+              
+              {/* Overlay Indicators */}
+              <div className="absolute top-3 left-3 flex flex-col gap-1.5 pointer-events-none">
+                <div className={`text-[10px] font-semibold px-2 py-1 rounded-md shadow-md flex items-center gap-1.5 ${
+                  isRecording ? 'bg-red-500/90 text-white' : 'bg-gray-800/80 text-gray-300'
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full bg-current ${isRecording ? 'animate-ping' : ''}`} />
+                  {isRecording ? 'Recording ●' : 'Idle'}
+                </div>
+                <div className={`text-[10px] font-semibold px-2 py-1 rounded-md shadow-md flex items-center gap-1 ${
+                  micStatus === 'active' ? 'bg-green-600/90 text-white' : 'bg-gray-800/80 text-gray-300'
+                }`}>
+                  {micStatus === 'active' ? 'Mic Active ✓' : 'Mic Off ✕'}
+                </div>
+                <div className={`text-[10px] font-semibold px-2 py-1 rounded-md shadow-md flex items-center gap-1 ${
+                  cameraStatus === 'active' ? 'bg-green-600/90 text-white' : 'bg-red-600/95 text-white'
+                }`}>
+                  {cameraStatus === 'active' ? 'Face Detected ✓' : 'Face Not Detected ✕'}
+                </div>
+                <div className={`text-[10px] font-semibold px-2 py-1 rounded-md shadow-md flex items-center gap-1 ${
+                  proctoringReady ? 'bg-blue-600/95 text-white' : 'bg-amber-600/90 text-white animate-pulse'
+                }`}>
+                  {proctoringReady ? 'Proctoring Active ✓' : 'Proctoring Inactive ✕'}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Screen Share Preview Panel */}
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 shrink-0 flex flex-col">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Screen Share Status</h4>
+            <div className="aspect-video bg-gray-900 rounded-lg flex items-center justify-center overflow-hidden">
+              {screenShareStatus === 'active' ? (
+                <video ref={screenVideoRef} autoPlay playsInline muted className="w-full h-full object-contain" />
+              ) : (
+                <div className="text-center text-gray-500 p-4">
+                  <Monitor className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                  <button onClick={startScreenShare} className="text-xs text-blue-600 font-semibold hover:underline">
                     Share Screen
                   </button>
-                  <p className="text-xs text-gray-400 mt-2">Required for proctoring.</p>
                 </div>
               )}
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Controls</h4>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={cameraEnabled ? stopCamera : startCamera}
-                className={`inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-md border transition-colors ${
-                  cameraEnabled
-                    ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100'
-                    : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100'
-                }`}
-              >
-                {cameraEnabled ? <Camera className="w-3 h-3" /> : <CameraOff className="w-3 h-3" />}
-                {cameraEnabled ? 'Camera On' : 'Camera Off'}
-              </button>
-              {!isMobile && (
-                <button
-                  onClick={screenShareEnabled ? stopScreenShare : startScreenShare}
-                  className={`inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-md border transition-colors ${
-                    screenShareEnabled
-                      ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100'
-                      : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100'
-                  }`}
-                >
-                  {screenShareEnabled ? <Monitor className="w-3 h-3" /> : <MonitorOff className="w-3 h-3" />}
-                  {screenShareEnabled ? 'Sharing' : 'Share Screen'}
-                </button>
+          {/* Security Violations Log Panel */}
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex-1 flex flex-col min-h-[140px]">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Security Alerts ({violations.length}/3)</h4>
+            <div className="flex-1 overflow-y-auto space-y-2 max-h-[160px] scrollbar-thin">
+              {violations.length === 0 ? (
+                <p className="text-xs text-gray-400">No alerts triggered. Keep window fullscreen and tab active.</p>
+              ) : (
+                violations.map((v, idx) => (
+                  <div key={idx} className="flex gap-2 text-xs border-l-2 border-red-500 pl-2 py-0.5 bg-red-50/50">
+                    <span className="text-gray-400 font-mono text-[10px]">{new Date(v.timestamp).toLocaleTimeString()}</span>
+                    <span className="text-red-700 font-medium">{v.detail}</span>
+                  </div>
+                ))
               )}
+            </div>
+          </div>
+
+          {/* Metrics summary card */}
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 shrink-0">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Session Metrics</h4>
+            <div className="grid grid-cols-2 gap-2 text-center">
+              <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">
+                <span className="block text-lg font-bold text-gray-700">{questionCount}</span>
+                <span className="text-[10px] text-gray-400">Questions</span>
+              </div>
+              <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">
+                <span className="block text-lg font-bold text-gray-700 tabular-nums">
+                  {Math.floor(sessionDuration / 60)}:{String(sessionDuration % 60).padStart(2, '0')}
+                </span>
+                <span className="text-[10px] text-gray-400">Time elapsed</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* BOTTOM PANEL — Recording / Transcript / Submit */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+      {/* BOTTOM PANEL — Input and audio transcription */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 shrink-0">
         {isTranscribing ? (
-          <div className="flex items-center gap-2 text-gray-500">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            <span className="text-sm">Transcribing your answer...</span>
+          <div className="flex items-center gap-2 text-gray-500 py-2">
+            <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+            <span className="text-sm font-medium">Transcribing audio answer...</span>
           </div>
         ) : showTranscriptReview ? (
           <div>
             <div className="flex items-center gap-2 mb-2">
               <Edit3 className="w-4 h-4 text-purple-500" />
-              <span className="text-sm font-semibold text-purple-700">Review Transcript</span>
+              <span className="text-sm font-semibold text-purple-700">Review Speech Transcript</span>
             </div>
             <textarea
               value={transcript}
@@ -681,30 +681,28 @@ export default function InterviewWorkspace({ session, onEnd }) {
             </div>
           </div>
         ) : isRecording ? (
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between py-1 bg-red-50 border border-red-100 rounded-lg px-3 animate-pulse">
             <div className="flex items-center gap-3">
-              <span className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-              <span className="text-red-600 font-medium">Recording...</span>
-              <span className="text-gray-500 text-sm tabular-nums">
-                {Math.floor(sessionDuration / 60)}:{String(sessionDuration % 60).padStart(2, '0')}
+              <span className="w-2.5 h-2.5 bg-red-600 rounded-full animate-ping" />
+              <span className="text-red-700 font-semibold text-sm">Recording Speech...</span>
+              <span className="text-red-600 font-mono text-sm tabular-nums">
+                {Math.floor(duration / 60)}:{String(duration % 60).padStart(2, '0')}
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <button onClick={handleStopRecording} className="inline-flex items-center gap-1.5 bg-gray-800 text-white text-sm px-4 py-2 rounded-lg hover:bg-gray-900 transition-colors">
-                <StopCircle className="w-4 h-4" />
-                Stop Recording
-              </button>
-            </div>
+            <button onClick={handleStopRecording} className="inline-flex items-center gap-1.5 bg-gray-800 text-white text-xs px-3.5 py-1.5 rounded-lg hover:bg-gray-900 transition-colors">
+              <StopCircle className="w-3.5 h-3.5 text-red-500" />
+              Stop Recording
+            </button>
           </div>
         ) : inputMode === 'voice' ? (
-          <div className="flex items-center gap-2">
-            <button onClick={handleStartRecording} className="inline-flex items-center gap-1.5 bg-red-600 text-white text-sm px-5 py-2.5 rounded-lg hover:bg-red-700 transition-colors">
+          <div className="flex items-center gap-2 py-1">
+            <button onClick={handleStartRecording} className="inline-flex items-center gap-2 bg-red-600 text-white text-sm px-5 py-2.5 rounded-lg hover:bg-red-700 transition-colors font-medium">
               <Mic className="w-4 h-4" />
-              Start Recording
+              Start Voice Recording
             </button>
             <button onClick={() => setInputMode('text')} className="inline-flex items-center gap-1.5 text-gray-500 text-sm px-4 py-2.5 rounded-lg hover:bg-gray-100 transition-colors">
               <Edit3 className="w-4 h-4" />
-              Type Instead
+              Type Answer Instead
             </button>
           </div>
         ) : (
@@ -719,29 +717,29 @@ export default function InterviewWorkspace({ session, onEnd }) {
               onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSubmit(e) }}
             />
             <div className="flex flex-col gap-1">
-              <button type="submit" disabled={isSubmitting || !answer.trim() || !proctoringReady} className="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex-1 flex items-center gap-1.5">
+              <button type="submit" disabled={isSubmitting || !answer.trim() || !proctoringReady} className="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex-1 flex items-center gap-1.5 font-medium">
                 {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                Submit
+                Submit Answer
               </button>
             </div>
           </form>
         )}
-        <div className="flex items-center justify-between mt-2">
-          <p className="text-xs text-gray-400">
+        <div className="flex items-center justify-between mt-2 text-[11px] text-gray-400">
+          <p>
             {showTranscriptReview
-              ? 'Edit the transcript if needed, then submit.'
+              ? 'Review and edit transcript, then submit.'
               : isRecording
-              ? 'Recording in progress. Click Stop when done.'
+              ? 'Click Stop to process your speech.'
               : inputMode === 'voice'
-              ? 'Speak your answer. You can review the transcript before submitting.'
-              : 'Press Cmd/Ctrl + Enter to submit'}
+              ? 'Use voice for a realistic experience. Press start and talk.'
+              : 'Press Ctrl+Enter or Cmd+Enter to submit.'}
           </p>
           {inputMode === 'text' && !isRecording && !showTranscriptReview && (
             <button
               onClick={() => setInputMode('voice')}
-              className="text-xs text-blue-500 hover:text-blue-700"
+              className="text-[11px] text-blue-500 hover:underline hover:text-blue-700"
             >
-              Switch to Voice
+              Switch back to Voice
             </button>
           )}
         </div>

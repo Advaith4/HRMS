@@ -199,6 +199,13 @@ def _ensure_sqlite_interview_context_columns() -> None:
         "violations_count": "INTEGER DEFAULT 0",
         "violations": "TEXT DEFAULT '[]'",
         "cancellation_reason": "TEXT",
+        "competency_scores": "TEXT",
+        "job_fit_report": "TEXT",
+        "communication_metrics": "TEXT",
+        "behavioral_report": "TEXT",
+        "hiring_risks": "TEXT",
+        "timeline_replay": "TEXT",
+        "benchmarking": "TEXT",
     }
     with Session(engine) as session:
         existing = {row[1] for row in session.exec(text("PRAGMA table_info(interview_sessions)")).all()}
@@ -224,6 +231,13 @@ def _ensure_postgres_interview_context_columns() -> None:
         "ALTER TABLE interview_sessions ADD COLUMN IF NOT EXISTS violations_count INTEGER DEFAULT 0",
         "ALTER TABLE interview_sessions ADD COLUMN IF NOT EXISTS violations TEXT DEFAULT '[]'",
         "ALTER TABLE interview_sessions ADD COLUMN IF NOT EXISTS cancellation_reason TEXT",
+        "ALTER TABLE interview_sessions ADD COLUMN IF NOT EXISTS competency_scores TEXT",
+        "ALTER TABLE interview_sessions ADD COLUMN IF NOT EXISTS job_fit_report TEXT",
+        "ALTER TABLE interview_sessions ADD COLUMN IF NOT EXISTS communication_metrics TEXT",
+        "ALTER TABLE interview_sessions ADD COLUMN IF NOT EXISTS behavioral_report TEXT",
+        "ALTER TABLE interview_sessions ADD COLUMN IF NOT EXISTS hiring_risks TEXT",
+        "ALTER TABLE interview_sessions ADD COLUMN IF NOT EXISTS timeline_replay TEXT",
+        "ALTER TABLE interview_sessions ADD COLUMN IF NOT EXISTS benchmarking TEXT",
         "UPDATE interview_sessions SET personalization_context = '{}' WHERE personalization_context IS NULL OR personalization_context = ''",
         "UPDATE interview_sessions SET training_mode = 'adaptive' WHERE training_mode IS NULL OR training_mode = ''",
         "UPDATE interview_sessions SET interviewer_persona = 'balanced' WHERE interviewer_persona IS NULL OR interviewer_persona = ''",

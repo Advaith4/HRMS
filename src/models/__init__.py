@@ -70,6 +70,16 @@ class InterviewSession(SQLModel, table=True):
     violations: str = Field(default="[]")  # JSON: [{type, detail, timestamp}]
     cancellation_reason: Optional[str] = None
     status: str = Field(default="active", max_length=20)  # active | completed | cancelled
+    
+    # Phase 6 & 7 Hiring Intelligence JSON payloads (stored as text)
+    competency_scores: Optional[str] = Field(default=None)
+    job_fit_report: Optional[str] = Field(default=None)
+    communication_metrics: Optional[str] = Field(default=None)
+    behavioral_report: Optional[str] = Field(default=None)
+    hiring_risks: Optional[str] = Field(default=None)
+    timeline_replay: Optional[str] = Field(default=None)
+    benchmarking: Optional[str] = Field(default=None)
+
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 

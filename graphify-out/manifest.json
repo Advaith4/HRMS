@@ -245,13 +245,13 @@
     "semantic_hash": ""
   },
   "frontend/src/components/interview/InterviewSummary.jsx": {
-    "mtime": 1780649746.114337,
-    "ast_hash": "5930e6f1609b01e94f01fbcb35cc2405",
+    "mtime": 1780654173.4742665,
+    "ast_hash": "449f4fbfcb392582d0bd9ca6c2bea396",
     "semantic_hash": ""
   },
   "frontend/src/components/interview/InterviewWorkspace.jsx": {
-    "mtime": 1780649741.0684383,
-    "ast_hash": "7cb2974339413b5645b33796816f0493",
+    "mtime": 1780654095.9055803,
+    "ast_hash": "1589a191f671bc20926ad6b7a1ed13cd",
     "semantic_hash": ""
   },
   "frontend/src/components/layout/Layout.jsx": {
@@ -395,8 +395,8 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/hr/InterviewReports.jsx": {
-    "mtime": 1780649805.5298774,
-    "ast_hash": "ed3bbf4ade32347673a29d581b86a6d4",
+    "mtime": 1780654197.1823752,
+    "ast_hash": "0f2fec0524b90f10630bbc83613f0ba2",
     "semantic_hash": ""
   },
   "frontend/src/pages/hr/ManagerTrainingView.jsx": {
@@ -515,8 +515,8 @@
     "semantic_hash": ""
   },
   "src/api/routes/interview.py": {
-    "mtime": 1780650368.3095243,
-    "ast_hash": "3dfac841fe2c2f5af3c9c7c7e94b6fb1",
+    "mtime": 1780654943.9899292,
+    "ast_hash": "e063c1973f348a863f84c28f909c018f",
     "semantic_hash": ""
   },
   "src/api/routes/jobs.py": {
@@ -595,8 +595,8 @@
     "semantic_hash": ""
   },
   "src/database/connection.py": {
-    "mtime": 1780649475.8154964,
-    "ast_hash": "7748341b155b7d5c3505b878721aea16",
+    "mtime": 1780653921.1470647,
+    "ast_hash": "e4165890bf00fcfaac40c96d8b3c76cc",
     "semantic_hash": ""
   },
   "src/main.py": {
@@ -605,8 +605,8 @@
     "semantic_hash": ""
   },
   "src/models/__init__.py": {
-    "mtime": 1780649469.6425822,
-    "ast_hash": "65ab4df56b701cb2cf80c2e8959bcb76",
+    "mtime": 1780653889.8798308,
+    "ast_hash": "9443f86c1460464ae6ea681b8c913430",
     "semantic_hash": ""
   },
   "src/resume_lab.py": {
@@ -1007,6 +1007,16 @@
   "tests/test_proctoring.py": {
     "mtime": 1780650289.598955,
     "ast_hash": "631b4cdf456cb371746e8c743a4cf2d0",
+    "semantic_hash": ""
+  },
+  "src/services/hiring_intelligence.py": {
+    "mtime": 1780654010.9364111,
+    "ast_hash": "12b7c0e8a5f13f5fbde1fd1c56538e8b",
+    "semantic_hash": ""
+  },
+  "tests/test_hiring_intelligence.py": {
+    "mtime": 1780654399.7205856,
+    "ast_hash": "69198b259dc55940327dcc08839a6a27",
     "semantic_hash": ""
   }
 }
