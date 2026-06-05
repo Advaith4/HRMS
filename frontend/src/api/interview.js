@@ -152,7 +152,7 @@ export const getCandidateIntelligenceReport = async (candidateId) => {
  * POST /api/interview/intelligence/compare
  */
 export const compareCandidates = async (candidateIds) => {
-  const response = await api.post('/api/interview/intelligence/compare', candidateIds)
+  const response = await api.post('/api/interview/intelligence/compare', { candidate_ids: candidateIds })
   return response.data
 }
 

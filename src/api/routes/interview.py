@@ -18,7 +18,7 @@ from sqlmodel import Session, select
 
 from src.database.connection import get_session
 from src.models import CareerCoachMemory, InterviewSession, Resume, User, CandidateCredibilityReport
-from src.api.dependencies import get_current_user, get_current_user_optional
+from src.api.dependencies import get_current_user
 from src.resume_lab import analyze_resume, dumps_json, load_json_field, parse_resume
 
 logger = logging.getLogger(__name__)
@@ -671,13 +671,27 @@ def _state_from_record(rec: InterviewSession) -> dict[str, Any]:
         context["phase_history"] = context.get("phase_history") or ["Introduction"]
     msgs = _safe_json_load(rec.messages, [])
     last_ai = next((m["content"] for m in reversed(msgs) if m.get("role") == "ai"), "")
+
+    questions: list[str] = []
+    answers: list[str] = []
+    scores: list[int] = []
+    for i, m in enumerate(msgs):
+        if m.get("role") == "user":
+            answers.append(m.get("content", ""))
+            for j in range(i - 1, -1, -1):
+                if msgs[j].get("role") == "ai":
+                    questions.append(msgs[j].get("content", ""))
+                    break
+        if m.get("role") == "feedback" and m.get("score") is not None:
+            scores.append(int(m["score"]))
+
     return {
         "role": rec.role,
         "difficulty": rec.difficulty,
         "weak_areas": context.get("weak_areas", []),
-        "questions": [],
-        "answers": [],
-        "scores": [],
+        "questions": questions,
+        "answers": answers,
+        "scores": scores,
         "messages": msgs,
         "current_question": last_ai,
         "db_id": rec.id,
@@ -762,11 +776,11 @@ def _generate_daily_plan(memory: CareerCoachMemory, resume_analysis: dict[str, A
 def start_interview(
     req: StartReq,
     db: Session = Depends(get_session),
-    current_user: User | None = Depends(get_current_user_optional),
+    current_user: User = Depends(get_current_user),
 ):
     training_mode = _normalize_training_mode(req.training_mode)
     interviewer_persona = _normalize_persona(req.interviewer_persona)
-    memory = _get_or_create_memory(db, current_user.id) if current_user else None
+    memory = _get_or_create_memory(db, current_user.id)
     focus_mode = "weak_area" if req.weak_areas else "general"
     if training_mode == "behavioral_only":
         focus_mode = "behavioral_only"
@@ -844,21 +858,19 @@ def start_interview(
         "current_phase": current_phase,
         "phase_history": [current_phase],
     }
-    db_session = None
-    if current_user is not None:
-        db_session = InterviewSession(
-            user_id=current_user.id,
-            session_token=session_token,
-            role=req.role,
-            difficulty=req.difficulty,
-            training_mode=training_mode,
-            interviewer_persona=interviewer_persona,
-            messages=json.dumps([first_msg]),
-            personalization_context=json.dumps(context),
-        )
-        db.add(db_session)
-        db.commit()
-        db.refresh(db_session)
+    db_session = InterviewSession(
+        user_id=current_user.id,
+        session_token=session_token,
+        role=req.role,
+        difficulty=req.difficulty,
+        training_mode=training_mode,
+        interviewer_persona=interviewer_persona,
+        messages=json.dumps([first_msg]),
+        personalization_context=json.dumps(context),
+    )
+    db.add(db_session)
+    db.commit()
+    db.refresh(db_session)
 
     # Keep live state in memory
     _sessions[session_token] = {
@@ -870,9 +882,9 @@ def start_interview(
         "scores": [],
         "messages": [first_msg],
         "current_question": question,
-        "db_id": db_session.id if db_session else None,
+        "db_id": db_session.id,
         "session_token": session_token,
-        "user_id": current_user.id if current_user else None,
+        "user_id": current_user.id,
         "training_mode": training_mode,
         "interviewer_persona": interviewer_persona,
         "personalization_context": context,
@@ -886,7 +898,7 @@ def start_interview(
     return {
         "session_id": session_token,
         "question": question,
-        "db_id": db_session.id if db_session else None,
+        "db_id": db_session.id,
         "focus_area": first_msg["focus_area"],
         "focus_type": focus_type,
         "interviewer_signal": first_msg["interviewer_signal"],
@@ -1068,21 +1080,17 @@ def start_interview_from_resume(
 def submit_answer(
     req: AnswerReq,
     db: Session = Depends(get_session),
-    current_user: User | None = Depends(get_current_user_optional),
+    current_user: User = Depends(get_current_user),
 ):
     state = _sessions.get(req.session_id)
     if state is None:
-        if current_user is None:
-            raise HTTPException(status_code=400, detail="Invalid session ID. Please start a new interview.")
-        # Try to reload from DB (e.g. server restart)
         rec = db.exec(select(InterviewSession).where(InterviewSession.session_token == req.session_id)).first()
         if rec is None or rec.user_id != current_user.id:
             raise HTTPException(status_code=400, detail="Invalid session ID. Please start a new interview.")
         state = _state_from_record(rec)
         _sessions[req.session_id] = state
-    elif state.get("user_id") is not None:
-        if current_user is None or state.get("user_id") != current_user.id:
-            raise HTTPException(status_code=401, detail="Not authenticated")
+    elif state.get("user_id") is not None and state.get("user_id") != current_user.id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
 
     focus_mode = _choose_focus_mode(state)
     context = state.get("personalization_context") or {}
@@ -1117,7 +1125,17 @@ def submit_answer(
             result = {}
     except Exception as exc:
         logger.error("Interview answer failed: %s", exc, exc_info=True)
-        raise HTTPException(status_code=500, detail=str(exc))
+        result = {
+            "next_question": f"Let's try a different angle. Can you tell me about a specific project where you demonstrated {context.get('current_focus_area', 'your skills')}?",
+            "evaluation": {"score": 5, "what_went_well": ["Answered under pressure"], "what_was_missing": ["Detail and specificity"], "how_to_improve": ["Try again with a concrete example"], "next_focus": context.get("current_focus_area", "general role fit")},
+            "focus_area": context.get("current_focus_area", "general"),
+            "focus_type": "general",
+            "adaptive_mode": focus_mode,
+            "new_difficulty": state["difficulty"],
+            "interviewer_signal": "Let's keep going.",
+            "pressure_level": "medium",
+            "answer_expectation": "Answer with a specific example.",
+        }
 
     # Update in-memory state
     state["questions"].append(state["current_question"])
@@ -1185,12 +1203,15 @@ def submit_answer(
         "timestamp": now,
     })
 
-    if current_user is not None:
-        memory = _update_coach_memory(db, current_user.id, state, score)
-        context["coach_memory"] = _memory_snapshot(memory)
-        _save_session_state(db, req.session_id, state, avg)
-    else:
-        context["coach_memory"] = _memory_snapshot(None)
+    memory = _update_coach_memory(db, current_user.id, state, score)
+    context["coach_memory"] = _memory_snapshot(memory)
+    _save_session_state(db, req.session_id, state, avg)
+    if next_phase == "Final Evaluation":
+        rec = db.exec(select(InterviewSession).where(InterviewSession.session_token == req.session_id)).first()
+        if rec:
+            rec.status = "completed"
+            db.add(rec)
+            db.commit()
     state["personalization_context"] = context
 
     # Derive a compact final verdict from rolling scores
@@ -1506,14 +1527,25 @@ def intelligence_candidate_report(
     timeline = []
     for s in sessions:
         msgs = json.loads(s.messages) if s.messages else []
-        for m in msgs:
-            if m.get("role") == "assistant" and m.get("evaluation"):
-                ev = m["evaluation"]
+        for i, m in enumerate(msgs):
+            if m.get("role") == "feedback" and m.get("score") is not None:
+                question = ""
+                for j in range(i - 1, -1, -1):
+                    prev = msgs[j]
+                    if prev.get("role") == "ai":
+                        question = prev.get("content", "")[:200]
+                        break
+                next_diff = s.difficulty
+                for j in range(i + 1, min(i + 3, len(msgs))):
+                    nxt = msgs[j]
+                    if nxt.get("role") == "ai" and nxt.get("difficulty"):
+                        next_diff = nxt["difficulty"]
+                        break
                 timeline.append({
-                    "question": m.get("content", "")[:200],
-                    "score": ev.get("score", 0),
-                    "difficulty": ev.get("difficulty", s.difficulty),
-                    "feedback": ev.get("feedback", ""),
+                    "question": question,
+                    "score": m["score"],
+                    "difficulty": next_diff,
+                    "feedback": m.get("content", ""),
                     "timestamp": m.get("timestamp", s.created_at.isoformat() if s.created_at else ""),
                 })
 
