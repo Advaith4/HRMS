@@ -8,7 +8,7 @@ export default function InterviewPage() {
   const [difficulty, setDifficulty] = useState(5)
   const [trainingMode, setTrainingMode] = useState('adaptive')
   const [persona, setPersona] = useState('balanced')
-  const [useResume, setUseResume] = useState(false)
+  const [useResume, setUseResume] = useState(true)
   const [session, setSession] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -49,10 +49,8 @@ export default function InterviewPage() {
 
   if (session) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4">
-        <div className="max-w-7xl mx-auto">
-          <InterviewWorkspace session={session} onEnd={handleEnd} />
-        </div>
+      <div className="min-h-screen bg-gray-50">
+        <InterviewWorkspace session={session} onEnd={handleEnd} />
       </div>
     )
   }

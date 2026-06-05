@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Briefcase, FileText, Search, Clock, CheckCircle, ChevronDown, ChevronUp, Eye, Layout, SlidersHorizontal } from 'lucide-react'
+import { Briefcase, FileText, Search, Clock, CheckCircle, ChevronDown, ChevronUp, Eye, Layout, SlidersHorizontal, MessageCircle } from 'lucide-react'
 import { MetricCard } from '../components/ui/MetricCard'
 import { StatusPill } from '../components/ui/StatusPill'
 import { SkeletonCard } from '../components/ui/SkeletonCard'
@@ -244,6 +244,27 @@ export const CandidateDashboard = ({ activeTab = 'overview' }) => {
                 </div>
               )}
             </div>
+
+            {/* AI Mock Interview Card */}
+            <Link to="/interview" className="block bg-white border border-border-custom rounded-xl p-5 space-y-4 shadow-xs hover:shadow-sm hover:border-brand-indigo/30 transition-all group">
+              <div className="flex items-center space-x-3">
+                <div className="p-2.5 rounded-lg bg-brand-indigo/10 text-brand-indigo group-hover:bg-brand-indigo group-hover:text-white transition-colors">
+                  <MessageCircle size={18} />
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-txt-primary block group-hover:text-brand-indigo transition-colors">AI Mock Interview</span>
+                  <span className="text-[9px] text-txt-tertiary mt-0.5 block">Practice with AI-powered interviews</span>
+                </div>
+              </div>
+              <p className="text-[10px] text-txt-secondary leading-relaxed">
+                Simulate real interviews with adaptive difficulty, get instant feedback, track your coaching memory, and view credibility reports.
+              </p>
+              <div className="pt-1">
+                <span className="inline-flex items-center text-[10px] font-bold text-brand-indigo group-hover:underline">
+                  Start practice <span className="ml-1">→</span>
+                </span>
+              </div>
+            </Link>
 
           </div>
 

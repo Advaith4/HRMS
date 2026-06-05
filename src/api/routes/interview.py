@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
 from src.database.connection import get_session
-from src.models import CareerCoachMemory, InterviewSession, Resume, User, CandidateCredibilityReport
+from src.models import CareerCoachMemory, CandidateApplication, InterviewSession, Resume, User, CandidateCredibilityReport
 from src.api.dependencies import get_current_user
 from src.resume_lab import analyze_resume, dumps_json, load_json_field, parse_resume
 
@@ -149,6 +149,28 @@ class StartFromResumeReq(BaseModel):
 class AnswerReq(BaseModel):
     session_id: str
     answer: str = Field(min_length=1, max_length=5000)
+
+
+class CompareReq(BaseModel):
+    candidate_ids: list[int] = Field(min_length=1, max_length=20)
+
+
+def _latest_candidate_resume_text(db: Session, user_id: int) -> tuple[str, str]:
+    resume = db.exec(select(Resume).where(Resume.user_id == user_id)).first()
+    if resume:
+        text = resume.current_text or resume.raw_text or ""
+        if text.strip():
+            return text, "resume_lab"
+
+    application = db.exec(
+        select(CandidateApplication)
+        .where(CandidateApplication.candidate_user_id == user_id)
+        .order_by(CandidateApplication.application_date.desc())
+    ).first()
+    if application and application.resume_text.strip():
+        return application.resume_text, "application"
+
+    return "", ""
 
 
 def _safe_json_load(value: str | None, default):
@@ -924,22 +946,23 @@ def start_interview_from_resume(
     interviewer_persona = _normalize_persona(req.interviewer_persona)
     memory = _get_or_create_memory(db, current_user.id)
     resume = db.exec(select(Resume).where(Resume.user_id == current_user.id)).first()
-    if not resume:
-        raise HTTPException(status_code=400, detail="Please upload a resume before starting a resume-aware interview.")
+    resume_text, resume_source = _latest_candidate_resume_text(db, current_user.id)
+    if not resume_text:
+        raise HTTPException(status_code=400, detail="Please upload a resume or apply to a job with your resume before starting a resume-aware interview.")
 
-    resume_text = resume.current_text or resume.raw_text or ""
     if len(resume_text.strip()) < 50:
         raise HTTPException(status_code=400, detail="Stored resume is too short for personalized interview training.")
 
     role = req.role.strip() or current_user.target_role or "Software Engineer"
-    analysis = load_json_field(resume.last_analysis, None)
+    analysis = load_json_field(resume.last_analysis, None) if resume else None
     if req.force_reanalyze or not analysis:
         analysis = analyze_resume(resume_text, role)
-        resume.last_analysis = dumps_json(analysis)
-        resume.parsed_resume = dumps_json(parse_resume(resume_text))
-        resume.updated_at = datetime.utcnow()
-        db.add(resume)
-        db.commit()
+        if resume:
+            resume.last_analysis = dumps_json(analysis)
+            resume.parsed_resume = dumps_json(parse_resume(resume_text))
+            resume.updated_at = datetime.utcnow()
+            db.add(resume)
+            db.commit()
 
     context = _build_personalization_context(
         resume_text,
@@ -1055,6 +1078,7 @@ def start_interview_from_resume(
         "question": question,
         "db_id": db_session.id,
         "personalized": True,
+        "resume_source": resume_source,
         "role": role,
         "difficulty": req.difficulty,
         "weak_areas": context["weak_areas"],
@@ -1611,7 +1635,7 @@ def intelligence_candidate_report(
 
 @router.post("/intelligence/compare")
 def intelligence_compare(
-    candidate_ids: list[int],
+    req: CompareReq,
     db: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
@@ -1620,7 +1644,7 @@ def intelligence_compare(
         raise HTTPException(status_code=403, detail="HR/manager access required")
 
     reports = []
-    for cid in candidate_ids:
+    for cid in req.candidate_ids:
         try:
             # Reuse the report logic inline
             candidate = db.get(User, cid)

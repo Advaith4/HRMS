@@ -11,6 +11,7 @@ export default function useInterviewMedia() {
   const [cameraStatus, setCameraStatus] = useState('idle')
   const [screenShareEnabled, setScreenShareEnabled] = useState(false)
   const [screenShareStatus, setScreenShareStatus] = useState('idle')
+  const [screenShareSurface, setScreenShareSurface] = useState(null)
   const [isMobile] = useState(isMobileDevice)
 
   const cameraVideoRef = useRef(null)
@@ -70,9 +71,15 @@ export default function useInterviewMedia() {
     }
     setScreenShareStatus('requesting')
     try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true })
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: { displaySurface: 'monitor' },
+        audio: false,
+      })
+      const track = stream.getVideoTracks()[0]
+      const settings = track?.getSettings?.() || {}
       screenStreamRef.current = stream
-      stream.getVideoTracks()[0].onended = () => {
+      setScreenShareSurface(settings.displaySurface || null)
+      track.onended = () => {
         stopScreenShare()
       }
       setScreenShareEnabled(true)
@@ -98,6 +105,7 @@ export default function useInterviewMedia() {
       screenStreamRef.current = null
     }
     setScreenShareEnabled(false)
+    setScreenShareSurface(null)
     setScreenShareStatus('idle')
     if (screenVideoRef.current) {
       screenVideoRef.current.srcObject = null
@@ -109,6 +117,7 @@ export default function useInterviewMedia() {
     cameraStatus,
     screenShareEnabled,
     screenShareStatus,
+    screenShareSurface,
     isMobile,
     cameraVideoRef,
     screenVideoRef,

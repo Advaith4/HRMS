@@ -9,11 +9,12 @@ import useRecorder from '../../hooks/useRecorder'
 import useInterviewMedia from '../../hooks/useInterviewMedia'
 import { submitAnswer, transcribeAudio } from '../../api/interview'
 import InterviewStatusCard from './InterviewStatusCard'
+import InterviewSummary from './InterviewSummary'
 import toast from 'react-hot-toast'
 
 export default function InterviewWorkspace({ session, onEnd }) {
   const {
-    cameraEnabled, cameraStatus, screenShareEnabled, screenShareStatus, isMobile,
+    cameraEnabled, cameraStatus, screenShareEnabled, screenShareStatus, screenShareSurface, isMobile,
     cameraVideoRef, screenVideoRef,
     startCamera, stopCamera, startScreenShare, stopScreenShare,
   } = useInterviewMedia()
@@ -38,14 +39,31 @@ export default function InterviewWorkspace({ session, onEnd }) {
   const [avgScore, setAvgScore] = useState(null)
   const [questionCount, setQuestionCount] = useState(1)
   const [sessionDuration, setSessionDuration] = useState(0)
+  const [completedSession, setCompletedSession] = useState(null)
+  const [isFullscreen, setIsFullscreen] = useState(
+    typeof document !== 'undefined' ? Boolean(document.fullscreenElement) : false
+  )
+  const [proctoringStarted, setProctoringStarted] = useState(false)
+  const [proctoringError, setProctoringError] = useState('')
+  const [violations, setViolations] = useState([])
 
   const messagesEndRef = useRef(null)
   const durationTimerRef = useRef(null)
+  const violationsRef = useRef([])
 
   useEffect(() => {
+    const initialMessages = []
     if (session?.session_intro) {
-      setConversation([{ type: 'intro', content: session.session_intro }])
+      initialMessages.push({ type: 'intro', content: session.session_intro })
     }
+    if (session?.question) {
+      initialMessages.push({ type: 'question', content: session.question })
+    }
+    setConversation(initialMessages)
+    setCurrentQuestion(session?.question || '')
+    setCurrentPhase(session?.phase || 'Introduction')
+    setCurrentPhaseGoal(session?.phase_goal || '')
+    setQuestionCount(session?.question ? 1 : 0)
   }, [session])
 
   useEffect(() => {
@@ -91,7 +109,99 @@ export default function InterviewWorkspace({ session, onEnd }) {
     doTranscribe()
   }, [audioBlob, clearRecording])
 
+  const addViolation = useCallback((type, detail) => {
+    const entry = {
+      type,
+      detail,
+      timestamp: new Date().toISOString(),
+    }
+    violationsRef.current = [...violationsRef.current, entry].slice(-20)
+    setViolations(violationsRef.current)
+  }, [])
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const active = Boolean(document.fullscreenElement)
+      setIsFullscreen(active)
+      if (proctoringStarted && !active) {
+        addViolation('fullscreen_exit', 'Candidate exited fullscreen mode.')
+      }
+    }
+    const handleVisibilityChange = () => {
+      if (proctoringStarted && document.hidden) {
+        addViolation('tab_switch', 'Candidate switched away from the interview tab.')
+      }
+    }
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [addViolation, proctoringStarted])
+
+  useEffect(() => {
+    if (proctoringStarted && cameraStatus !== 'active' && cameraStatus !== 'requesting') {
+      addViolation('camera_off', 'Camera was turned off or became unavailable.')
+    }
+  }, [addViolation, cameraStatus, proctoringStarted])
+
+  useEffect(() => {
+    if (proctoringStarted && screenShareStatus !== 'active' && screenShareStatus !== 'requesting') {
+      addViolation('screen_share_off', 'Screen sharing was stopped or became unavailable.')
+    }
+  }, [addViolation, proctoringStarted, screenShareStatus])
+
+  const isEntireScreenShared = !screenShareSurface || screenShareSurface === 'monitor'
+  const proctoringReady = (
+    proctoringStarted &&
+    cameraStatus === 'active' &&
+    screenShareStatus === 'active' &&
+    isFullscreen &&
+    isEntireScreenShared
+  )
+
+  const enterFullscreen = useCallback(async () => {
+    if (document.fullscreenElement) return true
+    try {
+      await document.documentElement.requestFullscreen()
+      setIsFullscreen(true)
+      return true
+    } catch (err) {
+      setIsFullscreen(false)
+      return false
+    }
+  }, [])
+
+  const handleStartProctoring = async () => {
+    setProctoringError('')
+    if (screenShareEnabled && !isEntireScreenShared) {
+      stopScreenShare()
+      setProctoringError('Please start again and choose your entire screen, not a browser tab or window.')
+      return
+    }
+    setProctoringStarted(true)
+    const screenPromise = startScreenShare()
+    const cameraPromise = startCamera()
+    const fullscreenPromise = enterFullscreen()
+    const [screenOk, cameraOk, fullscreenOk] = await Promise.all([
+      screenPromise,
+      cameraPromise,
+      fullscreenPromise,
+    ])
+
+    if (!cameraOk || !screenOk || !fullscreenOk) {
+      setProctoringError('Camera, screen sharing, and browser fullscreen are all required to continue.')
+      toast.error('Complete the proctoring setup to continue.')
+    }
+  }
+
   const handleStartRecording = async () => {
+    if (!proctoringReady) {
+      toast.error('Complete proctoring setup before answering.')
+      return
+    }
     setTranscript('')
     setShowTranscriptReview(false)
     setMicStatus('active')
@@ -106,11 +216,94 @@ export default function InterviewWorkspace({ session, onEnd }) {
     stopRecording()
   }
 
-  const handleAcceptTranscript = () => {
-    setAnswer(transcript)
+  const submitAnswerText = useCallback(async (rawText) => {
+    const text = rawText.trim()
+    if (!text || !session?.session_id || isSubmitting) return
+    if (!proctoringReady) {
+      toast.error('Camera, screen sharing, and fullscreen must stay active.')
+      return
+    }
+
+    setIsSubmitting(true)
     setShowTranscriptReview(false)
     setTranscript('')
-    setInputMode('text')
+    setAnswer('')
+    setConversation(prev => [...prev, { type: 'answer', content: text }])
+
+    try {
+      const data = await submitAnswer(session.session_id, text)
+      const nextQuestion = data.next_question || ''
+      const isComplete = Boolean(data.interview_complete)
+      const finalFeedbackText = typeof data.final_feedback === 'string'
+        ? data.final_feedback
+        : data.final_feedback
+          ? [
+              data.final_feedback.verdict,
+              data.final_feedback.verdict_explanation,
+              ...(data.final_feedback.improvement_plan || []),
+            ].filter(Boolean).join('\n')
+          : ''
+
+      setLastFeedback(data)
+      setAvgScore(data.avg_score)
+      setCurrentPhase(data.phase || currentPhase)
+      setCurrentPhaseGoal(data.phase_goal || currentPhaseGoal)
+
+      if (nextQuestion) {
+        setCurrentQuestion(nextQuestion)
+      }
+
+      setConversation(prev => {
+        const nextItems = [
+          ...prev,
+          {
+            type: 'feedback',
+            content: data.feedback_message || data.feedback || 'Answer evaluated.',
+            data: { score: data.evaluation?.score },
+          },
+        ]
+
+        if (isComplete) {
+          nextItems.push({
+            type: 'feedback',
+            content: finalFeedbackText || data.verdict_explanation || 'Interview complete.',
+            data: { score: data.avg_score },
+          })
+        } else if (nextQuestion) {
+          nextItems.push({ type: 'question', content: nextQuestion })
+        }
+
+        return nextItems
+      })
+
+      if (isComplete) {
+        setCompletedSession({
+          ...session,
+          ...data,
+          id: data.db_id || session.db_id || session.id,
+          avg_score: data.avg_score ?? data.evaluation?.score ?? avgScore ?? 0,
+          final_feedback: finalFeedbackText || data.feedback_message || '',
+          final_verdict: data.final_verdict || data.evaluation?.final_verdict || '',
+        })
+        toast.success('Interview complete!')
+      } else {
+        if (nextQuestion) {
+          setQuestionCount(count => count + 1)
+        }
+        setInputMode('voice')
+        toast.success('Answer evaluated!')
+      }
+    } catch (err) {
+      console.error('Submit answer failed:', err)
+      toast.error(err.response?.data?.detail || 'Failed to submit answer')
+      setAnswer(text)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }, [avgScore, currentPhase, currentPhaseGoal, isSubmitting, proctoringReady, session])
+
+  const handleAcceptTranscript = () => {
+    submitAnswerText(transcript)
   }
 
   const handleEditTranscript = (e) => {
@@ -126,32 +319,7 @@ export default function InterviewWorkspace({ session, onEnd }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!answer.trim() || !session?.session_id) return
-    const text = answer.trim()
-    setIsSubmitting(true)
-    setAnswer('')
-    setConversation(prev => [...prev, { type: 'answer', content: text }])
-    try {
-      const data = await submitAnswer(session.session_id, text)
-      setLastFeedback(data)
-      setAvgScore(data.avg_score)
-      setCurrentQuestion(data.next_question || data.answer_expectation || 'Can you explain that with a specific example?')
-      setCurrentPhase(data.phase || currentPhase)
-      setCurrentPhaseGoal(data.phase_goal || currentPhaseGoal)
-      setQuestionCount(prev => prev + 1)
-      setConversation(prev => [
-        ...prev,
-        { type: 'feedback', content: data.feedback_message, data: { score: data.evaluation?.score } },
-        { type: 'question', content: data.answer_expectation || data.next_question },
-      ])
-      setInputMode('voice')
-      toast.success('Answer evaluated!')
-    } catch (err) {
-      console.error('Submit answer failed:', err)
-      toast.error('Failed to submit answer')
-    } finally {
-      setIsSubmitting(false)
-    }
+    submitAnswerText(answer)
   }
 
   const statusForCard = (status) => {
@@ -160,13 +328,108 @@ export default function InterviewWorkspace({ session, onEnd }) {
     return 'idle'
   }
 
+  if (completedSession) {
+    return (
+      <InterviewSummary
+        session={completedSession}
+        onRestart={() => window.location.reload()}
+      />
+    )
+  }
+
   return (
-    <div className="h-[calc(100vh-2rem)] flex flex-col gap-3">
+    <div className="h-screen flex flex-col gap-3 p-3 relative overflow-hidden">
+      {!proctoringReady && (
+        <div className="absolute inset-0 z-50 bg-gray-950/85 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-2xl bg-white border border-gray-200 rounded-xl shadow-xl p-6">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                <Shield className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Proctoring setup required</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Camera, full-screen screen sharing, and browser fullscreen must stay active for the interview.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-5">
+              <div className={`p-3 rounded-lg border ${cameraStatus === 'active' ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                <div className="flex items-center gap-2 text-sm font-medium text-gray-800">
+                  <Camera className="w-4 h-4" />
+                  Camera visible
+                </div>
+                <p className="text-xs text-gray-500 mt-1">{cameraStatus === 'active' ? 'Active' : 'Required before answering'}</p>
+              </div>
+              <div className={`p-3 rounded-lg border ${screenShareStatus === 'active' && isEntireScreenShared ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                <div className="flex items-center gap-2 text-sm font-medium text-gray-800">
+                  <Monitor className="w-4 h-4" />
+                  Screen sharing
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  {screenShareStatus === 'active'
+                    ? isEntireScreenShared ? 'Entire screen active' : 'Select your entire screen, not a tab or window'
+                    : 'Required before answering'}
+                </p>
+              </div>
+              <div className={`p-3 rounded-lg border ${isFullscreen ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                <div className="flex items-center gap-2 text-sm font-medium text-gray-800">
+                  <ArrowRight className="w-4 h-4" />
+                  Browser fullscreen
+                </div>
+                <p className="text-xs text-gray-500 mt-1">{isFullscreen ? 'Active' : 'Required before answering'}</p>
+              </div>
+              <div className="p-3 rounded-lg border bg-gray-50 border-gray-200">
+                <div className="flex items-center gap-2 text-sm font-medium text-gray-800">
+                  <AlertTriangle className="w-4 h-4" />
+                  Tab switching
+                </div>
+                <p className="text-xs text-gray-500 mt-1">{violations.length ? `${violations.length} event(s) recorded` : 'Do not leave this screen'}</p>
+              </div>
+            </div>
+
+            {proctoringError && (
+              <p className="mt-4 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg p-3">
+                {proctoringError}
+              </p>
+            )}
+            {isMobile && (
+              <p className="mt-4 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg p-3">
+                Screen sharing is not available on most mobile browsers. Use a desktop browser for proctored interviews.
+              </p>
+            )}
+            {screenShareSurface && screenShareSurface !== 'monitor' && (
+              <p className="mt-4 text-sm text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-3">
+                You selected a {screenShareSurface}. Please share your entire screen.
+              </p>
+            )}
+
+            <div className="flex flex-wrap gap-2 mt-5">
+              <button
+                onClick={handleStartProctoring}
+                disabled={cameraStatus === 'requesting' || screenShareStatus === 'requesting' || isMobile}
+                className="inline-flex items-center gap-2 bg-blue-600 text-white text-sm px-5 py-2.5 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              >
+                {(cameraStatus === 'requesting' || screenShareStatus === 'requesting') && <Loader2 className="w-4 h-4 animate-spin" />}
+                Start Proctored Interview
+              </button>
+              <button
+                onClick={onEnd}
+                className="inline-flex items-center gap-2 bg-gray-100 text-gray-600 text-sm px-4 py-2.5 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between px-1">
         <div>
           <h2 className="text-lg font-semibold text-gray-900">{session.role} Interview</h2>
           <p className="text-sm text-gray-500">
-            Phase: {currentPhase} {avgScore !== null && `| Avg Score: ${avgScore.toFixed(1)}/10`}
+            Phase: {currentPhase} {avgScore !== null && `| Avg Score: ${avgScore.toFixed(1)}/10`} | Proctoring: {proctoringReady ? 'Active' : 'Required'}
           </p>
         </div>
         <button onClick={onEnd} className="text-sm text-gray-400 hover:text-gray-600 transition-colors">
@@ -185,7 +448,7 @@ export default function InterviewWorkspace({ session, onEnd }) {
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {conversation.length === 0 && (
                 <p className="text-sm text-blue-700 bg-blue-50 rounded-lg p-3">
-                  {session.session_intro}
+                  {currentQuestion || session.session_intro}
                 </p>
               )}
               {conversation.map((item, i) => (
@@ -261,11 +524,16 @@ export default function InterviewWorkspace({ session, onEnd }) {
               <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Latest Feedback</h4>
               <p className="text-sm text-gray-700">
                 Score: <span className="font-semibold text-green-600">{lastFeedback.evaluation?.score}/10</span>
-                {' '}&mdash; {lastFeedback.evaluation?.final_verdict}
+                {' '}- {lastFeedback.evaluation?.final_verdict}
               </p>
               <p className="text-xs text-gray-500 mt-1">
                 {lastFeedback.evaluation?.verdict_explanation}
               </p>
+              {lastFeedback.answer_expectation && (
+                <p className="text-xs text-gray-500 mt-2">
+                  Expected answer shape: {lastFeedback.answer_expectation}
+                </p>
+              )}
             </div>
           )}
 
@@ -273,7 +541,7 @@ export default function InterviewWorkspace({ session, onEnd }) {
             <Shield className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
             <p className="text-xs text-blue-700">
               Camera preview is local only. Video is not recorded, stored, streamed, or analyzed.
-              Screen sharing is optional and controlled by you at all times.
+              Screen sharing and browser fullscreen are required while the interview is active.
             </p>
           </div>
         </div>
@@ -316,7 +584,7 @@ export default function InterviewWorkspace({ session, onEnd }) {
                     <Monitor className="w-4 h-4" />
                     Share Screen
                   </button>
-                  <p className="text-xs text-gray-400 mt-2">Not recorded or analyzed.</p>
+                  <p className="text-xs text-gray-400 mt-2">Required for proctoring.</p>
                 </div>
               )}
             </div>
@@ -374,8 +642,12 @@ export default function InterviewWorkspace({ session, onEnd }) {
               className="w-full p-3 border border-purple-200 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-purple-300"
             />
             <div className="flex gap-2 mt-2">
-              <button onClick={handleAcceptTranscript} className="inline-flex items-center gap-1.5 bg-purple-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
-                <Check className="w-4 h-4" />
+              <button
+                onClick={handleAcceptTranscript}
+                disabled={isSubmitting || !transcript.trim() || !proctoringReady}
+                className="inline-flex items-center gap-1.5 bg-purple-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
+              >
+                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                 Use & Submit
               </button>
               <button onClick={handleCancelTranscript} className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-600 text-sm px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors">
@@ -422,7 +694,7 @@ export default function InterviewWorkspace({ session, onEnd }) {
               onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSubmit(e) }}
             />
             <div className="flex flex-col gap-1">
-              <button type="submit" disabled={isSubmitting || !answer.trim()} className="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex-1 flex items-center gap-1.5">
+              <button type="submit" disabled={isSubmitting || !answer.trim() || !proctoringReady} className="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex-1 flex items-center gap-1.5">
                 {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 Submit
               </button>

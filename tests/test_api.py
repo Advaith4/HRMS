@@ -1,4 +1,6 @@
 import os
+import sys
+import types
 import uuid
 from pathlib import Path
 
@@ -12,6 +14,7 @@ from sqlmodel import Session, select
 
 from src.main import app
 import src.api.routes.applications as applications_route
+import src.api.routes.interview as interview_route
 import src.services.recruitment_ai as recruitment_ai
 from src.database.connection import create_db_and_tables, engine
 from src.models import Employee, User
@@ -425,3 +428,155 @@ def test_employee_directory_routing():
     )
     assert response.status_code == 200
     assert isinstance(response.json(), list)
+
+
+def test_candidate_can_start_and_answer_mock_interview(monkeypatch):
+    def fake_start(**kwargs):
+        return {
+            "question": "Tell me about yourself and why you're a good fit for this Software Engineer role.",
+            "focus_area": "general role fit",
+            "focus_type": "general",
+            "interviewer_signal": "Be specific.",
+            "pressure_level": "medium",
+            "answer_expectation": "Use a concrete example.",
+        }
+
+    def fake_answer(**kwargs):
+        return {
+            "next_question": "Describe one technical tradeoff you made.",
+            "evaluation": {
+                "score": 7,
+                "what_went_well": ["Specific example"],
+                "what_was_missing": ["More metrics"],
+                "how_to_improve": ["Quantify the outcome"],
+                "next_focus": "technical tradeoffs",
+            },
+            "focus_area": "technical tradeoffs",
+            "focus_type": "domain",
+            "new_difficulty": 6,
+            "answer_expectation": "Explain the decision and result.",
+        }
+
+    monkeypatch.setitem(
+        sys.modules,
+        "crew",
+        types.SimpleNamespace(run_interview_start=fake_start, run_interview_answer=fake_answer),
+    )
+
+    token = _register(f"candidate_{uuid.uuid4().hex[:8]}", "candidate")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    started = client.post(
+        "/api/interview/start",
+        headers=headers,
+        json={"role": "Software Engineer", "difficulty": 5},
+    )
+    assert started.status_code == 200, started.text
+    payload = started.json()
+    assert payload["session_id"]
+    assert payload["question"].startswith("Tell me about yourself")
+    assert payload["db_id"]
+
+    answered = client.post(
+        "/api/interview/answer",
+        headers=headers,
+        json={"session_id": payload["session_id"], "answer": "I built a FastAPI service and chose SQLModel for typed persistence."},
+    )
+    assert answered.status_code == 200, answered.text
+    answer_payload = answered.json()
+    assert answer_payload["next_question"] == "Describe one technical tradeoff you made."
+    assert answer_payload["evaluation"]["score"] == 7
+    assert answer_payload["avg_score"] == 7
+
+
+def test_resume_aware_interview_uses_latest_application_resume(monkeypatch):
+    resume_text = (
+        "Summary\nBackend engineer focused on FastAPI services and hiring workflow automation.\n"
+        "Skills\nPython, FastAPI, SQLModel, PostgreSQL, React\n"
+        "Experience\nBuilt candidate screening APIs, resume analysis tools, and interview scoring dashboards."
+    )
+    monkeypatch.setattr(applications_route, "extract_text_from_pdf", lambda path: resume_text)
+    monkeypatch.setattr(
+        interview_route,
+        "analyze_resume",
+        lambda text, role: {
+            "score": 82,
+            "breakdown": {"impact": 80, "clarity": 84, "structure": 82, "ats": 86},
+            "sections": [
+                {
+                    "section": "Experience",
+                    "issues": [
+                        {
+                            "problem": "Needs stronger metrics",
+                            "original": "Built candidate screening APIs",
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+
+    def fake_start(**kwargs):
+        assert kwargs["resume_context"]["skills"]
+        assert kwargs["weak_areas"]
+        return {
+            "question": "Tell me about yourself and why you're a good fit for this Backend Engineer role.",
+            "focus_area": kwargs["weak_areas"][0],
+            "focus_type": "weak_area",
+            "answer_expectation": "Use resume evidence.",
+        }
+
+    monkeypatch.setitem(
+        sys.modules,
+        "crew",
+        types.SimpleNamespace(run_interview_start=fake_start, run_interview_answer=lambda **kwargs: {}),
+    )
+
+    candidate_token = _register(f"candidate_{uuid.uuid4().hex[:8]}", "candidate")
+    hr_token = _register(f"hr_{uuid.uuid4().hex[:8]}", "hr")
+    candidate_headers = {"Authorization": f"Bearer {candidate_token}"}
+    hr_headers = {"Authorization": f"Bearer {hr_token}"}
+
+    created = client.post(
+        "/api/jobs",
+        headers=hr_headers,
+        json={"title": "Backend Engineer", "description": "Build HRMS APIs."},
+    )
+    assert created.status_code == 201, created.text
+
+    applied = client.post(
+        "/api/applications/apply",
+        headers=candidate_headers,
+        data={"job_id": str(created.json()["id"])},
+        files={"file": ("resume.pdf", b"%PDF-1.4 fake pdf", "application/pdf")},
+    )
+    assert applied.status_code == 201, applied.text
+
+    started = client.post(
+        "/api/interview/start-from-resume",
+        headers=candidate_headers,
+        json={"role": "Backend Engineer", "difficulty": 6},
+    )
+    assert started.status_code == 200, started.text
+    payload = started.json()
+    assert payload["personalized"] is True
+    assert payload["resume_source"] == "application"
+    assert payload["resume_score"] == 82
+    assert payload["weak_areas"]
+
+
+def test_interview_intelligence_compare_accepts_frontend_payload():
+    candidate_username = f"candidate_{uuid.uuid4().hex[:8]}"
+    _register(candidate_username, "candidate")
+    hr_token = _register(f"hr_{uuid.uuid4().hex[:8]}", "hr")
+
+    with Session(engine) as session:
+        candidate_id = session.exec(select(User).where(User.username == candidate_username)).one().id
+
+    response = client.post(
+        "/api/interview/intelligence/compare",
+        headers={"Authorization": f"Bearer {hr_token}"},
+        json={"candidate_ids": [candidate_id]},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["comparison"][0]["candidate_id"] == candidate_id
