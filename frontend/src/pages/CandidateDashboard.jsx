@@ -424,7 +424,7 @@ export const CandidateDashboard = ({ activeTab = 'overview' }) => {
                       </div>
 
                        <div className="flex items-center space-x-4 self-end sm:self-auto">
-                        {app.interview_status === 'pending' && (
+                        {app.can_start_interview && (
                           <div className="flex items-center gap-2">
                             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-warning-bg/40 text-warning-primary border border-warning-primary/20">
                               Interview Pending
@@ -434,11 +434,25 @@ export const CandidateDashboard = ({ activeTab = 'overview' }) => {
                               onClick={(e) => e.stopPropagation()}
                               className="px-2.5 py-1 bg-brand-indigo hover:bg-brand-indigo-hover text-white text-[10px] font-bold rounded-lg cursor-pointer transition-colors shadow-xs"
                             >
-                              Take Interview
+                              Start Interview
                             </a>
                           </div>
                         )}
-                        {app.interview_status === 'completed' && (
+                        {app.can_resume_interview && (
+                          <div className="flex items-center gap-2">
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-brand-indigo/10 text-brand-indigo border border-brand-indigo/20">
+                              Interview Active
+                            </span>
+                            <a
+                              href={`/interview?appId=${app.id}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="px-2.5 py-1 bg-brand-indigo hover:bg-brand-indigo-hover text-white text-[10px] font-bold rounded-lg cursor-pointer transition-colors shadow-xs"
+                            >
+                              Resume Interview
+                            </a>
+                          </div>
+                        )}
+                        {app.interview_completed && (
                           <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-success-bg/40 text-success-primary border border-success-primary/20">
                             Interview Completed {app.interview_score !== null && `(${app.interview_score.toFixed(1)}/10)`}
                           </span>
@@ -450,7 +464,7 @@ export const CandidateDashboard = ({ activeTab = 'overview' }) => {
                         )}
 
                         <div className="flex items-center space-x-2 text-xs">
-                          <span className="text-txt-tertiary font-medium">Fit Score:</span>
+                          <span className="text-txt-tertiary font-medium">Resume Match Score:</span>
                           <span className={`font-bold ${scoreColor}`}>{scoreVal}/100</span>
                         </div>
                         <StatusPill status={app.status} />

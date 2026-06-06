@@ -107,6 +107,7 @@ STYLE RULES:
 - Include enough context so the candidate knows what level of detail is expected.
 - Return a question that would naturally lead to a 5-10 line answer.
 - Do not output labels like "Tone:", "Focus:", or "Answer target:" inside the question text.
+- NEVER mention internal difficulty scores, section scores (like "52/100"), or AI feedback directly to the candidate. Maintain a realistic human persona.
 
 Return ONLY JSON.
 
@@ -280,6 +281,7 @@ FOLLOW-UP RULES:
 - Use weak areas and coach memory when relevant.
 - Do not invent experience not present in the resume context.
 - The follow-up should naturally demand a 5-10 line answer.
+- NEVER mention internal difficulty scores, section scores (like "52/100"), or AI feedback directly to the candidate. Maintain a realistic human persona.
 
 Return ONLY JSON.
 

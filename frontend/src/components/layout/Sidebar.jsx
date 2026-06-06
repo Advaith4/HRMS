@@ -153,12 +153,12 @@ const EMPLOYEE_NAV = [
   },
 ]
 
-// ─── Candidate nav ────────────────────────────────────────────────────────────
 const CANDIDATE_NAV = [
   { type: 'item', path: '/dashboard/candidate', label: 'Home',            icon: Home          },
   { type: 'item', path: '/jobs',                label: 'Browse Jobs',     icon: Search        },
   { type: 'item', path: '/applications',        label: 'My Applications', icon: FileText      },
-  { type: 'item', path: '/interview',           label: 'Interview',  icon: MessageCircle },
+  { type: 'item', path: '/interview',           label: 'Interview',       icon: MessageCircle },
+  { type: 'item', path: '/mock-interview',      label: 'Mock Interview',  icon: Brain         },
 ]
 
 // ─── Helper: does any child in a group match the current path? ────────────────

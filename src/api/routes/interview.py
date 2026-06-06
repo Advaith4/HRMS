@@ -52,9 +52,11 @@ from src.services.interview_core import (
     _build_resume_context,
     _choose_focus_mode,
     _normalize_and_repair_evaluation,
+    _question_mix_for_mode,
     _safe_json_load,
     INTERVIEW_PHASES,
-    PHASE_SEQUENCE
+    PHASE_SEQUENCE,
+    _notify_hr
 )
 
 class StartForApplicationReq(BaseModel):
@@ -67,7 +69,15 @@ class AnswerReq(BaseModel):
     session_id: str
     answer: str
 
+class ViolationReq(BaseModel):
+    violation_type: str
+    detail: str
+
+class CompareReq(BaseModel):
+    candidate_ids: list[int]
+
 @router.post("/start")
+@router.post("/start-for-application")
 def start_interview(
     req: StartForApplicationReq,
     db: Session = Depends(get_session),
@@ -468,7 +478,18 @@ def submit_answer(
     # Update in-memory state
     state["questions"].append(state["current_question"])
     state["answers"].append(req.answer)
-    score = result.get("evaluation", {}).get("score", 5)
+    
+    raw_eval = result.get("evaluation", {})
+    if isinstance(raw_eval, str):
+        try:
+            import json
+            raw_eval = json.loads(raw_eval)
+        except Exception:
+            raw_eval = {"score": 5}
+    if not isinstance(raw_eval, dict):
+        raw_eval = {"score": 5}
+        
+    score = raw_eval.get("score", 5)
     try:
         score = int(score)
     except (TypeError, ValueError):
@@ -482,7 +503,20 @@ def submit_answer(
     except (TypeError, ValueError):
         new_diff = state["difficulty"]
     state["difficulty"] = max(1, min(10, new_diff))
-    state["current_question"] = result.get("next_question") or "Can you explain that with a specific example from your resume?"
+    next_q = result.get("next_question") or "Can you explain that with a specific example from your resume?"
+    
+    # Duplicate-question detection & phase advancement safeguard
+    if next_q in state.get("questions", []):
+        if len(state["answers"]) >= 2 and current_phase != "Final Evaluation":
+            idx = _phase_index(current_phase)
+            next_idx = min(idx + 1, len(PHASE_SEQUENCE) - 1)
+            current_phase = PHASE_SEQUENCE[next_idx]  # Force phase advancement
+            next_q = f"Let's move on to the next phase: {current_phase}. Are you ready to proceed?"
+        else:
+            focus = context.get('current_focus_area', 'your experience')
+            next_q = f"Let me rephrase that. Could you provide a completely different example regarding {focus}?"
+            
+    state["current_question"] = next_q
 
     focus_type = _normalize_focus_type(result.get("focus_type"), focus_mode)
     context.setdefault("focus_counts", {"weak_area": 0, "general": 0, "domain": 0, "behavioral": 0})
@@ -507,7 +541,6 @@ def submit_answer(
 
     now = datetime.utcnow().isoformat()
     # Normalize and repair evaluator output into the strict schema
-    raw_eval = result.get("evaluation", {})
     normalized_eval = _normalize_and_repair_evaluation(raw_eval, context.get("current_focus_area", ""))
     feedback = _format_feedback_message(normalized_eval, context.get("current_focus_area", ""))
     feedback_text = feedback.get("text") if isinstance(feedback, dict) else str(feedback)
@@ -582,16 +615,16 @@ def submit_answer(
     return {
         **result,
         "evaluation": normalized_eval,
+        "next_question": next_q,
         "difficulty": state["difficulty"],
         "focus_area": context["current_focus_area"],
         "focus_type": focus_type,
         "weak_areas": context.get("weak_areas", []),
-        "question_mix": context.get("question_mix", _question_mix_for_mode("adaptive")),
+        "question_mix": context.get("question_mix") or _question_mix_for_mode(context.get("training_mode", state.get("training_mode", "adaptive"))),
         "training_mode": context.get("training_mode", state.get("training_mode", "adaptive")),
         "interviewer_persona": context.get("interviewer_persona", state.get("interviewer_persona", "balanced")),
         "persona": INTERVIEWER_PERSONAS.get(context.get("interviewer_persona", "balanced"), INTERVIEWER_PERSONAS["balanced"]),
         "feedback_message": feedback_text,
-        "feedback": feedback,
         "answer_expectation": result.get("answer_expectation", ""),
         "session_turn": len(state["answers"]),
         "coach_memory": context["coach_memory"],
@@ -1247,3 +1280,36 @@ def abandon_interview(
         del _sessions[session_id]
 
     return {"status": "cancelled", "message": "Interview abandoned."}
+
+@router.post("/{session_id}/complete")
+def complete_interview(
+    session_id: str,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    rec = db.exec(select(InterviewSession).where(InterviewSession.session_token == session_id)).first()
+    if not rec or rec.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Session not found.")
+    if rec.status != "active":
+        raise HTTPException(status_code=400, detail=f"Cannot complete session. Current status is {rec.status}.")
+
+    rec.status = "completed"
+    
+    import json
+    msgs = json.loads(rec.messages) if rec.messages else []
+    scores = [m["score"] for m in msgs if m.get("role") == "feedback" and m.get("score") is not None]
+    if scores:
+        rec.avg_score = sum(scores) / len(scores)
+
+    db.add(rec)
+    db.commit()
+
+    # Enqueue asynchronous hiring intelligence compilation task
+    from src.services.hiring_intelligence import compile_hiring_intelligence
+    background_tasks.add_task(compile_hiring_intelligence, rec.id)
+
+    if session_id in _sessions:
+        del _sessions[session_id]
+
+    return {"status": "completed", "avg_score": rec.avg_score, "db_id": rec.id}

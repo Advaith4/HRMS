@@ -59,13 +59,22 @@ def compile_hiring_intelligence(session_id: int):
     """Asynchronous/background task to generate complete hiring intelligence for a session."""
     # Since background tasks run outside request scope, create local DB engine/session if needed,
     # or resolve it from get_session. We will import get_session locally or import Session from sqlmodel.
-    from src.database.connection import get_session
-    db = next(get_session())
+    from sqlmodel import Session
+    from src.database.connection import engine
+    db = Session(engine)
     
     interview_session = db.get(InterviewSession, session_id)
     if not interview_session:
         logger.error(f"Interview session {session_id} not found for hiring intelligence compilation.")
+        db.close()
         return
+
+    messages = []
+    filler_counts = {}
+    cred_report = None
+    resume_score = 70.0
+    interview_score = (interview_session.avg_score or 5.0) * 10.0
+    cred_score = 70.0
 
     try:
         logger.info(f"Triggering credibility analysis for session {session_id}...")
@@ -229,6 +238,7 @@ Return ONLY valid JSON matching this exact structure:
 
     benchmarking_data = calculate_benchmarking(db, interview_session, app, interview_score)
     save_hiring_intelligence_results(db, interview_session, parsed, benchmarking_data, filler_counts)
+    db.close()
 
 def run_fallback_generation(
     messages: list[dict[str, Any]],

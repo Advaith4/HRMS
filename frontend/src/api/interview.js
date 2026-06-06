@@ -126,6 +126,15 @@ export const abandonSession = async (sessionId) => {
 }
 
 /**
+ * Complete an active interview session
+ * POST /api/interview/{session_id}/complete
+ */
+export const completeSession = async (sessionId) => {
+  const response = await api.post(`/api/interview/${sessionId}/complete`)
+  return response.data
+}
+
+/**
  * Run credibility analysis comparing resume claims against interview evidence
  * POST /api/interview/{session_id}/credibility
  * Response: { credibility_score, supported_claims, weak_claims, missing_evidence, followup_topics, resume_score, interview_avg_score, recommendation, status }
@@ -222,7 +231,7 @@ export const transcribeAudio = async (audioBlob) => {
  * POST /api/interview/start-for-application
  */
 export const startInterviewForApplication = async (applicationId) => {
-  const response = await api.post('/api/interview/start-for-application', {
+  const response = await api.post('/api/interview/start', {
     application_id: applicationId,
     difficulty: 5,
     training_mode: 'domain_specific',

@@ -29,7 +29,9 @@ from src.services.interview_core import (
     _state_from_record,
     _should_end_interview_early,
     _pick_next_phase,
-    _format_feedback_message
+    _format_feedback_message,
+    _phase_index,
+    PHASE_SEQUENCE
 )
 from src.resume_lab import analyze_resume, dumps_json, load_json_field, parse_resume
 from crew import run_interview_start, run_interview_answer
@@ -316,26 +318,85 @@ def submit_mock_answer(
             "new_difficulty": state["difficulty"]
         }
 
-    eval_data = result.get("evaluation", {})
-    state["scores"].append(int(eval_data.get("score", 5)))
-    state["difficulty"] = int(result.get("new_difficulty", state["difficulty"]))
+    next_q_obj = result.get("next_question", {})
+    if isinstance(next_q_obj, str):
+        next_q = next_q_obj
+        focus_area = "general"
+    else:
+        next_q = next_q_obj.get("question", "Could you elaborate more?")
+        focus_area = next_q_obj.get("focus_area", "general")
+
+    raw_eval = result.get("evaluation", {})
+    if isinstance(raw_eval, str):
+        try:
+            raw_eval = json.loads(raw_eval)
+        except Exception:
+            raw_eval = {"score": 5}
+    if not isinstance(raw_eval, dict):
+        raw_eval = {"score": 5}
+
+    score = raw_eval.get("score", 5)
+    try:
+        import math
+        score_float = float(score)
+        if math.isnan(score_float) or math.isinf(score_float):
+            score = 5
+        else:
+            score = int(score_float)
+    except (TypeError, ValueError):
+        score = 5
+
+    state["scores"].append(score)
+    
+    new_diff = result.get("new_difficulty", state["difficulty"])
+    try:
+        import math
+        diff_float = float(new_diff)
+        if math.isnan(diff_float) or math.isinf(diff_float):
+            new_diff = state["difficulty"]
+        else:
+            new_diff = int(diff_float)
+    except (TypeError, ValueError):
+        new_diff = state["difficulty"]
+    
+    state["difficulty"] = max(1, min(10, new_diff))
+    
+    from src.services.interview_core import _normalize_and_repair_evaluation
+    eval_data = _normalize_and_repair_evaluation(raw_eval, focus_area)
+
+    # Clean the result dictionary to remove any potential NaNs
+    for k, v in list(result.items()):
+        if isinstance(v, float):
+            import math
+            if math.isnan(v) or math.isinf(v):
+                result[k] = None
     
     feedback_msg = {
         "role": "feedback",
-        "content": _format_feedback_message(eval_data, result.get("next_question", {}).get("focus_area")),
+        "content": _format_feedback_message(eval_data, focus_area),
         "score": eval_data.get("score", 5),
         "timestamp": datetime.utcnow().isoformat(),
         "raw_eval": eval_data
     }
     state["messages"].append(feedback_msg)
-
-    next_q = result.get("next_question", {}).get("question", "Could you elaborate more?")
+        
+    current_phase = context.get("current_phase", "Core Technical Round")
+    if next_q in state.get("questions", []):
+        if len(state["answers"]) >= 2 and current_phase != "Final Evaluation":
+            idx = _phase_index(current_phase)
+            next_idx = min(idx + 1, len(PHASE_SEQUENCE) - 1)
+            current_phase = PHASE_SEQUENCE[next_idx]
+            next_q = f"Let's move on to the next phase: {current_phase}. Are you ready to proceed?"
+            context["current_phase"] = current_phase
+        else:
+            next_q = f"Let me rephrase that. Could you provide a completely different example regarding {focus_area}?"
+            
     ai_msg = {
         "role": "ai",
         "content": next_q,
         "timestamp": datetime.utcnow().isoformat(),
-        "focus_area": result.get("next_question", {}).get("focus_area", "general"),
-        "phase": context.get("current_phase", "Core Technical Round"),
+        "focus_area": focus_area,
+        "phase": current_phase,
     }
     state["messages"].append(ai_msg)
     state["current_question"] = next_q
@@ -352,11 +413,14 @@ def submit_mock_answer(
         db.commit()
 
     return {
+        **result,
         "evaluation": feedback_msg,
         "next_question": next_q,
-        "new_difficulty": state["difficulty"],
-        "phase": ai_msg["phase"]
+        "difficulty": state["difficulty"],
+        "phase": current_phase,
+        "focus_area": focus_area,
     }
+
 from src.services.mock_interview_summary import generate_mock_interview_summary
 
 @router.post("/{session_id}/complete")

@@ -160,7 +160,7 @@ export default function InterviewPage() {
 
                     <div className="flex items-center gap-3">
                       {/* Interview status badge */}
-                      {app.interview_status === 'pending' && (
+                      {app.can_start_interview && (
                         <div className="flex items-center gap-2">
                           <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full uppercase tracking-wider">
                             <Clock className="w-3.5 h-3.5" />
@@ -170,12 +170,27 @@ export default function InterviewPage() {
                             onClick={() => handleStartForApplication(app.id)}
                             className="inline-flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors cursor-pointer shadow-sm"
                           >
-                            <span>Take Interview</span>
+                            <span>Start Interview</span>
                             <ArrowRight className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       )}
-                      {app.interview_status === 'completed' && (
+                      {app.can_resume_interview && (
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex items-center gap-1 text-xs font-bold text-brand-indigo bg-brand-indigo/10 border border-brand-indigo/20 px-3 py-1 rounded-full uppercase tracking-wider">
+                            <Clock className="w-3.5 h-3.5" />
+                            Active
+                          </span>
+                          <button
+                            onClick={() => handleStartForApplication(app.id)}
+                            className="inline-flex items-center gap-1 bg-brand-indigo hover:bg-brand-indigo-hover text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors cursor-pointer shadow-sm"
+                          >
+                            <span>Resume Interview</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+                      {app.interview_completed && (
                         <span className="inline-flex items-center gap-1 text-xs font-bold text-green-700 bg-green-50 border border-green-200 px-3 py-1 rounded-full uppercase tracking-wider">
                           <CheckCircle className="w-3.5 h-3.5" />
                           Completed {app.interview_score !== null && `(${app.interview_score.toFixed(1)}/10)`}

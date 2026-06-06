@@ -402,6 +402,8 @@ export default function InterviewWorkspaceShell({ session, onEnd, onSubmitAnswer
   const handleConfirmEnd = async () => {
     setIsProcessingEnd(true)
     try {
+      stopCamera()
+      stopScreenShare()
       if (onCompleteSession) {
         const data = await onCompleteSession(session.session_id)
         setCompletedSession({
@@ -527,8 +529,8 @@ export default function InterviewWorkspaceShell({ session, onEnd, onSubmitAnswer
             Phase: {currentPhase} {avgScore !== null && `| Avg Score: ${avgScore.toFixed(1)}/10`} | Proctoring: {proctoringReady ? 'Active' : 'Required'}
           </p>
         </div>
-        <button onClick={() => setShowEndModal(true)} className="text-sm text-gray-400 hover:text-gray-600 transition-colors">
-          End Interview
+        <button onClick={() => setShowEndModal(true)} className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-200 shadow-sm flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4" /> End Interview
         </button>
       </div>
 
@@ -548,7 +550,7 @@ export default function InterviewWorkspaceShell({ session, onEnd, onSubmitAnswer
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900">End Interview Early?</h3>
                 <p className="text-sm text-gray-500 mt-2 mb-6">
-                  Are you sure you want to end this interview? If you are taking a mock interview, it will be evaluated up to this point. If this is an official interview, it will be marked as cancelled or completed early.
+                  Are you sure you want to end this interview now? Your current progress will be submitted and evaluated to generate your final summary.
                 </p>
                 <div className="flex justify-center gap-3">
                   <button onClick={() => setShowEndModal(false)} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-200 transition-colors">

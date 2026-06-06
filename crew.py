@@ -795,7 +795,19 @@ def run_interview_answer(
         followup_json = run_with_retries(_run_followup)
     except Exception as e:
         logger.warning("Followup question generation failed: %s; using fallback.", e)
-        followup_json = {}
+        import random
+        focus = current_focus_area or (weak_areas[0] if weak_areas else "your recent work")
+        prompts = [
+            f"Could you elaborate more on your experience with {focus}?",
+            f"Can you provide a specific, real-world example of how you handled {focus}?",
+            f"What was the biggest challenge you faced when dealing with {focus}?",
+            f"Walk me through the technical decisions you made regarding {focus}."
+        ]
+        followup_json = {
+            "question": random.choice(prompts),
+            "focus_area": focus,
+            "focus_type": "general"
+        }
 
     new_diff = calculate_new_difficulty(current_diff, numeric_score)
 
