@@ -3,10 +3,7 @@ import sys
 import types
 import uuid
 import json
-from pathlib import Path
 
-Path("data").mkdir(exist_ok=True)
-os.environ["DATABASE_URL"] = f"sqlite:///{(Path('data') / f'test_proctoring_{uuid.uuid4().hex}.db').as_posix()}"
 os.environ["AUTO_CREATE_DB_SCHEMA"] = "true"
 os.environ["SECRET_KEY"] = "test-secret-key-for-talentforge"
 

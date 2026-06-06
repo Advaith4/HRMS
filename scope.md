@@ -1,1062 +1,347 @@
-# TalentForge AI — Application Scope
+# TalentForge AI - Application Scope Documentation
 
-> **Version:** 1.0  
-> **Repository:** https://github.com/Advaith4/HRMS  
-> **Stack:** FastAPI · SQLModel · Supabase PostgreSQL · React 19 · Vite · Framer Motion · CrewAI · Groq LLM
+This document outlines the detailed functional scope and comprehensive feature set of the TalentForge AI Human Resource Management System (HRMS). The application provides end-to-end recruitment screening, AI-powered interviewing, background verification, onboarding, training, core HR management, ticketing, and organizational structures.
 
 ---
 
-## 1. Overview
+## 1. Authentication and Authorization (RBAC)
 
-TalentForge AI is a full-stack Human Resource Management System (HRMS) that combines traditional HR workflows with AI-powered recruitment intelligence. The system serves four distinct user roles through a unified React frontend, backed by a FastAPI REST API and a Supabase PostgreSQL database.
+TalentForge AI utilizes a strict Role-Based Access Control (RBAC) mechanism governed by JSON Web Tokens (JWT) to secure all backend endpoints and control frontend views.
 
-### Core Purpose
-- Automate candidate screening using LLM-based resume analysis
-- Manage the complete employee lifecycle from application to departure
-- Give HR and Managers a single dashboard for recruitment, attendance, leave approvals, and workforce insights
-- Empower employees with self-service attendance, leave, and skill-gap tools
+### Workflows & Permissions
+- **Public Access**:
+  - Registration (`POST /api/auth/register`): Creates a new user. Public registrations default to the `candidate` role.
+  - Login (`POST /api/auth/login`): Validates credentials, returns a JWT containing the user ID and role, and flags whether the user has uploaded a resume.
+- **Hierarchical Roles**:
+  - `candidate`: External applicants who manage profiles, upload resumes, apply to jobs, take mock interviews, and complete official interviews.
+  - `employee`: Hired personnel who track attendance, submit leaves, complete onboarding checklists, undergo training, and open helpdesk tickets.
+  - `manager`: Review team dashboards, approve/reject leaves, and review training progress.
+  - `hr`: Manage job postings, templates, training programs, review candidates, verify documents, and hire applicants.
+  - `admin`: Superuser that bypasses all role checks.
 
----
-
-## 2. User Roles & Access
-
-| Role | Description | Key Capabilities |
-|---|---|---|
-| **Candidate** | External job applicant | Browse jobs, submit resume, track applications, view AI scores |
-| **Employee** | Hired internal staff | Attendance check-in/out, leave requests, skill gap analysis, AI HR chatbot |
-| **Manager** | Team lead | All candidate features + approve/reject leave, view recruitment pipeline |
-| **HR** | Human resources admin | All manager features + post/edit/delete jobs, hire candidates, view all applicants |
-| **Admin** | Super user | All HR features across the entire organization |
-
-> Role assignment happens at registration. JWT tokens carry the role claim. All protected routes enforce role-based access via `require_roles()` dependency.
+### Active Endpoints (`src/api/routes/auth.py`)
+- `POST /api/auth/register` -> Register a user (`candidate` by default).
+- `POST /api/auth/login` -> Authenticate credentials, return JWT access token, and user metadata.
 
 ---
 
-## 3. Architecture
+## 2. Profile Management
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                      Browser (React 19)                  │
-│  Vite · React Router · Zustand · Framer Motion · Recharts│
-└───────────────────────────┬─────────────────────────────┘
-                            │ HTTP (JWT Bearer)
-┌───────────────────────────▼─────────────────────────────┐
-│                  FastAPI + Uvicorn                        │
-│  GZip · CORS · JWT Auth · Background Tasks               │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌────────────┐  │
-│  │ /api/auth│ │ /api/jobs│ │/api/apps │ │/api/empl.. │  │
-│  └──────────┘ └──────────┘ └──────────┘ └────────────┘  │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌────────────┐  │
-│  │/api/cands│ │/api/resme│ │/api/dash │ │/api/intview│  │
-│  └──────────┘ └──────────┘ └──────────┘ └────────────┘  │
-└───────────────────────────┬─────────────────────────────┘
-                            │ SQLModel ORM
-┌───────────────────────────▼─────────────────────────────┐
-│           Supabase PostgreSQL (Remote)                    │
-│  Connection pool: size=10, overflow=20, recycle=300s     │
-└─────────────────────────────────────────────────────────┘
-                            │
-┌───────────────────────────▼─────────────────────────────┐
-│              Groq LLM API (llama-3.1-8b-instant)         │
-│  CrewAI agents · Deterministic fallback scorer           │
-└─────────────────────────────────────────────────────────┘
-```
+Comprehensive management of personal details, achievements, and status tracking for candidates and employees.
+
+### Workflows & Features
+- **Candidate Profiles**:
+  - Personal Details: Demographics, location, gender, contact number, education, institution, CGPA/percentage, graduation year.
+  - Experience: Demographics, notice period, expected salary, current role, current company, years of experience, portfolio & LinkedIn URLs, certifications, technical & soft skills list.
+  - Completion Metrics: Frontend calculates and tracks candidate profile completion percentage.
+- **Employee Profiles**:
+  - Demographics: Phone, address, emergency contact, blood group, marital status.
+  - Development Details: Previous experience outline, skills, certifications, career interests, and career goals.
+  - Pre-Populated Profiles: Automatically populated during hiring using candidate profile data.
+
+### Active Endpoints (`src/api/routes/profile.py`)
+- `GET /api/profile/me` -> Retrieve the current user's profile context.
+- `PUT /api/profile/candidate` -> Update candidate profile fields (updates completion percentage).
+- `PUT /api/profile/employee` -> Update employee profile completion detail.
 
 ---
 
-## 4. Frontend — Pages & Features
+## 3. Resume Management (Resume Lab)
 
-### 4.1 Login Page (`/`)
-- Unified login form for all roles
-- Registration with role selection (candidate / employee / hr / manager)
-- JWT stored in Zustand `authStore` + `localStorage`
-- Redirects to role-appropriate dashboard on login
+An interactive, AI-driven suite that allows candidates to upload resumes, extract text, and modify content using AI suggestions.
 
-### 4.2 Candidate Dashboard (`/overview`, `/jobs`, `/applications`)
+### Workflows & Features
+- **Resume Upload & Parsing**: Ingestion of PDF resume files up to 5MB. Spacing and spelling correction algorithms resolve formatting issues arising from PDF text extraction.
+- **Interactive Resume Lab**:
+  - AI Analysis: Evaluates the resume across four dimensions (Clarity, Structure, ATS compliance, Impact) and returns a score (0-100).
+  - Issue Mapping: Sections are analyzed, highlighting bullet points with issues categorized by severity (high, medium, low) and type (replace, manual).
+  - One-Click Repair: For auto-fixable issues (`action_type="replace"`), the platform replaces the original text with AI-suggested improvements.
+  - Manual Checks (`action_type="manual"`): Guides users on how to update sections where verification or proof of metrics is needed (e.g., adding numbers or outcomes).
 
-**Overview tab**
-- Welcome banner with call-to-action
-- KPI cards: Available Jobs · Applications Submitted · Pending Evaluations · Hired
-- Recommended vacancies (latest 2 jobs)
-- My recent applications with status pills
-
-**Jobs tab**
-- Full searchable job board with department filter chips
-- Job cards showing title, department, salary, experience, description
-- "Details" button opens `JobDetailDrawer`:
-  - Full job info (skills, salary, experience, location)
-  - PDF resume drag-and-drop upload (react-dropzone)
-  - Submit application → backend saves to DB → AI analysis runs in background
-  - Success state with confirmation message
-
-**My Applications tab**
-- All submitted applications in an expandable accordion table
-- AI fit score badge (colour-coded: green ≥75, yellow ≥50, red <50)
-- Status pill (Applied / Under Review / Shortlisted / Hired / Rejected)
-- Expand row to see AI recommendation, strengths, weaknesses
-
-### 4.3 HR Dashboard (`/overview`, `/jobs`, `/pipeline`, `/candidates`, `/leaves`)
-
-**Overview tab**
-- KPI cards: Open Jobs · Total Applicants · Pending Review · Hired · Avg AI Score
-- Application volume trend chart (Recharts)
-- Score distribution donut chart
-- Clickable Active Postings sidebar → opens Job Applicants Drawer
-
-**Jobs tab**
-- Job cards grid with "View Applicants" button → Job Applicants Drawer
-- Post New Job button → `PostJobModal` (create/edit)
-- Delete job with confirmation
-
-**Job Applicants Drawer** (slide-in panel)
-- Triggered by clicking any job from Jobs tab or Overview sidebar
-- Stats bar: Total · Hired · Pending · Avg Score
-- Ranked list of all applicants sorted by AI fit score
-- Per-row: rank, avatar, name, status pill, AI recommendation snippet, apply date, score badge
-- "Inspect" button opens full `AnalysisDrawer`
-
-**Pipeline tab**
-- Kanban-style recruitment funnel view
-- Filter by stage: All / Applied / Under Review / Hired / Rejected
-- Application cards with AI score and candidate info
-- "Inspect" button on each card
-
-**Candidates tab**
-- Full candidate list with application count and join date
-- Linked to their applications
-
-**Leaves tab**
-- All pending employee leave requests
-- Approve / Reject with manager note → decision modal
-
-### 4.4 Manager Dashboard (`/overview`, `/pipeline`, `/leaves`)
-- Subset of HR dashboard (no job posting/deletion)
-- Recruitment pipeline view with job filter dropdown
-- AI rankings per job (sorted by fit score)
-- Leave approval/rejection with notes
-
-### 4.5 Employee Dashboard (`/overview`, `/attendance`, `/leaves`, `/skills`)
-
-**Overview tab**
-- Employee profile card (code, department, designation, joining date)
-- Live digital clock + hours worked today
-- Attendance status (Checked In / Checked Out)
-- Leave summary (pending/approved/rejected counts)
-- AI HR Chatbot (streaming drawer) — answers HR policy questions
-
-**Attendance tab**
-- Check In / Check Out buttons with timestamp
-- Today's record display
-
-**Leave tab**
-- Leave request form (type, start date, end date, reason)
-- Duplicate submission prevention
-- My leave history table with status pills
-
-**Skill Gap tab**
-- Input target role
-- AI analyses skill gap against current profile
-- Returns: missing skills, growth areas, learning suggestions, summary
+### Active Endpoints (`src/api/routes/resume.py`)
+- `POST /api/resume/upload` -> Process and parse PDF resume files.
+- `GET /api/resume/me` -> Fetch parsed resume sections and repair state.
 
 ---
 
-## 5. Backend — API Routes
+## 4. Job Posting Management
 
-### Authentication — `/api/auth`
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/register` | Create account (candidate/employee/hr/manager) |
-| POST | `/login` | Login, returns JWT access token |
-| GET | `/me` | Current user profile |
+Allows the internal HR/Admin team to create, publish, and structure internal job openings.
 
-### Jobs — `/api/jobs`
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| GET | `/` | All | List all job postings |
-| POST | `/` | HR/Admin | Create job posting |
-| PUT | `/{id}` | HR/Admin | Edit job posting |
-| DELETE | `/{id}` | HR/Admin | Delete job posting |
+### Workflows & Features
+- **Job Creation & Structure**: Define job titles, descriptions, required skills, department, salary range, and required years of experience.
+- **Job Boards**: Candidates view jobs, track active vacancies, and submit applications.
 
-### Applications — `/api/applications`
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| POST | `/apply` | Candidate | Submit PDF resume for a job (async AI analysis) |
-| GET | `/me` | Candidate | My applications with AI scores |
-| GET | `/` | HR/Manager | All applications (batch-loaded, no N+1) |
-| POST | `/{id}/analyze` | HR/Manager | Re-run AI analysis on an application |
-| POST | `/{id}/hire` | HR | Convert application to employee record |
-| GET | `/rankings/{job_id}` | HR/Manager | AI-ranked applicants for a job |
-
-### Candidates — `/api/candidates`
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| GET | `/` | HR/Manager | List all candidate users |
-
-### Employees — `/api/employees`
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| GET | `/dashboard` | Employee | Employee profile, attendance, leave summary, skill gap |
-| GET | `/attendance/today` | Employee | Today's check-in/out record |
-| POST | `/attendance/checkin` | Employee | Clock in |
-| POST | `/attendance/checkout` | Employee | Clock out |
-| GET | `/leave` | HR/Manager | All leave requests |
-| POST | `/leave/request` | Employee | Submit leave request |
-| PUT | `/leave/{id}/decide` | HR/Manager | Approve or reject leave |
-
-### Resume — `/api/resume`
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| POST | `/upload` | Candidate | Upload and parse PDF resume |
-| GET | `/me` | Candidate | My resume status and text |
-| POST | `/analyze` | Candidate | Run resume analysis against target role |
-| POST | `/fix` | Candidate | Apply AI-suggested resume fixes |
-
-### Dashboard Aggregates — `/api/dashboard`
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| GET | `/hr` | HR/Manager | Jobs + all applications + candidates in 1 request |
-| GET | `/candidate` | Candidate | Jobs + my applications + resume status in 1 request |
-
-### Interview — `/api/interview`
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| POST | `/start` | Candidate/Employee | Start a mock interview session |
-| POST | `/{token}/message` | Candidate/Employee | Send message, get AI response (streaming) |
-| GET | `/{token}` | Candidate/Employee | Get session history |
-| GET | `/sessions` | Candidate/Employee | List all past sessions |
+### Active Endpoints (`src/api/routes/jobs.py`)
+- `GET /api/jobs` -> List all active job postings.
+- `GET /api/jobs/{job_id}` -> View details of a specific job posting.
+- `POST /api/jobs` -> Create a new job posting (HR/Admin only).
+- `PUT /api/jobs/{job_id}` -> Modify details of an active job (HR/Admin only).
+- `DELETE /api/jobs/{job_id}` -> Remove a job opening from boards (HR/Admin only).
 
 ---
 
-## 6. Database Schema
+## 5. Application Tracking and AI Screening
 
-### `users`
-Primary identity table for all roles.
+Governs the screening of candidates and evaluates candidates using automated recruitment intelligence.
 
-| Column | Type | Notes |
-|---|---|---|
-| id | int PK | Auto-increment |
-| username | str | Unique, indexed |
-| hashed_password | str | bcrypt hash |
-| role | str | candidate / employee / hr / manager / admin |
-| target_role | str? | Career goal (for candidates) |
-| location | str? | Default: India |
-| experience | str? | Default: Entry-level |
-| created_at | datetime | UTC |
+### Workflows & Features
+- **Application Submission**: Candidates submit an application to a job posting by uploading a PDF resume.
+- **Background AI Analysis**:
+  - An asynchronous background worker triggers a CrewAI pipeline (or fallback scorer) immediately upon application.
+  - Evaluates resume text against the job description to calculate a Fit Score (0-100) and recommendation (Consider, Reject).
+  - Highlights Strengths, Weaknesses, Missing Skills, and General Observations.
+  - Automatically drafts a list of custom Technical, Behavioral, and Probing Questions for subsequent interview rounds.
+- **Resume Tailoring**: AI generates custom bullet points that candidates can use to tailor their resumes for specific job descriptions.
+- **Leaderboards & Rankings**: HR and managers can view job postings and retrieve candidates ranked by AI fit scores.
 
-### `resumes`
-Latest resume state for a candidate.
-
-| Column | Type | Notes |
-|---|---|---|
-| user_id | FK→users | Indexed |
-| raw_text | str | Parsed PDF text |
-| original_text | str? | Pre-fix snapshot |
-| current_text | str? | Post-fix version |
-| parsed_resume | str? | JSON structured parse |
-| last_analysis | str? | JSON last AI result |
-| applied_fixes | str | JSON array of applied fixes |
-
-### `job_postings`
-HR-created vacancies.
-
-| Column | Type | Notes |
-|---|---|---|
-| title | str | Max 200 chars |
-| description | str | Full text |
-| required_skills | str | Comma-separated |
-| department | str | |
-| salary_range | str | e.g. ₹18–24 LPA |
-| experience_required | str | e.g. 5+ years |
-| created_by | FK→users | HR user ID |
-
-### `candidate_applications`
-One record per candidate per job.
-
-| Column | Type | Notes |
-|---|---|---|
-| candidate_user_id | FK→users | |
-| job_id | FK→job_postings | |
-| resume_text | str | Extracted from PDF |
-| application_date | datetime | |
-| status | str | Applied / Under Review / Shortlisted / Selected / Rejected / Hired |
-
-### `application_ai_analyses`
-AI analysis result per application (1:1).
-
-| Column | Type | Notes |
-|---|---|---|
-| application_id | FK (unique) | |
-| fit_score | int | 0–100 |
-| recommendation | str | Strongly Recommended / Recommended / Consider / Reject |
-| summary | str | AI summary text |
-| strengths | str | JSON array |
-| weaknesses | str | JSON array |
-| missing_skills | str | JSON array |
-| observations | str | JSON array |
-| technical_questions | str | JSON array (interview prep) |
-| behavioral_questions | str | JSON array (interview prep) |
-| probing_areas | str | JSON array |
-| status | str | pending / completed / failed |
-| source | str | ai / fallback |
-
-### `employees`
-Created when a candidate is hired.
-
-| Column | Type | Notes |
-|---|---|---|
-| user_id | FK→users (unique) | |
-| employee_code | str | e.g. TF-00042 |
-| department | str | |
-| designation | str | |
-| salary | float? | Annual CTC |
-| joining_date | date? | |
-| skills | str | Comma-separated |
-
-### `attendance_records`
-Daily check-in/check-out logs.
-
-| Column | Type | Notes |
-|---|---|---|
-| employee_id | FK→employees | |
-| user_id | FK→users | |
-| work_date | date | Indexed |
-| check_in | datetime | |
-| check_out | datetime? | Null if still checked in |
-| status | str | Checked In / Checked Out |
-
-### `leave_requests`
-Employee leave with approval workflow.
-
-| Column | Type | Notes |
-|---|---|---|
-| employee_id | FK→employees | |
-| user_id | FK→users | |
-| leave_type | str | Annual / Sick / Personal / Emergency / etc. |
-| start_date | date | |
-| end_date | date | |
-| reason | str | |
-| status | str | Pending / Approved / Rejected |
-| manager_note | str? | Decision notes |
-| decided_by | FK→users? | HR/Manager who acted |
-
-### `skill_gap_analyses`
-AI skill gap results per employee.
-
-| Column | Type | Notes |
-|---|---|---|
-| employee_id | FK→employees | |
-| role_expectations | str | Target role description |
-| missing_skills | str | JSON array |
-| growth_areas | str | JSON array |
-| learning_suggestions | str | JSON array |
-| summary | str | |
-| source | str | ai / fallback |
+### Active Endpoints (`src/api/routes/applications.py`)
+- `POST /api/applications/apply` -> Candidate submits application + PDF resume (triggers background AI).
+- `GET /api/applications/me` -> Candidate fetches their submitted applications and status history.
+- `GET /api/applications` -> HR/Manager fetches a list of all candidates' applications.
+- `POST /api/applications/{application_id}/analyze` -> Force a re-analysis of a candidate application.
+- `GET /api/applications/rankings/{job_id}` -> Retrieve candidate lists sorted by AI fit scores.
+- `GET /api/applications/{application_id}/credibility` -> Retrieve candidate credibility report comparing resume claims vs interview answers.
 
 ---
 
-## 7. AI / LLM Features
+## 6. AI Interview and Assessment Engine
 
-### 7.1 Resume Analysis (Recruitment)
-- **Trigger:** Candidate submits PDF resume for a job
-- **Process:** PDF → `pypdf` text extraction → CrewAI agent → Groq LLM (`llama-3.1-8b-instant`)
-- **Output:** `ApplicationAIAnalysis` record with fit score, recommendation, strengths, weaknesses, missing skills, interview questions
-- **Performance:** Runs as FastAPI **background task** — HTTP response returns in <1s; score appears asynchronously
-- **Fallback:** Deterministic keyword-matching scorer used when LLM is unavailable
+A comprehensive mock and formal interview environment using LLMs to host interactive chats, score candidate performance, and generate intelligence reports.
 
-### 7.2 Resume Lab
-- Candidate uploads resume → AI parses structure (name, skills, experience, education)
-- AI suggests section-by-section improvements
-- Candidate can apply/reject individual fixes
-- Version history maintained (original vs current)
+### Workflows & Features
+- **Proctored Assessments**:
+  - Live socket-like API endpoint for chat message submission.
+  - Tab Switch Detection: Captures and logs proctoring violations during official candidate interviews.
+- **Interview Mock Setup**: Candidates can configure:
+  - Selectable personas (e.g., balanced, technical, behavioral, system design).
+  - Selected training modes (e.g., adaptive, baseline, custom).
+  - Target role description and difficulty settings (1 to 10).
+- **Hiring Intelligence Reporting**:
+  - Competency Scores & Job Fit Reports.
+  - Communication Metrics & Behavioral Reports.
+  - Candidate Credibility Report: Compares claim data in candidate resumes with evidence provided in chat answers, highlighting discrepancies or unverified details.
+  - Ranked Leaderboard: Compiles resume, interview, and credibility scores to create an overall hiring leaderboard.
+  - Comparative Analysis: Side-by-side assessment of multiple candidates.
+  - Follow-up Engine: Auto-generates follow-up interview questions from credibility reports.
+- **Career Coach Memory**: Synthesizes score trends and recurring weak areas across mock interviews to auto-generate daily training plans.
 
-### 7.3 Skill Gap Analysis (Employees)
-- Employee inputs target role
-- AI compares current skills (from employee profile) against role expectations
-- Returns: missing skills, growth areas, learning suggestions, progress summary
-- Falls back to deterministic comparison when LLM unavailable
-
-### 7.4 AI HR Chatbot (Employee)
-- Streaming chatbot answering HR policy questions
-- Stateful conversation with session memory
-- Aware of employee's department, role, and attendance context
-
-### 7.5 Mock Interview Sessions
-- Candidate selects role, difficulty, training mode, interviewer persona
-- AI conducts structured interview via chat
-- Scores each answer in real time
-- Saves full session history with `avg_score`
-- Long-term coaching memory (`CareerCoachMemory`) tracks recurring weak areas across sessions
-
----
-
-## 8. Performance Optimisations
-
-| Area | Technique | Impact |
-|---|---|---|
-| **Dashboard load** | Aggregate endpoints `/api/dashboard/hr` and `/api/dashboard/candidate` | 3 HTTP calls → 1 |
-| **DB queries** | Batch `IN` queries for applications, users, analyses | N+1 → 4 fixed queries |
-| **Connection pool** | `pool_size=10`, `max_overflow=20`, `pool_recycle=300s`, `pool_pre_ping=True` | Eliminates Supabase cold-start waits |
-| **Frontend bundle** | Named Lucide imports, Vite code splitting per route | 632KB → 19KB initial JS |
-| **API caching** | 30s in-memory TTL cache on GET requests in axios interceptor | Instant navigation between tabs |
-| **AI analysis** | FastAPI `BackgroundTasks` for LLM inference | Submit response: 30s+ → <1s |
-| **Transport** | `GZipMiddleware` on all responses | ~60% payload reduction |
+### Active Endpoints (`src/api/routes/interview.py` & `src/api/routes/mock_interview.py`)
+- `POST /api/interview/start` -> Start a new application interview.
+- `POST /api/interview/start-for-application` -> Start an interview from a job application.
+- `POST /api/interview/start-from-resume` -> Start a personalized interview from a candidate's resume.
+- `POST /api/interview/{session_id}/violation` -> Record screen navigation/tab-switch violations.
+- `POST /api/interview/answer` -> Submit an answer to the interviewer and receive the next question + real-time scoring feedback.
+- `POST /api/interview/{session_id}/complete` -> Formally complete an interview, calculating overall scores and reports.
+- `POST /api/interview/{session_id}/abandon` -> Cancel and flag a session as abandoned.
+- `GET /api/interview/sessions` -> List past interview sessions.
+- `GET /api/interview/sessions/{session_id}` -> Fetch message history and scores for a specific interview.
+- `DELETE /api/interview/sessions/{session_id}` -> Remove interview session records.
+- `GET /api/interview/coach-memory` -> Fetch candidate career coach summary dashboard.
+- `GET /api/interview/daily-plan` -> Retrieve personalized career plans and tasks.
+- `GET /api/interview/intelligence/leaderboard` -> Compilation of all candidate assessments sorted by performance.
+- `GET /api/interview/intelligence/report/{candidate_id}` -> Compile full competency profile.
+- `POST /api/interview/intelligence/compare` -> Side-by-side comparison matrix of candidates.
+- `POST /api/interview/intelligence/{session_id}/advance` -> Mark candidate advanced to the next level.
+- `POST /api/interview/intelligence/{session_id}/reject` -> Mark candidate rejected.
+- `GET /api/interview/intelligence/followup-questions/{session_id}` -> Generate follow-up questions from credibility reports.
 
 ---
 
-## 9. Security
+## 7. Employee Hiring and Onboarding Transition
 
-- **Passwords:** bcrypt hashed via `passlib`
-- **Auth tokens:** HS256 JWT, 7-day expiry, validated on every protected route
-- **Role enforcement:** `require_roles()` FastAPI dependency — raises 403 if role not permitted
-- **Duplicate prevention:** 409 Conflict responses for duplicate job applications and leave requests
-- **File uploads:** PDF-only validation, 5 MB size cap, temp file cleanup after parsing
-- **Environment:** All secrets loaded from `.env` via Pydantic `Settings`; proxy env-vars that break Groq API cleaned at startup
+The workflow that converts a candidate into an employee, migrates documents, and initiates onboarding programs.
 
----
-
-## 10. Deployment
-
-| Target | Method | Notes |
-|---|---|---|
-| **Local dev** | `uvicorn src.main:app --reload --host 127.0.0.1 --port 8000` | Frontend built to `static/`, served by FastAPI |
-| **Docker** | `docker build -t talentforge-ai . && docker run --env-file .env -p 8000:8000 talentforge-ai` | Single-container, self-contained |
-| **Render** | `render.yaml` provided | Backend service; set `DATABASE_URL` to Supabase connection string |
-| **Vercel** | `vercel.json` provided | Frontend-only static hosting; backend runs on Render |
+### Workflows & Features
+- **The Hiring Action (`POST /api/applications/{application_id}/hire`)**:
+  - Updates the candidate's account role to `employee` and sets their target role designation.
+  - Creates the new core `Employee` profile.
+  - Pre-populates the employee profile fields (full name, phone, address, DOB, experience, skills, certifications) from the candidate's profile context.
+  - Records a "Joined" event in the Employee Lifecycle log.
+  - Migrates all verified Candidate Documents to Employee Documents without file duplication.
+  - **Smart Onboarding Assignment**: Automatically matches the employee's new department to onboarding template names and builds a custom onboarding plan with checklist items.
+  - Notifies the employee and logs the "Onboarding Started" event.
 
 ---
 
-## 11. Project Structure
+## 8. Onboarding Management System
 
-```
-HRMS/
-├── src/
-│   ├── main.py                    # FastAPI app, lifespan, router registration
-│   ├── config.py                  # Pydantic Settings (reads .env)
-│   ├── resume_lab.py              # Resume parsing, validation, fix logic
-│   ├── models/__init__.py         # All SQLModel table definitions
-│   ├── database/connection.py     # Engine, session factory, startup migrations
-│   ├── api/
-│   │   ├── dependencies.py        # JWT auth, require_roles()
-│   │   └── routes/
-│   │       ├── auth.py            # Register, login, /me
-│   │       ├── jobs.py            # CRUD for job postings
-│   │       ├── applications.py    # Apply, list, analyze, hire
-│   │       ├── candidates.py      # Candidate list for HR
-│   │       ├── employees.py       # Attendance, leave, employee dashboard
-│   │       ├── resume.py          # Resume upload, analysis, fixes
-│   │       ├── interview.py       # Mock interview sessions (streaming)
-│   │       └── dashboard.py       # Aggregate endpoints (hr + candidate)
-│   ├── services/
-│   │   └── recruitment_ai.py      # CrewAI orchestration, scoring, payloads
-│   └── core/
-│       └── security.py            # JWT encode/decode, bcrypt helpers
-│
-├── frontend/
-│   ├── src/
-│   │   ├── api/                   # Axios client, all API functions
-│   │   ├── pages/                 # LoginPage, CandidateDashboard, HRDashboard,
-│   │   │                          # ManagerDashboard, EmployeeDashboard
-│   │   ├── components/
-│   │   │   ├── layout/            # Layout, Sidebar, TopBar
-│   │   │   ├── drawers/           # AnalysisDrawer, JobDetailDrawer
-│   │   │   ├── modals/            # PostJobModal
-│   │   │   ├── charts/            # ApplicationTrend, ScoreDistribution, SkillGapRadial
-│   │   │   └── ui/                # MetricCard, StatusPill, SkeletonCard, EmptyState, AIScoreDonut
-│   │   └── store/
-│   │       └── authStore.js       # Zustand auth state (token, role, user)
-│   └── vite.config.js             # Build config, code splitting
-│
-├── agents/                        # CrewAI agent definitions
-├── tasks/                         # CrewAI task definitions
-├── utils/
-│   └── resume_parser.py           # pypdf text extraction
-├── static/                        # Built frontend assets (served by FastAPI)
-├── tests/                         # pytest test suite
-├── Dockerfile
-├── render.yaml
-├── vercel.json
-├── requirements.txt
-└── scope.md                       # This file
-```
+Allows HR to construct structured checklists and verify mandatory documentation during employee check-ins.
+
+### Workflows & Features
+- **Onboarding Templates**: Reusable templates created by HR/Admin outlining tasks, descriptions, and order index values.
+- **Required Documents Checklist**: Add verification requirements (e.g., Passport, PAN, Degree Certificate, Experience Letter) to onboarding template lists.
+- **Plan Assignment & Checklist Tracking**:
+  - Employees view their personalized onboarding task list.
+  - Update task progress statuses (Pending, In Progress, Completed) and add comments.
+  - HR reviews onboarding metrics and overdue summary trackers.
+
+### Active Endpoints (`src/api/routes/onboarding.py`)
+- `GET /api/onboarding/templates` -> List reusable templates.
+- `POST /api/onboarding/templates` -> Create onboarding templates.
+- `PUT /api/onboarding/templates/{template_id}` -> Modify onboarding template metadata.
+- `DELETE /api/onboarding/templates/{template_id}` -> Archive template.
+- `POST /api/onboarding/templates/{template_id}/tasks` -> Add tasks to template checklists.
+- `PUT /api/onboarding/tasks/{task_id}` -> Update template checklist items.
+- `DELETE /api/onboarding/tasks/{task_id}` -> Remove template tasks.
+- `POST /api/onboarding/assign` -> Manually allocate an onboarding template to an employee.
+- `GET /api/onboarding/employee/{employee_id}` -> Check employee onboarding checklist progress.
+- `GET /api/onboarding/my` -> Fetch the onboarding checklist for the logged-in employee.
+- `PUT /api/onboarding/plan/{plan_id}/task/{task_id}` -> Update onboarding plan checklist item progress.
+- `GET /api/onboarding/summary` -> High-level onboarding progress statistics.
+- `POST /api/onboarding/templates/{template_id}/required-documents` -> Add mandatory documents to template lists.
+- `DELETE /api/onboarding/templates/{template_id}/required-documents/{document_type}` -> Remove document requirements.
 
 ---
 
-## 12. Environment Variables
+## 9. Learning and Development (Training)
 
-```env
-# LLM
-GROQ_API_KEY=                      # Groq API key for Llama inference
+Enables employee upskilling through training programs and progress tracking.
 
-# Database
-DATABASE_URL=postgresql://...      # Supabase PostgreSQL connection string
-PGSSLMODE=require
-DATABASE_CONNECT_TIMEOUT=10
+### Workflows & Features
+- **Training Programs**: HR defines course structures covering target skills, category, difficulty levels, and durations.
+- **Assignments**: Assign courses to employee logs.
+- **Progress Tracking**: Employees update progress percentage (0-100%) and complete courses.
+- **L&D Analytics**: Visual summaries of course completion rates, active enrollments, and category distributions.
 
-# Supabase (optional — for direct SDK use)
-SUPABASE_URL=
-SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-
-# App
-SECRET_KEY=                        # JWT signing secret (min 32 chars)
-AUTO_CREATE_DB_SCHEMA=true         # Run lightweight migrations on startup
-DEBUG=false
-MODEL_NAME=llama-3.1-8b-instant    # Groq model name
-```
+### Active Endpoints (`src/api/routes/training.py`)
+- `GET /api/training/programs` -> View active training programs.
+- `POST /api/training/programs` -> Create new programs.
+- `PUT /api/training/programs/{program_id}` -> Edit program details.
+- `DELETE /api/training/programs/{program_id}` -> Archive training programs.
+- `POST /api/training/assign` -> Enroll employees in training programs.
+- `GET /api/training/assignments/my` -> Employee fetches their course assignments.
+- `GET /api/training/assignments` -> HR retrieves all enrollments.
+- `PUT /api/training/assignments/{assignment_id}/progress` -> Update course completion status and progress percent.
+- `GET /api/training/summary` -> Fetch L&D training enrollment analytics.
 
 ---
 
-## 13. Known Constraints & Limitations
+## 10. Document Vault and Verification
 
-- **AI analysis latency:** LLM responses from Groq take 5–30s. Mitigated by background task execution; scores appear on next page refresh.
-- **No email notifications:** Status changes (hired, leave decision) are visible in-dashboard only — no email/SMS integration yet.
-- **Single-tenant:** No multi-company/organisation support. All data is shared within one deployment.
-- **Resume format:** PDF only. DOCX, images, and LinkedIn imports are not yet supported.
-- **Attendance:** Basic check-in/out only. No shift management, overtime calculation, or biometric integration.
-- **No real-time updates:** Dashboard data refreshes on navigation. No WebSocket/SSE push for live notifications.
+Secure file management portal for employee credentials and identification documents.
 
----
+### Workflows & Features
+- **Upload & Storage**: Secure file upload mechanisms that support PDF and image documentation.
+- **Status Workflows**: Files are set to "Pending Review" upon upload. HR reviews uploads to mark them as "Approved" or "Rejected" (requiring verification notes and comments).
+- **Document Categorization**: Identifies files based on types (e.g., ID Proof, Degree, Salary Slip, Relieving Letter).
 
-## 14. Key User Flows
-
-### 14.1 Candidate — Apply for a Job
-```
-1. Register / Login  →  role: candidate
-2. Careers Portal → Jobs tab
-3. Browse jobs, click "Details" on a vacancy
-4. JobDetailDrawer opens → read job description + required skills
-5. Drag-and-drop PDF resume into upload zone
-6. Click "Submit Application"
-7. Backend: validates PDF, extracts text (pypdf), saves CandidateApplication record
-8. HTTP 201 response returned instantly (<1 s)
-9. AI analysis runs as background task (5–30 s asynchronously)
-10. Toast: "Application submitted! AI score will appear shortly."
-11. Navigate to My Applications → score appears after background task completes
-12. Expand row → view strengths, weaknesses, missing skills, interview questions
-```
-
-### 14.2 HR — Post Job & Hire a Candidate
-```
-1. Login  →  role: hr
-2. HR Dashboard → Jobs tab → "Post New Job"
-3. PostJobModal: enter title, department, description, skills, salary, experience
-4. Job saved → visible to all candidates on the Careers Portal immediately
-5. HR Dashboard → Jobs tab → "View Applicants" on the new job
-6. Job Applicants Drawer opens → ranked list (sorted by AI fit score)
-7. Click "Inspect" on top-ranked candidate → AnalysisDrawer
-8. Review: fit score, recommendation, strengths, weaknesses, interview prep questions
-9. Return to Applicants Drawer → click "Hire" on selected candidate
-10. HireModal: enter department, designation, salary, joining date, employee code
-11. Backend: creates Employee record + updates Application status to "Hired"
-12. Candidate's role can now be updated to "employee" for system access
-```
-
-### 14.3 Employee — Daily Attendance & Leave
-```
-Attendance:
-1. Login  →  role: employee
-2. Employee Dashboard → Overview tab
-3. Click "Check In" → timestamp recorded, status changes to "Checked In"
-4. End of day → Click "Check Out" → duration calculated
-5. Attendance tab shows today's record with check-in / check-out times
-
-Leave:
-1. Employee Dashboard → Leave tab
-2. Fill form: leave type, start date, end date, reason
-3. Submit → backend checks for duplicate date-range overlap (409 if conflict)
-4. Status: Pending
-5. HR/Manager Dashboard → Leaves tab shows pending request
-6. HR/Manager clicks Approve or Reject, optionally adds a note
-7. Employee's Leave tab updates with Approved / Rejected + manager note
-```
-
-### 14.4 Manager — Review Recruitment Pipeline
-```
-1. Login  →  role: manager
-2. Manager Dashboard → Pipeline tab
-3. Select a job from the dropdown filter
-4. View all applications for that job with AI scores
-5. Filter by stage: Applied / Under Review / Shortlisted
-6. Click "Inspect" on any application card → full AnalysisDrawer
-7. View: fit score, recommendation, strengths, weaknesses, interview prep
-8. Leave tab: approve or reject employee leave requests with notes
-```
-
-### 14.5 Candidate — Mock Interview Practice
-```
-1. Candidate Dashboard → (Interview section)
-2. Choose: target role, difficulty (1–10), training mode, interviewer persona
-3. Session starts → interviewer opens with Introduction phase
-4. 8-phase structured interview:
-   Introduction → Resume Deep Dive → Core Technical →
-   Problem Solving → Behavioral → Pressure/Cross-questioning →
-   Candidate Questions → Final Evaluation
-5. Each answer is evaluated and scored (0–10) by the AI
-6. Session auto-advances through phases based on answer count and avg score
-7. Final Evaluation phase → summary of performance + improvement plan
-8. Session saved → CareerCoachMemory updated with weak areas and score trend
-9. Next session: AI automatically targets recurring weaknesses
-```
+### Active Endpoints (`src/api/routes/profile.py`)
+- `POST /api/profile/documents` -> Upload files to storage (Candidate or Employee context).
+- `GET /api/profile/documents` -> Retrieve personal uploaded document registries.
+- `GET /api/profile/documents/{kind}/{document_id}/download` -> Download documents (Candidate/Employee paths).
+- `GET /api/profile/documents/review` -> HR retrieves pending document review lists.
+- `PUT /api/profile/documents/{kind}/{document_id}/decision` -> HR approves/rejects documents.
 
 ---
 
-## 15. Interview System — Deep Dive
+## 11. Core Employee Management & HR Operations
 
-### 15.1 Session Phases
+Governs day-to-day HR workflows, employee registries, directory searches, attendance check-ins, and leave management.
 
-The interview is structured into **8 sequential phases**. Phase advancement is automatic based on answer count and average score:
+### Workflows & Features
+- **Employee Registry**: Searchable database of all hires, allowing filtering by department, status, and designation.
+- **Attendance Registry**: Daily Check-In and Check-Out timestamps. Tracks active shifts and calculates duration metrics.
+- **Leave Operations**:
+  - Employee Leave Requests: Submit leaves specifying dates, leave type, and justification notes.
+  - Approval Workflow: Managers/HR review requests and mark status changes (Pending, Approved, Rejected) with feedback.
+- **AI Skill Gap Analysis**:
+  - Employees trigger AI analyses to evaluate current skills against role expectations.
+  - Generates summaries, identifies growth areas, and suggests personalized learning modules.
+- **AI HR Policy Assistant**: Policy-aware chat helper that resolves employee HR queries.
 
-| # | Phase | Min Turns | Goal |
-|---|---|---|---|
-| 1 | Introduction | 1 | Establish context, confirm role fit |
-| 2 | Resume Deep Dive | 1 | Validate resume claims with concrete examples |
-| 3 | Core Technical Round | 2 | Probe depth, tradeoffs, system thinking |
-| 4 | Problem Solving | 1 | Structured thinking under constraints |
-| 5 | Behavioral Round | 1 | STAR stories, ownership, collaboration |
-| 6 | Pressure / Cross-questioning | 1 | Stress-test consistency and clarity |
-| 7 | Candidate Questions | 1 | Evaluate curiosity and role understanding |
-| 8 | Final Evaluation | 0 | Score summary and improvement plan |
-
-> After **8 answers total**, the session fast-forwards to Final Evaluation regardless of phase.
-
-### 15.2 Training Modes
-
-| Mode | Question Mix | Use Case |
-|---|---|---|
-| `adaptive` | 60% weak areas, 40% general | Default — balances drilling and coverage |
-| `weak_area_only` | 100% weak areas | Targeted remediation |
-| `domain_specific` | 70% domain, 30% weak areas | Pre-interview technical prep |
-| `behavioral_only` | 100% behavioral | Communication and leadership focus |
-
-### 15.3 Interviewer Personas
-
-| Persona | Pressure | Behavior |
-|---|---|---|
-| `balanced` | Medium | Professional, direct, coaches through gaps |
-| `strict` | High | Interrupts vague answers, demands precision |
-| `technical` | Medium-High | Challenges architecture and implementation tradeoffs |
-| `friendly` | Low-Medium | Encouraging, normalises mistakes, guided follow-ups |
-| `behavioral` | Medium | STAR-narrative focused, evidence-driven |
-
-### 15.4 Scoring & Memory
-- Each answer receives a **score 0–10** from the AI
-- `avg_score` is maintained per session
-- `CareerCoachMemory` (one record per user) tracks:
-  - `recurring_weak_areas` — areas that score poorly across multiple sessions
-  - `score_trend` — recent per-answer scores
-  - `session_history` — compact summaries of all past sessions
-  - `daily_plan` — AI-generated improvement plan
-  - `preferred_persona` and `preferred_training_mode` — learned over time
-
-### 15.5 Database Tables
-
-| Table | Purpose |
-|---|---|
-| `interview_sessions` | Full message history, phase state, avg score, status |
-| `career_coach_memory` | Long-term cross-session coaching memory (1 row per user) |
-| `job_applications` | Bookmarked/tracked external jobs with AI-tailored resume bullets |
+### Active Endpoints (`src/api/routes/employees.py`)
+- `GET /api/employees` -> View employee directory.
+- `GET /api/employees/me` -> Employee fetches their core profile.
+- `GET /api/employees/dashboard` -> Employee dashboard context (announcements, metrics, summary stats).
+- `POST /api/employees/attendance/check-in` -> Create Check-In attendance record.
+- `POST /api/employees/attendance/check-out` -> Create Check-Out attendance record.
+- `GET /api/employees/attendance` -> Retrieve employee attendance logs.
+- `POST /api/employees/leave` -> Submit a leave request.
+- `GET /api/employees/leave/me` -> Employee views their personal leave history.
+- `GET /api/employees/leave` -> HR/Managers fetch pending employee leave requests.
+- `POST /api/employees/leave/{leave_id}/decision` -> Approve or reject leave requests.
+- `GET /api/employees/skill-gap/me` -> Retrieve current skill gap report.
+- `POST /api/employees/skill-gap/me/analyze` -> Run AI analysis on employee skill gaps.
+- `POST /api/employees/assistant` -> Chat with the AI HR assistant.
+- `GET /api/employees/directory` -> Filtered registry lookup for staff directory.
+- `GET /api/employees/{employee_id}` -> View details of an employee.
+- `GET /api/employees/{employee_id}/profile` -> Fetch detailed employee profile.
+- `PUT /api/employees/{employee_id}/profile` -> Edit employee profile details.
 
 ---
 
-## 16. CrewAI Agent Architecture
+## 12. Organizational Structure
 
-### 16.1 Recruitment Analyst Agent
-- **File:** `agents/recruitment_analyst.py`
-- **Task:** `tasks/recruitment_task.py`
-- **Input:** Resume text + parsed resume + job posting details
-- **Output:** Structured JSON with fit score, recommendation, strengths, weaknesses, missing skills, observations, interview questions
-- **LLM:** Groq `llama-3.1-8b-instant` via `GROQ_API_KEY`
-- **Orchestration:** Single-agent `Crew`, `verbose=False`, one-shot kickoff
+Maintains organizational hierarchies and department alignments.
 
-### 16.2 AI Analysis Pipeline
-```
-PDF upload
-   │
-   ▼
-pypdf text extraction  (utils/resume_parser.py)
-   │
-   ▼
-parse_resume()  (src/resume_lab.py)
-   │  → structured fields: name, skills, experience, education, contact
-   ▼
-create_recruitment_analyst()  →  create_application_analysis_task()
-   │
-   ▼
-Crew.kickoff()  →  Groq LLM
-   │
-   ▼
-_extract_json()  →  _normalize_ai_payload()
-   │  → validates & clamps fit_score, recommendation, all list fields
-   ▼
-_upsert_analysis()  →  ApplicationAIAnalysis row saved to DB
-```
+### Workflows & Features
+- **Departments**: Management of business divisions (e.g., Engineering, Marketing), assignment of department heads, and status updates (Active, Inactive).
+- **Designations**: Job title hierarchies and designation levels within departments.
 
-### 16.3 Fallback Scorer
-When the LLM is unavailable (no API key, rate limit, timeout), `_fallback_analysis()` is used:
-- Tokenises resume and job description into lowercase term sets
-- Calculates **overlap ratio** between resume terms and required skill terms
-- Maps overlap ratio → `fit_score` (0–100) using a linear scale
-- Derives `recommendation` from score bracket:
-  - ≥ 80 → Strongly Recommended
-  - ≥ 65 → Recommended
-  - ≥ 45 → Consider
-  - < 45 → Reject
-- Generates deterministic strengths/weaknesses from matched/unmatched skill terms
-- `source` field set to `"fallback"` so HR can distinguish AI vs deterministic results
+### Active Endpoints (`src/api/routes/departments.py` & `src/api/routes/designations.py`)
+- `GET /api/departments` -> List business units.
+- `POST /api/departments` -> Create departments.
+- `PUT /api/departments/{dept_id}` -> Edit department details.
+- `DELETE /api/departments/{dept_id}` -> Deactivate business units.
+- `GET /api/designations` -> List job roles.
+- `POST /api/designations` -> Create job roles.
+- `PUT /api/designations/{desig_id}` -> Edit job roles.
+- `DELETE /api/designations/{desig_id}` -> Archive designations.
 
 ---
 
-## 17. Frontend Component Architecture
+## 13. Employee Compensation and Lifecycle tracking
 
-### 17.1 State Management
-```
-Zustand (authStore.js)
-  ├── token          — JWT string
-  ├── user           — { id, username, role }
-  ├── setAuth()      — called on login
-  └── clearAuth()    — called on logout / 401
-```
-Persisted to `localStorage`. On app load, token is rehydrated and validated.
+Tracks designation changes and financial revisions.
 
-### 17.2 API Layer (`frontend/src/api/`)
+### Workflows & Features
+- **Compensation Revisions**: Record salary increment histories, percentage increases, and approval audit logs.
+- **Promotion Tracks**: Tracks designatorial changes, upgrades, promotion dates, and rationale.
+- **Employee Lifecycle Log**: Audited records of events during tenure (Joined, Onboarding Started, Promotion, Salary Revision).
 
-| File | Functions |
-|---|---|
-| `axios.js` | Axios instance, 12s timeout, Bearer interceptor, 30s GET cache, 401 logout handler |
-| `auth.js` | `login()`, `register()`, `getMe()` |
-| `jobs.js` | `listJobs()`, `createJob()`, `updateJob()`, `deleteJob()` |
-| `applications.js` | `applyToJob()` (60s timeout), `getMyApplications()`, `listApplications()`, `hireCandidate()`, `getJobRankings()` |
-| `candidates.js` | `listCandidates()` |
-| `employees.js` | `getEmployeeDashboard()`, `checkIn()`, `checkOut()`, `requestLeave()`, `getLeaves()`, `decideLeave()`, `analyzeSkillGap()`, `askHRQuestion()` |
-| `resume.js` | `uploadResume()`, `getMyResume()`, `analyzeResume()`, `applyFixes()` |
-| `dashboard.js` | `getHRDashboardData()`, `getCandidateDashboardData()` |
-| `index.js` | Barrel re-exports all above + `invalidateCache` |
-
-### 17.3 Component Map
-
-```
-App.jsx  (React Router)
-├── /                   → LoginPage
-├── /dashboard          → role-based redirect
-│   ├── role=candidate  → CandidateDashboard
-│   ├── role=hr         → HRDashboard
-│   ├── role=manager    → ManagerDashboard
-│   └── role=employee   → EmployeeDashboard
-│
-Layout.jsx
-├── Sidebar.jsx         — nav links, role label, logout
-└── TopBar.jsx          — page title, user avatar
-
-Shared UI Components:
-├── MetricCard          — KPI tile with icon, value, delta
-├── StatusPill          — coloured badge for status strings
-├── SkeletonCard        — animated loading placeholder
-├── EmptyState          — empty list illustration + CTA
-└── AIScoreDonut        — circular score ring (0–100)
-
-Charts (Recharts):
-├── ApplicationTrend    — area chart of applications over time
-├── ScoreDistribution   — donut of score buckets
-└── SkillGapRadial      — radar chart for skill coverage
-
-Drawers (slide-in panels, z-50, backdrop):
-├── AnalysisDrawer      — full AI analysis for one application
-│                         (score, recommendation, strengths, weaknesses,
-│                          missing skills, interview prep questions)
-└── JobDetailDrawer     — job info + PDF resume upload + submit
-
-Modals:
-└── PostJobModal        — create / edit job posting form
-```
-
-### 17.4 Routing & Auth Guard
-```jsx
-// App.jsx
-<ProtectedRoute roles={["hr","admin"]}>
-  <HRDashboard />
-</ProtectedRoute>
-```
-- `ProtectedRoute` reads role from `authStore`
-- Redirects to `/` (login) if no token
-- Redirects to role-correct dashboard if accessing wrong role's route
+### Active Endpoints (`src/api/routes/salary.py`, `src/api/routes/promotions.py`, & `src/api/routes/lifecycle.py`)
+- `GET /api/salary/employee/{employee_id}` -> Fetch employee compensation histories.
+- `POST /api/salary/employee/{employee_id}` -> Log a salary adjustment (HR/Admin only).
+- `GET /api/promotions/recent` -> View recent promotion logs.
+- `GET /api/promotions/employee/{employee_id}` -> View detailed promotion history of an employee.
+- `POST /api/promotions/employee/{employee_id}` -> Log promotion updates.
+- `GET /api/lifecycle/employee/{employee_id}` -> Retrieve lifecycle logs.
+- `POST /api/lifecycle/employee/{employee_id}` -> Append events to employee lifecycle logs.
 
 ---
 
-## 18. Data Flow Diagrams
+## 14. Helpdesk Support and Ticketing
 
-### 18.1 Resume Submit Flow
-```
-Browser                FastAPI               DB              Groq LLM
-   │                      │                   │                  │
-   │─ POST /apply ────────►│                   │                  │
-   │  (multipart PDF)      │                   │                  │
-   │                       │─ pypdf extract ──►│                  │
-   │                       │─ INSERT app ─────►│                  │
-   │                       │◄─ app.id ─────────│                  │
-   │◄─ 201 {application} ──│                   │                  │
-   │                       │                   │                  │
-   │  (response sent)      │── background ─────────────────────►  │
-   │                       │   task             │  CrewAI kickoff  │
-   │                       │                   │◄── analysis JSON ─│
-   │                       │                   │── INSERT analysis ►│
-   │                       │                   │                  │
-   │─ GET /dashboard/cand ►│                   │                  │
-   │◄─ {apps + score} ─────│◄─ SELECT ─────────│                  │
-```
+Provides a workflow for staff members to submit grievances, requests, or IT support tickets.
 
-### 18.2 Leave Approval Flow
-```
-Employee              FastAPI             DB            HR/Manager
-   │                     │                │                 │
-   │─ POST /leave/req ──►│                │                 │
-   │                     │─ check dupe ──►│                 │
-   │                     │◄─ none ────────│                 │
-   │                     │─ INSERT ───────►│                 │
-   │◄─ 201 Pending ──────│                │                 │
-   │                     │                │                 │
-   │                     │                │◄── GET /leave ──│
-   │                     │                │─── list ───────►│
-   │                     │◄── PUT /decide─────────────────── │
-   │                     │─ UPDATE status►│                 │
-   │                     │◄─ done ────────│                 │
-   │◄─ status updated ───│                │                 │
-   │  (on next load)     │                │                 │
-```
+### Workflows & Features
+- **Ticket Submission**: Employees submit tickets categorizing requests (IT, HR, Payroll, Admin) and set priority levels (High, Medium, Low).
+- **Ticket Resolution Workflows**: Managers and HR assign support tickets, track resolutions, and append troubleshooting notes.
+
+### Active Endpoints (`src/api/routes/tickets.py`)
+- `POST /api/tickets` -> Submit support tickets.
+- `GET /api/tickets` -> View list of tickets.
+- `GET /api/tickets/{ticket_id}` -> View support ticket details.
+- `PUT /api/tickets/{ticket_id}/assign` -> Allocate tickets to support personnel.
+- `PUT /api/tickets/{ticket_id}/status` -> Update status (Open, Pending, Resolved) and save resolution notes.
 
 ---
 
-## 19. API — Key Request & Response Shapes
+## 15. Dashboards, Metrics, and Notifications
 
-### POST `/api/auth/login`
-```json
-// Request
-{ "username": "alice", "password": "Pass123!" }
+Visual hubs and alert logs that synchronize operational flows across the application.
 
-// Response 200
-{
-  "access_token": "eyJhbGci...",
-  "token_type": "bearer",
-  "role": "candidate",
-  "username": "alice",
-  "user_id": 9
-}
-```
+### Workflows & Features
+- **In-App Notifications**: Real-time context alerts (Onboarding assigned, Leaves approved, Tickets assigned, Document decisions).
+- **Executive Summaries**:
+  - HR Dashboard: Unified overview displaying recruitment pipelines, vacancy rates, active candidate lists, pending approvals, and document audits.
+  - Candidate Dashboard: Application pipelines, resume status reports, and active interview cards.
 
-### POST `/api/applications/apply` (multipart)
-```
-Form fields:
-  job_id = 3
-  file   = resume.pdf (binary)
-
-Response 201:
-{
-  "success": true,
-  "message": "Application submitted. AI analysis is running in the background.",
-  "application": {
-    "id": 17,
-    "job_id": 3,
-    "job_title": "Senior Backend Engineer",
-    "department": "Engineering",
-    "status": "Applied",
-    "application_date": "2026-06-03T01:37:21",
-    "ai_analysis": null        ← populated asynchronously
-  }
-}
-
-Error 409 (duplicate):
-{ "detail": "You have already submitted an application for this job opening." }
-```
-
-### GET `/api/dashboard/candidate`
-```json
-{
-  "jobs": [
-    {
-      "id": 3,
-      "title": "Senior Backend Engineer",
-      "department": "Engineering",
-      "required_skills": "Python, FastAPI, PostgreSQL",
-      "salary_range": "₹18–24 LPA",
-      "experience_required": "5+ years",
-      "description": "..."
-    }
-  ],
-  "applications": [
-    {
-      "id": 17,
-      "job_id": 3,
-      "job_title": "Senior Backend Engineer",
-      "status": "Applied",
-      "application_date": "2026-06-03T01:37:21",
-      "ai_analysis": {
-        "fit_score": 82,
-        "recommendation": "Recommended",
-        "summary": "Strong FastAPI background...",
-        "strengths": ["Expert in Python", "Solid DB indexing"],
-        "weaknesses": ["Limited cloud experience"],
-        "missing_skills": ["Kubernetes"],
-        "source": "ai"
-      }
-    }
-  ],
-  "has_resume": true,
-  "resume": { "id": 5, "updated_at": "2026-06-03T01:30:00" }
-}
-```
-
-### PUT `/api/employees/leave/{id}/decide`
-```json
-// Request
-{ "status": "Approved", "manager_note": "Approved. Enjoy your break." }
-
-// Response 200
-{ "id": 12, "status": "Approved", "manager_note": "Approved. Enjoy your break." }
-
-// Error 400 (already decided)
-{ "detail": "Leave request already decided." }
-```
-
----
-
-## 20. Testing
-
-### Test Suite — `tests/`
-
-| File | Coverage |
-|---|---|
-| `tests/test_api.py` | Auth, RBAC, job CRUD, file upload, AI analysis, hire flow, rankings |
-| `tests/test_resume_lab.py` | Resume parsing, fix application, scoring logic |
-
-### Running Tests
-```bash
-# All tests
-pytest tests/ -v
-
-# Single module
-pytest tests/test_api.py -v
-
-# Single test
-pytest tests/test_api.py::test_register_and_login_returns_role -v
-```
-
-### Test Environment
-- Uses an isolated **SQLite database** (created fresh per test run)
-- `DATABASE_URL` is overridden to `sqlite:///data/test_<uuid>.db` before import
-- `AUTO_CREATE_DB_SCHEMA=true` — tables created at test startup
-- AI analysis calls are **monkeypatched** to return deterministic mock payloads
-- No Supabase or Groq API key required to run tests
-
-### Key Test Cases
-- `test_register_and_login_returns_role` — token + role in response
-- `test_public_registration_rejects_role_escalation` — can't self-assign admin
-- `test_job_crud_hr_only` — candidate gets 403 on job creation
-- `test_apply_and_duplicate_rejected` — second application returns 409
-- `test_hire_creates_employee_record` — hire flow creates Employee row
-- `test_resume_parse_extracts_skills` — pypdf + resume_lab extraction
-- `test_fallback_scorer_produces_valid_score` — deterministic scorer bounds
-
----
-
-## 21. Development Workflow
-
-### First-time Setup
-```bash
-# 1. Clone
-git clone https://github.com/Advaith4/HRMS.git
-cd HRMS
-
-# 2. Python environment
-python -m venv .venv
-.venv\Scripts\activate        # Windows
-pip install -r requirements.txt
-
-# 3. Environment config
-copy .env.example .env
-# Fill in: DATABASE_URL, GROQ_API_KEY, SECRET_KEY
-
-# 4. Frontend
-cd frontend
-npm install
-npm run build                 # builds to ../static/
-cd ..
-
-# 5. Run
-uvicorn src.main:app --reload --host 127.0.0.1 --port 8000
-```
-
-### Frontend Dev Mode (hot reload)
-```bash
-cd frontend
-npm run dev    # runs on :5173, proxies /api/* to :8000
-```
-> In dev mode, Vite proxies API requests to the FastAPI server. The `isDevServer` flag in `axios.js` detects port 5173 and removes the base URL prefix.
-
-### Rebuilding the Frontend
-```bash
-cd frontend
-npm run build
-# Output goes to ../static/assets/
-# FastAPI serves static/ at the root path
-```
-
-### Adding a New API Route
-1. Create `src/api/routes/myroute.py` with a `router = APIRouter(prefix="/api/myroute")`
-2. Import and register in `src/main.py`: `app.include_router(myroute.router)`
-3. Add corresponding frontend API function in `frontend/src/api/myroute.js`
-4. Re-export from `frontend/src/api/index.js`
-
-### Adding a New Database Table
-1. Add `SQLModel` class to `src/models/__init__.py`
-2. Add `ALTER TABLE` / column check logic to `src/database/connection.py` `_ensure_*` functions (idempotent)
-3. The table is created on next server startup (`AUTO_CREATE_DB_SCHEMA=true`)
-
----
-
-## 22. Dependencies
-
-### Backend (`requirements.txt`)
-| Package | Purpose |
-|---|---|
-| `fastapi` | Web framework |
-| `uvicorn` | ASGI server |
-| `sqlmodel` | ORM (SQLAlchemy + Pydantic) |
-| `psycopg2-binary` | PostgreSQL driver |
-| `python-jose` | JWT encode/decode |
-| `passlib[bcrypt]` | Password hashing |
-| `python-multipart` | Multipart file upload parsing |
-| `pypdf` | PDF text extraction |
-| `crewai` | Multi-agent AI orchestration |
-| `groq` | Groq LLM API client |
-| `pydantic-settings` | `.env` config loading |
-| `appdirs` | Cross-platform app data paths |
-
-### Frontend (`package.json`)
-| Package | Purpose |
-|---|---|
-| `react` + `react-dom` | UI framework (v19) |
-| `react-router-dom` | Client-side routing |
-| `zustand` | Lightweight global state |
-| `axios` | HTTP client |
-| `framer-motion` | Animations and page transitions |
-| `recharts` | Chart components |
-| `lucide-react` | Icon library |
-| `react-dropzone` | Drag-and-drop file upload |
-| `react-hot-toast` | Toast notifications |
-| `vite` | Build tool and dev server |
-
----
-
-## 23. Roadmap — Planned Enhancements
-
-| Feature | Priority | Notes |
-|---|---|---|
-| Email notifications | High | Notify candidates on status change; HR on new applications |
-| Real-time updates | High | WebSocket push for leave decisions and AI score completion |
-| Resume DOCX support | Medium | Extend `resume_parser.py` with `python-docx` |
-| Multi-tenant support | Medium | Company-scoped data isolation |
-| Payroll module | Medium | Salary calculation, pay slips, tax deductions |
-| Performance reviews | Medium | Periodic employee appraisals with AI scoring |
-| Shift management | Low | Rosters, overtime, multi-shift attendance |
-| LinkedIn import | Low | Parse LinkedIn PDF export as resume |
-| Mobile app | Low | React Native wrapper over the existing API |
-| Audit log | Low | Immutable log of all HR decisions (hire, reject, leave) |
+### Active Endpoints (`src/api/routes/dashboard.py` & `src/api/routes/notifications.py`)
+- `GET /api/dashboard/hr` -> Multi-entity dashboard payload for HR operators.
+- `GET /api/dashboard/candidate` -> Core details dashboard context for candidate logins.
+- `GET /api/dashboard/hr/reviews` -> Action items widget queue for HR reviews.
+- `GET /api/notifications` -> View notification alerts log.
+- `PUT /api/notifications/read-all` -> Mark all notifications as read.
+- `PUT /api/notifications/{notification_id}/read` -> Mark target notification as read.

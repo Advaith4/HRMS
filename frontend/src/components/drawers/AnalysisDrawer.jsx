@@ -244,10 +244,21 @@ export const AnalysisDrawer = ({ isOpen, onClose, application, onUpdate }) => {
                 
                 {/* AI Score Donut Section */}
                 <div className="bg-bg-page/40 rounded-xl border border-border-custom p-4 flex flex-col items-center justify-center text-center">
-                  <AIScoreDonut score={score} />
+                  <div className="flex flex-row space-x-12 items-center justify-center">
+                    <div className="flex flex-col items-center">
+                      <span className="text-[10px] font-bold text-txt-tertiary uppercase tracking-wider mb-2">Resume Match</span>
+                      <AIScoreDonut score={score} />
+                    </div>
+                    {application.interview_analysis && application.interview_analysis.job_fit_report && (
+                      <div className="flex flex-col items-center">
+                        <span className="text-[10px] font-bold text-brand-indigo uppercase tracking-wider mb-2">Interview Score</span>
+                        <AIScoreDonut score={application.interview_analysis.job_fit_report?.jobFit || (application.interview_analysis.avg_score ? application.interview_analysis.avg_score * 10 : 0)} />
+                      </div>
+                    )}
+                  </div>
                   
                   {/* Recommendation Badge */}
-                  <div className={`mt-2 inline-flex items-center justify-center rounded-full border px-4 py-1 text-xs font-bold uppercase tracking-wider ${badge.style}`}>
+                  <div className={`mt-4 inline-flex items-center justify-center rounded-full border px-4 py-1 text-xs font-bold uppercase tracking-wider ${badge.style}`}>
                     {badge.label}
                   </div>
                   
@@ -255,6 +266,19 @@ export const AnalysisDrawer = ({ isOpen, onClose, application, onUpdate }) => {
                   <p className="mt-4 text-xs text-txt-secondary italic max-w-md leading-relaxed">
                     "{summary}"
                   </p>
+                  
+                  {/* Interview Summary if available */}
+                  {application.interview_analysis && application.interview_analysis.job_fit_report && application.interview_analysis.job_fit_report.strengths && (
+                    <div className="mt-4 p-3 bg-brand-indigo/5 border border-brand-indigo/10 rounded-lg w-full text-left">
+                       <span className="text-[10px] font-bold text-brand-indigo uppercase tracking-wider block mb-1">Interview Intelligence</span>
+                       <p className="text-xs text-txt-primary">
+                         Identified Strengths: {application.interview_analysis.job_fit_report.strengths.join(", ")}
+                       </p>
+                       <p className="text-xs text-txt-primary mt-1">
+                         Identified Weaknesses: {application.interview_analysis.job_fit_report.weaknesses?.join(", ")}
+                       </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Strengths Grid */}

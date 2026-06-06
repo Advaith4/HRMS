@@ -26,6 +26,8 @@ def transcribe_audio(file_path: str) -> str:
                     file=f,
                     response_format="text",
                     language="en",
+                    temperature=0.0,
+                    prompt="Candidate answer to interview question. Avoid hallucinations and noise.",
                 )
             return transcription.strip()
         except Exception as e:

@@ -158,6 +158,15 @@ export default function InterviewWorkspaceShell({ session, onEnd, onSubmitAnswer
     doTranscribe()
   }, [audioBlob, clearRecording])
 
+  useEffect(() => {
+    if (completedSession) {
+      stopCamera()
+      stopScreenShare()
+      stopRecording()
+      clearRecording()
+    }
+  }, [completedSession, stopCamera, stopScreenShare, stopRecording, clearRecording])
+
   const addViolation = useCallback(async (type, detail) => {
     const entry = {
       type,

@@ -1,10 +1,7 @@
 import os
 import uuid
-from pathlib import Path
 from datetime import date, datetime
 
-Path("data").mkdir(exist_ok=True)
-os.environ["DATABASE_URL"] = f"sqlite:///{(Path('data') / f'test_phase2a_{uuid.uuid4().hex}.db').as_posix()}"
 os.environ["AUTO_CREATE_DB_SCHEMA"] = "true"
 os.environ["SECRET_KEY"] = "test-secret-key-for-talentforge-phase2a"
 

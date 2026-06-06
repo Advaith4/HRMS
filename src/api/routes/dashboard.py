@@ -57,6 +57,7 @@ def hr_dashboard(
     jobs_by_id: dict[int, JobPosting] = {j.id: j for j in jobs}
     users_by_id: dict[int, User] = {}
     analyses_by_app: dict[int, ApplicationAIAnalysis] = {}
+    sessions_by_app: dict[int, InterviewSession] = {}
 
     if cand_ids:
         for u in session.exec(select(User).where(User.id.in_(cand_ids))).all():
@@ -66,6 +67,12 @@ def hr_dashboard(
             select(ApplicationAIAnalysis).where(ApplicationAIAnalysis.application_id.in_(app_ids))
         ).all():
             analyses_by_app[an.application_id] = an
+            
+        for sess in session.exec(
+            select(InterviewSession).where(InterviewSession.application_id.in_(app_ids)).order_by(InterviewSession.created_at.desc())
+        ).all():
+            if sess.application_id not in sessions_by_app:
+                sessions_by_app[sess.application_id] = sess
 
     # ── 4. Candidates list ────────────────────────────────────────────────────
     all_candidates = session.exec(
@@ -78,6 +85,19 @@ def hr_dashboard(
         job = jobs_by_id.get(app.job_id)
         candidate = users_by_id.get(app.candidate_user_id)
         analysis = analyses_by_app.get(app.id)
+        sess = sessions_by_app.get(app.id)
+        
+        interview_analysis = None
+        if sess:
+            interview_analysis = {
+                "status": sess.status,
+                "avg_score": sess.avg_score,
+                "completed_at": sess.updated_at.isoformat() if sess.updated_at and sess.status in ["completed", "analyzed"] else None,
+                "competency_scores": sess.competency_scores,
+                "job_fit_report": sess.job_fit_report,
+                "ai_summary": None  # Placeholder if ai_summary is needed, actually job_fit_report has the summary
+            }
+
         apps_payload.append({
             "id": app.id,
             "candidate_user_id": app.candidate_user_id,
@@ -88,6 +108,7 @@ def hr_dashboard(
             "application_date": app.application_date.isoformat() if app.application_date else None,
             "status": app.status,
             "ai_analysis": analysis_payload(analysis) if analysis else None,
+            "interview_analysis": interview_analysis,
         })
 
     jobs_payload = [_job_payload(j) for j in jobs]

@@ -230,22 +230,6 @@ def _phase_index(phase_name: str) -> int:
 def _should_end_interview_early(answer_count: int, scores: list[int], resume_score: float | None = None) -> bool:
     if answer_count >= 15:
         return True
-    if answer_count < 5:
-        return False
-    
-    # Analyze consistency of the last 3 answers
-    last_three = scores[-3:]
-    avg_last_three = sum(last_three) / len(last_three)
-    score_range = max(last_three) - min(last_three)
-    
-    # Case 1: Consistently Excellent
-    if avg_last_three >= 8.0 and all(s >= 7 for s in last_three) and score_range <= 2:
-        return True
-        
-    # Case 2: Consistently Poor
-    if avg_last_three <= 4.0 and all(s <= 5 for s in last_three) and score_range <= 2:
-        return True
-        
     return False
 
 

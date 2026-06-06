@@ -365,11 +365,19 @@ def submit_mock_answer(
     eval_data = _normalize_and_repair_evaluation(raw_eval, focus_area)
 
     # Clean the result dictionary to remove any potential NaNs
-    for k, v in list(result.items()):
-        if isinstance(v, float):
-            import math
-            if math.isnan(v) or math.isinf(v):
-                result[k] = None
+    import math
+    from difflib import SequenceMatcher
+
+    def _clean_nans(obj):
+        if isinstance(obj, float) and math.isnan(obj):
+            return None
+        elif isinstance(obj, dict):
+            return {k: _clean_nans(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [_clean_nans(i) for i in obj]
+        return obj
+
+    result = _clean_nans(result)
     
     feedback_msg = {
         "role": "feedback",
@@ -381,7 +389,19 @@ def submit_mock_answer(
     state["messages"].append(feedback_msg)
         
     current_phase = context.get("current_phase", "Core Technical Round")
-    if next_q in state.get("questions", []):
+    is_duplicate = False
+    max_similarity = 0.0
+    for old_q in state.get("questions", []):
+        sim = SequenceMatcher(None, next_q.lower(), old_q.lower()).ratio()
+        if sim > max_similarity:
+            max_similarity = sim
+        if sim > 0.85:
+            is_duplicate = True
+            break
+            
+    logger.debug(f"Duplicate detection trace - generated_question: '{next_q}', max_similarity: {max_similarity:.2f}, is_duplicate: {is_duplicate}")
+
+    if is_duplicate:
         if len(state["answers"]) >= 2 and current_phase != "Final Evaluation":
             idx = _phase_index(current_phase)
             next_idx = min(idx + 1, len(PHASE_SEQUENCE) - 1)
@@ -419,6 +439,7 @@ def submit_mock_answer(
         "difficulty": state["difficulty"],
         "phase": current_phase,
         "focus_area": focus_area,
+        "avg_score": rec.avg_score if rec and rec.avg_score is not None else score,
     }
 
 from src.services.mock_interview_summary import generate_mock_interview_summary

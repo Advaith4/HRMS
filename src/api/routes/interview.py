@@ -78,6 +78,7 @@ class CompareReq(BaseModel):
 
 @router.post("/start")
 @router.post("/start-for-application")
+@router.post("/start-from-resume")
 def start_interview(
     req: StartForApplicationReq,
     db: Session = Depends(get_session),
@@ -273,6 +274,7 @@ def start_interview(
         "weak_areas": context["weak_areas"],
         "section_scores": context["section_scores"],
         "resume_score": context["resume_score"],
+        "resume_source": "application",
         "focus_area": context["current_focus_area"],
         "focus_type": focus_type,
         "interviewer_signal": first_msg["interviewer_signal"],
@@ -434,8 +436,23 @@ def submit_answer(
 
     context["verification_active"] = verification_active
     context["current_verification_claim"] = current_verification_claim
+    import math
+    from difflib import SequenceMatcher
+
+    def _clean_nans(obj):
+        if isinstance(obj, float) and math.isnan(obj):
+            return None
+        elif isinstance(obj, dict):
+            return {k: _clean_nans(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [_clean_nans(i) for i in obj]
+        return obj
+
     try:
         from crew import run_interview_answer
+        
+        logger.debug(f"run_interview_answer trace - session_id: {req.session_id}, current_phase: {current_phase}, answer_count: {len(state.get('answers', []))}, difficulty: {state['difficulty']}, phase_history: {context.get('phase_history', [])}")
+        
         result = run_interview_answer(
             role=state["role"],
             question=state["current_question"],
@@ -461,6 +478,7 @@ def submit_answer(
         if not isinstance(result, dict):
             logger.warning("run_interview_answer returned non-dict payload; using safe fallback.")
             result = {}
+        result = _clean_nans(result)
     except Exception as exc:
         logger.error("Interview answer failed: %s", exc, exc_info=True)
         result = {
@@ -506,9 +524,25 @@ def submit_answer(
     next_q = result.get("next_question") or "Can you explain that with a specific example from your resume?"
     
     # Duplicate-question detection & phase advancement safeguard
-    if next_q in state.get("questions", []):
+    is_duplicate = False
+    max_similarity = 0.0
+    for old_q in state.get("questions", []):
+        sim = SequenceMatcher(None, next_q.lower(), old_q.lower()).ratio()
+        if sim > max_similarity:
+            max_similarity = sim
+        if sim > 0.85:
+            is_duplicate = True
+            break
+            
+    logger.debug(f"Duplicate detection trace - generated_question: '{next_q}', max_similarity: {max_similarity:.2f}, is_duplicate: {is_duplicate}")
+
+    if is_duplicate:
         if len(state["answers"]) >= 2 and current_phase != "Final Evaluation":
-            idx = _phase_index(current_phase)
+            from src.services.interview_core import PHASE_SEQUENCE
+            try:
+                idx = PHASE_SEQUENCE.index(current_phase)
+            except ValueError:
+                idx = 0
             next_idx = min(idx + 1, len(PHASE_SEQUENCE) - 1)
             current_phase = PHASE_SEQUENCE[next_idx]  # Force phase advancement
             next_q = f"Let's move on to the next phase: {current_phase}. Are you ready to proceed?"
@@ -530,6 +564,9 @@ def submit_answer(
         next_phase = current_phase
     else:
         next_phase = _pick_next_phase(current_phase, len(state["answers"]), state["scores"], resume_score)
+        
+    logger.debug(f"Phase progression trace - current_phase: {current_phase}, next_phase: {next_phase}, should_end_interview: {_should_end_interview_early(len(state['answers']), state['scores'], resume_score)}")
+    
     context["current_phase"] = next_phase
     phase_history = context.get("phase_history") or []
     if not phase_history:

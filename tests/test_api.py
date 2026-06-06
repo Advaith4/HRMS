@@ -2,10 +2,7 @@ import os
 import sys
 import types
 import uuid
-from pathlib import Path
 
-Path("data").mkdir(exist_ok=True)
-os.environ["DATABASE_URL"] = f"sqlite:///{(Path('data') / f'test_day1_{uuid.uuid4().hex}.db').as_posix()}"
 os.environ["AUTO_CREATE_DB_SCHEMA"] = "true"
 os.environ["SECRET_KEY"] = "test-secret-key-for-talentforge"
 
@@ -457,6 +454,8 @@ def test_candidate_can_start_and_answer_mock_interview(monkeypatch):
             "answer_expectation": "Explain the decision and result.",
         }
 
+    monkeypatch.setattr("src.api.routes.mock_interview.run_interview_start", fake_start)
+    monkeypatch.setattr("src.api.routes.mock_interview.run_interview_answer", fake_answer)
     monkeypatch.setitem(
         sys.modules,
         "crew",
@@ -467,7 +466,7 @@ def test_candidate_can_start_and_answer_mock_interview(monkeypatch):
     headers = {"Authorization": f"Bearer {token}"}
 
     started = client.post(
-        "/api/interview/start",
+        "/api/mock-interview/start",
         headers=headers,
         json={"role": "Software Engineer", "difficulty": 5},
     )
@@ -478,7 +477,7 @@ def test_candidate_can_start_and_answer_mock_interview(monkeypatch):
     assert payload["db_id"]
 
     answered = client.post(
-        "/api/interview/answer",
+        "/api/mock-interview/answer",
         headers=headers,
         json={"session_id": payload["session_id"], "answer": "I built a FastAPI service and chose SQLModel for typed persistence."},
     )
@@ -553,9 +552,9 @@ def test_resume_aware_interview_uses_latest_application_resume(monkeypatch):
     assert applied.status_code == 201, applied.text
 
     started = client.post(
-        "/api/interview/start-from-resume",
+        "/api/interview/start-for-application",
         headers=candidate_headers,
-        json={"role": "Backend Engineer", "difficulty": 6},
+        json={"application_id": applied.json()["application"]["id"], "difficulty": 6},
     )
     assert started.status_code == 200, started.text
     payload = started.json()

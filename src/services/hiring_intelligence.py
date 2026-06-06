@@ -442,16 +442,16 @@ def save_hiring_intelligence_results(
     benchmarking_data: dict[str, Any],
     filler_counts: dict[str, int]
 ):
-    interview_session.competency_scores = json.dumps(results.get("competency_scores", {}))
+    interview_session.competency_scores = json.dumps(results.get("competency_scores") or {})
     
-    comm_metrics = results.get("communication_metrics", {})
+    comm_metrics = results.get("communication_metrics") or {}
     comm_metrics["fillerWords"] = filler_counts
     interview_session.communication_metrics = json.dumps(comm_metrics)
     
-    interview_session.job_fit_report = json.dumps(results.get("job_fit_report", {}))
-    interview_session.behavioral_report = json.dumps(results.get("behavioral_report", {}))
-    interview_session.hiring_risks = json.dumps(results.get("hiring_risks", []))
-    interview_session.timeline_replay = json.dumps(results.get("timeline_replay", []))
+    interview_session.job_fit_report = json.dumps(results.get("job_fit_report") or {})
+    interview_session.behavioral_report = json.dumps(results.get("behavioral_report") or {})
+    interview_session.hiring_risks = json.dumps(results.get("hiring_risks") or [])
+    interview_session.timeline_replay = json.dumps(results.get("timeline_replay") or [])
     interview_session.benchmarking = json.dumps(benchmarking_data)
     
     interview_session.status = "analyzed"
