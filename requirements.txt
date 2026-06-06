@@ -17,3 +17,4 @@ bcrypt==4.0.1
 sqlmodel
 psycopg2-binary>=2.9.9
 pytest
+litellm

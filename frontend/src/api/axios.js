@@ -15,6 +15,11 @@ const api = axios.create({
 const _cache = new Map() // key → { data, expiresAt }
 const CACHE_TTL_MS = 30_000
 
+const cacheKeyFor = (config) => {
+  const params = config.params ? JSON.stringify(config.params) : ''
+  return `${config.baseURL || ''}${config.url || ''}?${params}`
+}
+
 export const invalidateCache = (urlPattern) => {
   for (const key of _cache.keys()) {
     if (!urlPattern || key.includes(urlPattern)) _cache.delete(key)
@@ -31,7 +36,7 @@ api.interceptors.request.use(
 
     // Check in-memory cache for GET requests
     if (config.method === 'get' || !config.method) {
-      const cacheKey = (config.baseURL || '') + config.url
+      const cacheKey = cacheKeyFor(config)
       const cached = _cache.get(cacheKey)
       if (cached && Date.now() < cached.expiresAt) {
         // Return a resolved promise that looks like an axios response
@@ -54,7 +59,7 @@ api.interceptors.response.use(
   (response) => {
     const method = response.config.method
     if (method === 'get' || !method) {
-      const cacheKey = (response.config.baseURL || '') + response.config.url
+      const cacheKey = cacheKeyFor(response.config)
       _cache.set(cacheKey, { data: response.data, expiresAt: Date.now() + CACHE_TTL_MS })
     }
     return response

@@ -36,6 +36,7 @@ from src.services.recruitment_ai import (
     application_payload,
     rank_applications_for_job,
 )
+from src.services.interview_status import SUCCESSFUL_INTERVIEW_STATUSES
 from utils.resume_parser import extract_text_from_pdf
 
 logger = logging.getLogger(__name__)
@@ -439,7 +440,7 @@ def get_application_credibility(
     interview_session = session.exec(
         select(InterviewSession).where(
             InterviewSession.user_id == application.candidate_user_id,
-            InterviewSession.status == "completed",
+            InterviewSession.status.in_(list(SUCCESSFUL_INTERVIEW_STATUSES)),
         ).order_by(InterviewSession.created_at.desc())
     ).first()
     if not interview_session:
@@ -495,9 +496,12 @@ def _bulk_application_payloads(
         ).all():
             analyses_by_app_id[an.application_id] = an
         for s in session.exec(
-            select(InterviewSession).where(InterviewSession.application_id.in_(app_ids))
+            select(InterviewSession)
+            .where(InterviewSession.application_id.in_(app_ids))
+            .order_by(InterviewSession.created_at.desc())
         ).all():
-            interviews_by_app_id[s.application_id] = s
+            if s.application_id not in interviews_by_app_id:
+                interviews_by_app_id[s.application_id] = s
 
     result = []
     for app in applications:

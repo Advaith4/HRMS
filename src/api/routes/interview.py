@@ -17,9 +17,18 @@ from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
 from src.database.connection import get_session
-from src.models import CareerCoachMemory, CandidateApplication, InterviewSession, Resume, User, CandidateCredibilityReport, HRNotification, JobPosting
+from src.models import CareerCoachMemory, CandidateApplication, InterviewSession, Resume, User, CandidateCredibilityReport, HRNotification, JobPosting, InterviewIntelligenceReport
 from src.api.dependencies import get_current_user
 from src.resume_lab import analyze_resume, dumps_json, load_json_field, parse_resume
+from src.services.interview_status import (
+    INTERVIEW_STATUS_ACTIVE,
+    INTERVIEW_STATUS_ANALYZING,
+    INTERVIEW_STATUS_CANCELLED,
+    SUCCESSFUL_INTERVIEW_STATUSES,
+    TERMINAL_INTERVIEW_STATUSES,
+    VISIBLE_INTERVIEW_STATUSES,
+    is_successful_interview_status,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/interview", tags=["interview"])
@@ -33,7 +42,6 @@ from src.services.interview_core import (
     _build_personalization_context,
     _memory_snapshot,
     _phase_meta,
-    _ensure_intro_question,
     _normalize_focus_type,
     _update_coach_memory,
     INTERVIEWER_PERSONAS,
@@ -60,7 +68,10 @@ from src.services.interview_core import (
 )
 
 class StartForApplicationReq(BaseModel):
-    application_id: int
+    application_id: Optional[int] = None
+    role: str = Field(default="", max_length=120)
+    force_reanalyze: bool = False
+    domain_focus: str = Field(default="", max_length=120)
     difficulty: int = Field(default=5, ge=1, le=10)
     training_mode: str = Field(default="adaptive", max_length=40)
     interviewer_persona: str = Field(default="balanced", max_length=40)
@@ -76,6 +87,11 @@ class ViolationReq(BaseModel):
 class CompareReq(BaseModel):
     candidate_ids: list[int]
 
+
+def _safe_load_list(value: str | None) -> list[Any]:
+    loaded = _safe_json_load(value, [])
+    return loaded if isinstance(loaded, list) else []
+
 @router.post("/start")
 @router.post("/start-for-application")
 @router.post("/start-from-resume")
@@ -84,22 +100,31 @@ def start_interview(
     db: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
-    app = db.exec(
-        select(CandidateApplication)
-        .where(CandidateApplication.id == req.application_id)
-    ).first()
-    if not app:
-        raise HTTPException(status_code=404, detail="Application not found.")
-    if app.candidate_user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Unauthorized access to this application.")
+    app = None
+    if req.application_id is not None:
+        app = db.exec(
+            select(CandidateApplication)
+            .where(CandidateApplication.id == req.application_id)
+        ).first()
+        if not app:
+            raise HTTPException(status_code=404, detail="Application not found.")
+        if app.candidate_user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Unauthorized access to this application.")
 
-    existing_session = db.exec(
-        select(InterviewSession)
-        .where(InterviewSession.application_id == req.application_id)
-        .where(InterviewSession.status.in_(["active", "completed", "cancelled"]))
-    ).first()
+        existing_session = db.exec(
+            select(InterviewSession)
+            .where(InterviewSession.application_id == req.application_id)
+            .where(InterviewSession.status.in_(list({INTERVIEW_STATUS_ACTIVE, *TERMINAL_INTERVIEW_STATUSES})))
+        ).first()
+    else:
+        existing_session = db.exec(
+            select(InterviewSession)
+            .where(InterviewSession.user_id == current_user.id)
+            .where(InterviewSession.application_id.is_(None))
+            .where(InterviewSession.status == INTERVIEW_STATUS_ACTIVE)
+        ).first()
     if existing_session:
-        if existing_session.status == "active":
+        if existing_session.status == INTERVIEW_STATUS_ACTIVE:
             state = _sessions.get(existing_session.session_token)
             if state is None:
                 state = _state_from_record(existing_session)
@@ -122,7 +147,7 @@ def start_interview(
                 "messages": msgs,
                 "message": "Resuming existing active interview session."
             }
-        elif existing_session.status == "cancelled":
+        elif existing_session.status == INTERVIEW_STATUS_CANCELLED:
             return {
                 "session_id": existing_session.session_token,
                 "db_id": existing_session.id,
@@ -133,16 +158,19 @@ def start_interview(
         else:
             raise HTTPException(status_code=400, detail="You have already completed the interview for this application.")
 
-    job = db.exec(select(JobPosting).where(JobPosting.id == app.job_id)).first()
-    role = job.title if job else "Software Engineer"
+    job = db.exec(select(JobPosting).where(JobPosting.id == app.job_id)).first() if app else None
+    role = (job.title if job else req.role.strip()) or current_user.target_role or "Software Engineer"
 
-    resume_text = app.resume_text
+    resume_source = "application"
+    resume_text = app.resume_text if app else ""
+    if not app:
+        resume_text, resume_source = _latest_candidate_resume_text(db, current_user.id)
     if not resume_text or len(resume_text.strip()) < 50:
-        raise HTTPException(status_code=400, detail="Application resume text is missing or too short.")
+        raise HTTPException(status_code=400, detail="Resume text is missing or too short.")
 
     resume = db.exec(select(Resume).where(Resume.user_id == current_user.id)).first()
     analysis = load_json_field(resume.last_analysis, None) if resume else None
-    if not analysis:
+    if req.force_reanalyze or not analysis:
         analysis = analyze_resume(resume_text, role)
         if resume:
             resume.last_analysis = dumps_json(analysis)
@@ -162,7 +190,7 @@ def start_interview(
         req.difficulty,
         training_mode,
         interviewer_persona,
-        "",
+        req.domain_focus,
         _memory_snapshot(memory),
     )
     focus_mode = "weak_area" if context["weak_areas"] else "general"
@@ -170,42 +198,19 @@ def start_interview(
         focus_mode = "behavioral_only"
     elif training_mode == "domain_specific":
         focus_mode = "domain_specific"
-    current_phase = "Introduction"
+    current_phase = "Resume Validation"
     phase_details = _phase_meta(current_phase)
 
-    try:
-        from crew import run_interview_start
-        first = run_interview_start(
-            role=role,
-            difficulty=req.difficulty,
-            weak_areas=context["weak_areas"],
-            resume_context=context["resume_context"],
-            section_scores=context["section_scores"],
-            focus_mode=focus_mode,
-            training_mode=training_mode,
-            interviewer_persona=INTERVIEWER_PERSONAS[interviewer_persona],
-            coach_memory=context["coach_memory"],
-            domain_focus=context["domain_focus"],
-            phase_name=current_phase,
-            phase_goal=phase_details["goal"],
-            phase_focus=phase_details["focus"],
-        )
-        if not isinstance(first, dict):
-            first = {}
-    except Exception as exc:
-        logger.error("start_interview_for_application crew start failed: %s", exc, exc_info=True)
-        first = {
-            "question": f"Tell me about yourself and why you're a good fit for this {role} role.",
-            "focus_area": context["weak_areas"][0] if context["weak_areas"] else "general resume walkthrough",
-            "focus_type": focus_mode,
-            "interviewer_signal": "I will press for evidence, not generic claims.",
-            "pressure_level": INTERVIEWER_PERSONAS[interviewer_persona]["pressure"],
-            "answer_expectation": "Answer in 5-10 lines with context, decisions, tradeoffs, and measurable outcome.",
-        }
+    first = {
+        "question": f"Explain your most recent project for this {role} role and your personal contribution.",
+        "focus_area": context["weak_areas"][0] if context["weak_areas"] else "resume validation",
+        "focus_type": "weak_area" if context["weak_areas"] else "general",
+        "interviewer_signal": "I will validate resume claims using concrete evidence.",
+        "pressure_level": INTERVIEWER_PERSONAS[interviewer_persona]["pressure"],
+        "answer_expectation": "Use a concrete project, your decisions, tradeoffs, and measurable outcome.",
+    }
 
     question = str(first.get("question") or "Tell me about your most relevant project and what you would improve.").strip()
-    if current_phase == "Introduction":
-        question = _ensure_intro_question(question, role)
     answer_expectation = str(first.get("answer_expectation") or "Answer in 5-10 lines with context, decisions, tradeoffs, and measurable outcome.").strip()
     focus_type = _normalize_focus_type(first.get("focus_type"), focus_mode)
     context["focus_counts"][focus_type] = context["focus_counts"].get(focus_type, 0) + 1
@@ -228,7 +233,7 @@ def start_interview(
     }
     db_session = InterviewSession(
         user_id=current_user.id,
-        application_id=req.application_id,
+        application_id=app.id if app else None,
         session_token=session_token,
         role=role,
         difficulty=req.difficulty,
@@ -260,7 +265,7 @@ def start_interview(
     _update_coach_memory(db, current_user.id, _sessions[session_token])
     persona_profile = INTERVIEWER_PERSONAS.get(interviewer_persona, INTERVIEWER_PERSONAS["balanced"])
     session_intro = (
-        f"This mock interview simulates a {persona_profile.get('label', 'Balanced')} interviewer under {first_msg.get('pressure_level', persona_profile.get('pressure', 'medium'))} pressure. "
+        f"This proctored interview simulates a {persona_profile.get('label', 'Balanced')} interviewer under {first_msg.get('pressure_level', persona_profile.get('pressure', 'medium'))} pressure. "
         "Treat answers like a live screening: be concise, cite specific decisions, and quantify outcomes where possible."
     )
 
@@ -274,7 +279,7 @@ def start_interview(
         "weak_areas": context["weak_areas"],
         "section_scores": context["section_scores"],
         "resume_score": context["resume_score"],
-        "resume_source": "application",
+        "resume_source": resume_source,
         "focus_area": context["current_focus_area"],
         "focus_type": focus_type,
         "interviewer_signal": first_msg["interviewer_signal"],
@@ -283,6 +288,7 @@ def start_interview(
         "question_mix": context["question_mix"],
         "training_mode": training_mode,
         "interviewer_persona": interviewer_persona,
+        "status": INTERVIEW_STATUS_ACTIVE,
         "persona": persona_profile,
         "coach_memory": context["coach_memory"],
         "session_intro": session_intro,
@@ -304,14 +310,14 @@ def record_proctoring_violation(
         raise HTTPException(status_code=404, detail="Interview session not found.")
     if rec.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Unauthorized access to this session.")
-    if rec.status != "active":
+    if rec.status != INTERVIEW_STATUS_ACTIVE:
         try:
             violations_list = json.loads(rec.violations) if rec.violations else []
         except Exception:
             violations_list = []
         return {
             "success": False,
-            "cancelled": rec.status == "cancelled",
+            "cancelled": rec.status == INTERVIEW_STATUS_CANCELLED,
             "cancellation_reason": rec.cancellation_reason,
             "violations_count": rec.violations_count,
             "violations": violations_list,
@@ -334,7 +340,7 @@ def record_proctoring_violation(
 
     cancelled = False
     if rec.violations_count >= 3:
-        rec.status = "cancelled"
+        rec.status = INTERVIEW_STATUS_CANCELLED
         rec.cancellation_reason = f"Proctoring violation limit exceeded (3). Last violation: {req.detail}"
         cancelled = True
         
@@ -388,7 +394,7 @@ def submit_answer(
     state = copy.deepcopy(state)
     context = state.setdefault("personalization_context", {})
     focus_mode = _choose_focus_mode(state)
-    current_phase = context.get("current_phase", "Introduction")
+    current_phase = context.get("current_phase", "Resume Validation")
     phase_details = _phase_meta(current_phase)
 
     # Claim Verification Engine
@@ -536,7 +542,9 @@ def submit_answer(
             
     logger.debug(f"Duplicate detection trace - generated_question: '{next_q}', max_similarity: {max_similarity:.2f}, is_duplicate: {is_duplicate}")
 
-    if is_duplicate:
+    if is_duplicate and verification_active:
+        next_q = f"Please continue with specific evidence for {current_verification_claim or context.get('current_focus_area', 'that claim')}."
+    elif is_duplicate:
         if len(state["answers"]) >= 2 and current_phase != "Final Evaluation":
             from src.services.interview_core import PHASE_SEQUENCE
             try:
@@ -567,6 +575,8 @@ def submit_answer(
         
     logger.debug(f"Phase progression trace - current_phase: {current_phase}, next_phase: {next_phase}, should_end_interview: {_should_end_interview_early(len(state['answers']), state['scores'], resume_score)}")
     
+    if next_phase == "Final Evaluation":
+        next_q = ""
     context["current_phase"] = next_phase
     phase_history = context.get("phase_history") or []
     if not phase_history:
@@ -574,6 +584,7 @@ def submit_answer(
     if phase_history[-1] != next_phase:
         phase_history.append(next_phase)
     context["phase_history"] = phase_history
+    state["current_question"] = next_q
     state["personalization_context"] = context
 
     now = datetime.utcnow().isoformat()
@@ -592,7 +603,7 @@ def submit_answer(
     })
     state["messages"].append({
         "role": "ai",
-        "content": state["current_question"],
+        "content": state["current_question"] or "Final evaluation is being generated.",
         "score": score,
         "difficulty": state["difficulty"],
         "focus_area": context["current_focus_area"],
@@ -612,7 +623,7 @@ def submit_answer(
     if next_phase == "Final Evaluation":
         rec = db.exec(select(InterviewSession).where(InterviewSession.session_token == req.session_id)).first()
         if rec:
-            rec.status = "completed"
+            rec.status = INTERVIEW_STATUS_ANALYZING
             db.add(rec)
             db.commit()
             
@@ -652,7 +663,7 @@ def submit_answer(
     return {
         **result,
         "evaluation": normalized_eval,
-        "next_question": next_q,
+        "next_question": "" if next_phase == "Final Evaluation" else next_q,
         "difficulty": state["difficulty"],
         "focus_area": context["current_focus_area"],
         "focus_type": focus_type,
@@ -670,6 +681,7 @@ def submit_answer(
         "phase_goal": _phase_meta(next_phase)["goal"],
         "phase_focus": _phase_meta(next_phase)["focus"],
         "phase_history": context.get("phase_history", [next_phase]),
+        "status": INTERVIEW_STATUS_ANALYZING if next_phase == "Final Evaluation" else INTERVIEW_STATUS_ACTIVE,
         "interview_complete": next_phase == "Final Evaluation",
         "final_feedback": final_feedback,
         "final_verdict": final_verdict,
@@ -820,6 +832,12 @@ def get_credibility_report(
     """Run credibility analysis comparing resume claims against interview evidence."""
     from src.services.interview_consistency import analyze_credibility, credibility_payload
 
+    rec = db.get(InterviewSession, session_id)
+    if not rec:
+        raise HTTPException(status_code=404, detail="Interview session not found.")
+    if current_user.role not in ("hr", "manager", "admin") and rec.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Unauthorized access to this credibility report.")
+
     try:
         report = analyze_credibility(db, session_id, force=force)
         return credibility_payload(report)
@@ -857,7 +875,7 @@ def intelligence_leaderboard(
     from src.models import CandidateApplication, ApplicationAIAnalysis, CandidateApplication as CA
 
     sessions = db.exec(
-        select(InterviewSession).where(InterviewSession.status.in_(["completed", "cancelled"])).order_by(InterviewSession.created_at.desc())
+        select(InterviewSession).where(InterviewSession.status.in_(list(VISIBLE_INTERVIEW_STATUSES))).order_by(InterviewSession.created_at.desc())
     ).all()
 
     results = []
@@ -950,6 +968,11 @@ def intelligence_candidate_report(
     credibility_report = db.exec(
         select(CandidateCredibilityReport).where(CandidateCredibilityReport.candidate_id == candidate_id).order_by(CandidateCredibilityReport.created_at.desc())
     ).first()
+    intelligence_report = None
+    if app:
+        intelligence_report = db.exec(
+            select(InterviewIntelligenceReport).where(InterviewIntelligenceReport.application_id == app.id)
+        ).first()
 
     # Build timeline from interview messages
     timeline = []
@@ -978,7 +1001,7 @@ def intelligence_candidate_report(
                 })
 
     interview_avg = 0
-    completed = [s for s in sessions if s.status == "completed"]
+    completed = [s for s in sessions if is_successful_interview_status(s.status)]
     if completed:
         interview_avg = sum(s.avg_score or 0 for s in completed) / len(completed)
 
@@ -1030,7 +1053,7 @@ def intelligence_candidate_report(
                     "avg_score": s.avg_score,
                     "status": s.status,
                     "violations_count": s.violations_count,
-                    "violations": json.loads(s.violations) if s.violations else [],
+                    "violations": _safe_load_list(s.violations),
                     "cancellation_reason": s.cancellation_reason,
                     "competency_scores": _safe_json_load(s.competency_scores, None),
                     "job_fit_report": _safe_json_load(s.job_fit_report, None),
@@ -1045,11 +1068,23 @@ def intelligence_candidate_report(
             ],
         },
         "hiring": {
-            "hiring_score": hiring_score,
-            "recommendation": _recommendation_label(hiring_score),
+            "hiring_score": intelligence_report.overall_score if intelligence_report else hiring_score,
+            "recommendation": intelligence_report.recommendation if intelligence_report else _recommendation_label(hiring_score),
             "resume_weight": round(0.35 * resume_score, 1),
             "interview_weight": round(0.40 * interview_avg * 10, 1),
             "credibility_weight": round(0.25 * credibility_score, 1),
+            "report": {
+                "id": intelligence_report.id,
+                "overall_score": intelligence_report.overall_score,
+                "technical_score": intelligence_report.technical_score,
+                "behavioral_score": intelligence_report.behavioral_score,
+                "credibility_score": intelligence_report.credibility_score,
+                "resume_score": intelligence_report.resume_score,
+                "recommendation": intelligence_report.recommendation,
+                "executive_summary": intelligence_report.executive_summary,
+                "source": intelligence_report.source,
+                "status": intelligence_report.status,
+            } if intelligence_report else None,
         },
     }
 
@@ -1082,7 +1117,7 @@ def intelligence_compare(
             cred = db.exec(select(CandidateCredibilityReport).where(CandidateCredibilityReport.candidate_id == cid).order_by(CandidateCredibilityReport.created_at.desc())).first()
 
             interview_avg = 0
-            completed = [s for s in sessions if s.status == "completed"]
+            completed = [s for s in sessions if is_successful_interview_status(s.status)]
             if completed:
                 interview_avg = sum(s.avg_score or 0 for s in completed) / len(completed)
 
@@ -1127,9 +1162,7 @@ def intelligence_advance_candidate(
         raise HTTPException(status_code=404, detail="Session not found")
 
     from src.models import CandidateApplication
-    app = db.exec(
-        select(CandidateApplication).where(CandidateApplication.candidate_user_id == session.user_id).order_by(CandidateApplication.application_date.desc())
-    ).first()
+    app = db.get(CandidateApplication, session.application_id) if session.application_id else None
 
     if app and app.status == "Under Review":
         app.status = "Shortlisted"
@@ -1161,9 +1194,7 @@ def intelligence_reject_candidate(
         raise HTTPException(status_code=404, detail="Session not found")
 
     from src.models import CandidateApplication
-    app = db.exec(
-        select(CandidateApplication).where(CandidateApplication.candidate_user_id == session.user_id).order_by(CandidateApplication.application_date.desc())
-    ).first()
+    app = db.get(CandidateApplication, session.application_id) if session.application_id else None
 
     if app:
         app.status = "Rejected"
@@ -1186,7 +1217,7 @@ def intelligence_top_candidates(
     from src.models import CandidateApplication, ApplicationAIAnalysis
 
     sessions = db.exec(
-        select(InterviewSession).where(InterviewSession.status == "completed").order_by(InterviewSession.created_at.desc())
+        select(InterviewSession).where(InterviewSession.status.in_(list(SUCCESSFUL_INTERVIEW_STATUSES))).order_by(InterviewSession.created_at.desc())
     ).all()
 
     candidates_data = []
@@ -1304,10 +1335,10 @@ def abandon_interview(
     rec = db.exec(select(InterviewSession).where(InterviewSession.session_token == session_id)).first()
     if not rec or rec.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Session not found.")
-    if rec.status != "active":
+    if rec.status != INTERVIEW_STATUS_ACTIVE:
         raise HTTPException(status_code=400, detail=f"Cannot abandon session. Current status is {rec.status}.")
 
-    rec.status = "cancelled"
+    rec.status = INTERVIEW_STATUS_CANCELLED
     rec.cancellation_reason = "candidate_exit"
     
     db.add(rec)
@@ -1328,10 +1359,10 @@ def complete_interview(
     rec = db.exec(select(InterviewSession).where(InterviewSession.session_token == session_id)).first()
     if not rec or rec.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Session not found.")
-    if rec.status != "active":
+    if rec.status != INTERVIEW_STATUS_ACTIVE:
         raise HTTPException(status_code=400, detail=f"Cannot complete session. Current status is {rec.status}.")
 
-    rec.status = "completed"
+    rec.status = INTERVIEW_STATUS_ANALYZING
     
     import json
     msgs = json.loads(rec.messages) if rec.messages else []
@@ -1349,4 +1380,4 @@ def complete_interview(
     if session_id in _sessions:
         del _sessions[session_id]
 
-    return {"status": "completed", "avg_score": rec.avg_score, "db_id": rec.id}
+    return {"status": INTERVIEW_STATUS_ANALYZING, "avg_score": rec.avg_score, "db_id": rec.id}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { startInterviewForApplication } from '../../api/interview'
+import { abandonSession, startInterviewForApplication } from '../../api/interview'
 import { getCandidateDashboardData } from '../../api'
 import InterviewWorkspace from '../../components/interview/InterviewWorkspace'
 import { Briefcase, AlertTriangle, Shield, CheckCircle, Clock, ArrowRight } from 'lucide-react'
@@ -67,16 +67,23 @@ export default function InterviewPage() {
     return () => window.removeEventListener('beforeunload', handler)
   }, [session])
 
-  const handleEnd = useCallback(() => {
+  const handleEnd = useCallback(async () => {
     if (window.confirm('Interview in progress. Are you sure you want to leave?')) {
+      if (session?.session_id && session.status === 'active') {
+        try {
+          await abandonSession(session.session_id)
+        } catch (err) {
+          console.error('Failed to abandon interview:', err)
+        }
+      }
       setSession(null)
       const url = new URL(window.location)
       url.searchParams.delete('appId')
       window.history.pushState({}, '', url)
       setAppIdParam(null)
-      fetchCandidateApplications()
+      window.location.href = '/dashboard/candidate'
     }
-  }, [])
+  }, [session])
 
   if (session) {
     return (
@@ -196,6 +203,12 @@ export default function InterviewPage() {
                           Completed {app.interview_score !== null && `(${app.interview_score.toFixed(1)}/10)`}
                         </span>
                       )}
+                      {app.interview_analyzing && (
+                        <span className="inline-flex items-center gap-1 text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 px-3 py-1 rounded-full uppercase tracking-wider">
+                          <Clock className="w-3.5 h-3.5" />
+                          Analyzing
+                        </span>
+                      )}
                       {app.interview_status === 'cancelled' && (
                         <span className="inline-flex items-center gap-1 text-xs font-bold text-red-700 bg-red-50 border border-red-200 px-3 py-1 rounded-full uppercase tracking-wider">
                           <AlertTriangle className="w-3.5 h-3.5" />
@@ -213,4 +226,3 @@ export default function InterviewPage() {
     </div>
   )
 }
-

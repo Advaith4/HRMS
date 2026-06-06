@@ -13,32 +13,38 @@ import { getSession } from '../../api/interview'
 import CandidateCredibilityCard from './CandidateCredibilityCard'
 import toast from 'react-hot-toast'
 
+const INTELLIGENCE_PENDING_STATUSES = new Set(['active', 'completed', 'analyzing'])
+
+const isIntelligencePending = (status) => INTELLIGENCE_PENDING_STATUSES.has(status)
+
 export default function InterviewSummary({ session: initialSession, onRestart }) {
   const [session, setSession] = useState(initialSession)
   const [loadingIntelligence, setLoadingIntelligence] = useState(
-    initialSession?.status !== 'analyzed' && initialSession?.status !== 'cancelled'
+    isIntelligencePending(initialSession?.status)
   )
   const [expandedTurn, setExpandedTurn] = useState(null)
 
   useEffect(() => {
     if (initialSession) {
       setSession(initialSession)
-      setLoadingIntelligence(initialSession.status !== 'analyzed' && initialSession.status !== 'cancelled')
+      setLoadingIntelligence(isIntelligencePending(initialSession.status))
     }
   }, [initialSession])
 
-  // Poll the session endpoint if status is 'completed' (i.e. background task is compiling report)
+  // Poll while the backend background task is compiling the final report.
   useEffect(() => {
     if (!loadingIntelligence || !session?.id) return
 
     const intervalId = setInterval(async () => {
       try {
         const updated = await getSession(session.id)
-        if (updated.status === 'analyzed') {
+        if (!isIntelligencePending(updated.status)) {
           setSession(updated)
           setLoadingIntelligence(false)
           clearInterval(intervalId)
-          toast.success('Hiring intelligence analysis complete!')
+          if (updated.status === 'analyzed') {
+            toast.success('Hiring intelligence analysis complete!')
+          }
         }
       } catch (err) {
         console.error('Error polling session intelligence:', err)

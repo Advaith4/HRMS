@@ -231,7 +231,7 @@ export const transcribeAudio = async (audioBlob) => {
  * POST /api/interview/start-for-application
  */
 export const startInterviewForApplication = async (applicationId) => {
-  const response = await api.post('/api/interview/start', {
+  const response = await api.post('/api/interview/start-for-application', {
     application_id: applicationId,
     difficulty: 5,
     training_mode: 'domain_specific',

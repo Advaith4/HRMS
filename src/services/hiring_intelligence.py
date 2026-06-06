@@ -15,8 +15,14 @@ from src.models import (
     Resume,
     User,
     CandidateCredibilityReport,
+    InterviewIntelligenceReport,
 )
 from src.services.interview_consistency import analyze_credibility
+from src.services.interview_status import (
+    INTERVIEW_STATUS_ANALYZED,
+    INTERVIEW_STATUS_ANALYZING,
+    INTERVIEW_STATUS_FAILED,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -75,16 +81,21 @@ def compile_hiring_intelligence(session_id: int):
     resume_score = 70.0
     interview_score = (interview_session.avg_score or 5.0) * 10.0
     cred_score = 70.0
+    app = None
 
     try:
-        logger.info(f"Triggering credibility analysis for session {session_id}...")
+        interview_session.status = INTERVIEW_STATUS_ANALYZING
+        interview_session.updated_at = datetime.utcnow()
+        db.add(interview_session)
+        db.commit()
+
+        logger.info(f"Resolving credibility analysis for session {session_id}...")
         try:
-            cred_report = analyze_credibility(db, session_id, force=True)
+            cred_report = analyze_credibility(db, session_id, force=False)
         except Exception as ce:
             logger.warning(f"Credibility report compilation failed: {ce}")
             cred_report = None
 
-        app = None
         if interview_session.application_id:
             app = db.get(CandidateApplication, interview_session.application_id)
 
@@ -200,7 +211,7 @@ Return ONLY valid JSON matching this exact structure:
   "timeline_replay": [
     {{
       "turn": <int>,
-      "phase": "Introduction|Resume Deep Dive|Core Technical Round|Problem Solving|Behavioral Round|Pressure / Cross-questioning|Candidate Questions|Final Evaluation",
+      "phase": "Resume Validation|Technical Assessment|Behavioral Assessment|Final Evaluation",
       "question": "short question summary",
       "answer": "short candidate answer summary",
       "score": <0.0-10.0>,
@@ -231,14 +242,24 @@ Return ONLY valid JSON matching this exact structure:
         if not parsed or "competency_scores" not in parsed:
             raise ValueError("LLM output failed validation")
 
+        parsed["_source"] = "ai"
         logger.info("AI hiring intelligence synthesis successful.")
     except Exception as exc:
         logger.warning(f"AI compilation failed, running fallback generator: {exc}")
         parsed = run_fallback_generation(messages, filler_counts, cred_report, resume_score, interview_score, cred_score)
+        parsed["_source"] = "fallback"
 
-    benchmarking_data = calculate_benchmarking(db, interview_session, app, interview_score)
-    save_hiring_intelligence_results(db, interview_session, parsed, benchmarking_data, filler_counts)
-    db.close()
+    try:
+        benchmarking_data = calculate_benchmarking(db, interview_session, app, interview_score)
+        save_hiring_intelligence_results(db, interview_session, parsed, benchmarking_data, filler_counts)
+    except Exception:
+        logger.exception("Failed to persist hiring intelligence for session %s", session_id)
+        interview_session.status = INTERVIEW_STATUS_FAILED
+        interview_session.updated_at = datetime.utcnow()
+        db.add(interview_session)
+        db.commit()
+    finally:
+        db.close()
 
 def run_fallback_generation(
     messages: list[dict[str, Any]],
@@ -454,7 +475,128 @@ def save_hiring_intelligence_results(
     interview_session.timeline_replay = json.dumps(results.get("timeline_replay") or [])
     interview_session.benchmarking = json.dumps(benchmarking_data)
     
-    interview_session.status = "analyzed"
+    interview_session.status = INTERVIEW_STATUS_ANALYZED
     interview_session.updated_at = datetime.utcnow()
     session_db.add(interview_session)
+    _upsert_interview_intelligence_report(
+        session_db,
+        interview_session,
+        results,
+        source=str(results.get("_source") or "fallback"),
+    )
     session_db.commit()
+
+
+def _score_from_competency(competency: dict[str, Any], keys: tuple[str, ...], fallback: float) -> float:
+    values = []
+    for key in keys:
+        try:
+            values.append(float(competency.get(key)))
+        except (TypeError, ValueError):
+            continue
+    if not values:
+        return round(fallback, 1)
+    return round((sum(values) / len(values)) * 10.0, 1)
+
+
+def _recommendation_for_score(score: float) -> str:
+    if score >= 85:
+        return "Strongly Recommended"
+    if score >= 72:
+        return "Recommended"
+    if score >= 55:
+        return "Needs Review"
+    return "Not Recommended"
+
+
+def _upsert_interview_intelligence_report(
+    session_db: Session,
+    interview_session: InterviewSession,
+    results: dict[str, Any],
+    source: str,
+) -> None:
+    if not interview_session.application_id:
+        return
+
+    app = session_db.get(CandidateApplication, interview_session.application_id)
+    if not app:
+        return
+
+    competency = results.get("competency_scores") or {}
+    job_fit = results.get("job_fit_report") or {}
+    behavioral = (results.get("behavioral_report") or {}).get("categories") or {}
+    credibility = session_db.exec(
+        select(CandidateCredibilityReport).where(CandidateCredibilityReport.session_id == interview_session.id)
+    ).first()
+
+    resume_score = float(credibility.resume_score if credibility else 0)
+    credibility_score = float(credibility.credibility_score if credibility else 0)
+    technical_score = _score_from_competency(
+        competency,
+        ("technicalDepth", "problemSolving", "systemDesign", "domainKnowledge"),
+        (interview_session.avg_score or 0) * 10,
+    )
+    behavioral_values = []
+    for key in ("Behavioral", "Situational", "Leadership"):
+        try:
+            behavioral_values.append(float(behavioral.get(key)) * 10.0)
+        except (TypeError, ValueError):
+            continue
+    behavioral_score = round(sum(behavioral_values) / len(behavioral_values), 1) if behavioral_values else _score_from_competency(
+        competency,
+        ("communication", "leadership", "confidence"),
+        (interview_session.avg_score or 0) * 10,
+    )
+    overall_score = round(
+        (resume_score * 0.25)
+        + (technical_score * 0.35)
+        + (behavioral_score * 0.15)
+        + (credibility_score * 0.25),
+        1,
+    )
+    recommendation = str(job_fit.get("recommendation") or _recommendation_for_score(overall_score))
+
+    strengths = job_fit.get("strengths") or []
+    weaknesses = job_fit.get("weaknesses") or []
+    executive_summary = (
+        f"Overall score {overall_score}/100. "
+        f"Technical {technical_score}/100, behavioral {behavioral_score}/100, "
+        f"resume credibility {credibility_score}/100. Recommendation: {recommendation}."
+    )
+
+    report = session_db.exec(
+        select(InterviewIntelligenceReport).where(InterviewIntelligenceReport.session_id == interview_session.id)
+    ).first()
+    if report is None:
+        report = session_db.exec(
+            select(InterviewIntelligenceReport).where(InterviewIntelligenceReport.application_id == app.id)
+        ).first()
+    now = datetime.utcnow()
+    if report is None:
+        report = InterviewIntelligenceReport(
+            application_id=app.id,
+            candidate_id=interview_session.user_id,
+            session_id=interview_session.id,
+            created_at=now,
+        )
+
+    report.resume_score = resume_score
+    report.technical_score = technical_score
+    report.behavioral_score = behavioral_score
+    report.credibility_score = credibility_score
+    report.overall_score = overall_score
+    report.recommendation = recommendation
+    report.executive_summary = executive_summary
+    report.strengths = json.dumps(strengths)
+    report.weaknesses = json.dumps(weaknesses)
+    report.technical_assessment = json.dumps(competency)
+    report.behavioral_assessment = json.dumps(results.get("behavioral_report") or {})
+    report.resume_validation = json.dumps({
+        "credibility_score": credibility_score,
+        "supported_claims": json.loads(credibility.supported_claims) if credibility and credibility.supported_claims else [],
+        "weak_claims": json.loads(credibility.weak_claims) if credibility and credibility.weak_claims else [],
+    })
+    report.source = source
+    report.status = INTERVIEW_STATUS_ANALYZED
+    report.updated_at = now
+    session_db.add(report)

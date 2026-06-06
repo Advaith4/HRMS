@@ -20,6 +20,7 @@ from src.database.connection import get_session
 from src.models import CareerCoachMemory, CandidateApplication, InterviewSession, Resume, User, CandidateCredibilityReport, HRNotification, JobPosting
 from src.api.dependencies import get_current_user
 from src.resume_lab import analyze_resume, dumps_json, load_json_field, parse_resume
+from src.services.interview_status import INTERVIEW_PHASES_V2, PHASE_SEQUENCE_V2
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/interview", tags=["interview"])
@@ -27,58 +28,8 @@ router = APIRouter(prefix="/api/interview", tags=["interview"])
 # In-memory state for active sessions (fast access during live interview)
 _sessions: dict[str, dict[str, Any]] = {}
 
-INTERVIEW_PHASES: list[dict[str, Any]] = [
-    {
-        "name": "Introduction",
-        "goal": "Set context, confirm target role fit, and establish communication baseline.",
-        "focus": "Candidate background, role motivation, and concise self-positioning.",
-        "min_turns": 1,
-    },
-    {
-        "name": "Resume Deep Dive",
-        "goal": "Validate resume claims with concrete examples and measurable outcomes.",
-        "focus": "Projects, ownership, decisions, and impact.",
-        "min_turns": 1,
-    },
-    {
-        "name": "Core Technical Round",
-        "goal": "Probe technical depth, tradeoffs, and implementation reasoning.",
-        "focus": "Architecture, debugging, APIs, data structures, and systems thinking.",
-        "min_turns": 2,
-    },
-    {
-        "name": "Problem Solving",
-        "goal": "Test structured thinking under constraints and ambiguity.",
-        "focus": "Approach, edge cases, complexity, and iterative refinement.",
-        "min_turns": 1,
-    },
-    {
-        "name": "Behavioral Round",
-        "goal": "Assess collaboration, ownership, conflict handling, and communication maturity.",
-        "focus": "STAR narratives with concrete outcomes.",
-        "min_turns": 1,
-    },
-    {
-        "name": "Pressure / Cross-questioning",
-        "goal": "Stress-test consistency, clarity, and defense of prior decisions.",
-        "focus": "Interruptions, pushback, and evidence-backed responses.",
-        "min_turns": 1,
-    },
-    {
-        "name": "Candidate Questions",
-        "goal": "Evaluate curiosity, role understanding, and decision criteria.",
-        "focus": "Questions about team, product, scope, and growth.",
-        "min_turns": 1,
-    },
-    {
-        "name": "Final Evaluation",
-        "goal": "Summarize performance, strengths, gaps, and next-step readiness.",
-        "focus": "Clear verdict and improvement plan.",
-        "min_turns": 0,
-    },
-]
-
-PHASE_SEQUENCE = [phase["name"] for phase in INTERVIEW_PHASES]
+INTERVIEW_PHASES: list[dict[str, Any]] = [dict(phase) for phase in INTERVIEW_PHASES_V2]
+PHASE_SEQUENCE = list(PHASE_SEQUENCE_V2)
 
 TRAINING_MODES = {
     "adaptive": "Mix weak-area drilling with general role coverage.",
@@ -228,7 +179,13 @@ def _phase_index(phase_name: str) -> int:
 
 
 def _should_end_interview_early(answer_count: int, scores: list[int], resume_score: float | None = None) -> bool:
-    if answer_count >= 15:
+    if answer_count >= 10:
+        return True
+    if answer_count < 6 or len(scores) < 3:
+        return False
+    recent = scores[-3:]
+    avg = sum(recent) / len(recent)
+    if max(recent) - min(recent) <= 1 and (avg >= 8 or avg <= 4):
         return True
     return False
 
@@ -239,12 +196,12 @@ def _pick_next_phase(current_phase: str, answer_count: int, scores: list[int], r
     if _should_end_interview_early(answer_count, scores, resume_score):
         return "Final Evaluation"
 
-    # Adaptive pacing: if struggling, stay longer in technical/problem rounds before pressure.
-    avg_score = sum(scores) / len(scores) if scores else None
-    if avg_score is not None and avg_score <= 4.5 and current_phase in {"Core Technical Round", "Problem Solving"}:
-        return current_phase
-    if avg_score is not None and avg_score >= 8.0 and current_phase == "Behavioral Round":
-        return "Pressure / Cross-questioning"
+    if answer_count < 3:
+        return "Resume Validation"
+    if answer_count < 8:
+        return "Technical Assessment"
+    if answer_count < 10:
+        return "Behavioral Assessment"
 
     idx = _phase_index(current_phase)
     next_idx = min(idx + 1, len(PHASE_SEQUENCE) - 1)
@@ -722,8 +679,8 @@ def _state_from_record(rec: InterviewSession) -> dict[str, Any]:
     if isinstance(context, dict) and context.get("interviewer_persona"):
         context["interviewer_persona"] = _normalize_persona(context.get("interviewer_persona"))
     if isinstance(context, dict) and not context.get("current_phase"):
-        context["current_phase"] = "Introduction"
-        context["phase_history"] = context.get("phase_history") or ["Introduction"]
+        context["current_phase"] = "Resume Validation"
+        context["phase_history"] = context.get("phase_history") or ["Resume Validation"]
     msgs = _safe_json_load(rec.messages, [])
     last_ai = next((m["content"] for m in reversed(msgs) if m.get("role") == "ai"), "")
 

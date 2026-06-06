@@ -52,6 +52,8 @@ def create_db_and_tables() -> None:
     _ensure_career_coach_memory_table()
     _ensure_phase1_employee_columns()
     _ensure_candidate_credibility_table()
+    _ensure_interview_intelligence_report_table()
+    _ensure_interview_integrity_indexes()
     _ensure_phase2_talent_tables()
     _ensure_profile_completion_tables()
     _ensure_profile_prepopulated_column()
@@ -370,6 +372,58 @@ def _ensure_candidate_credibility_table() -> None:
                 session.commit()
     except Exception as exc:
         logger.warning("Candidate credibility table migration skipped: %s", exc)
+
+
+def _ensure_interview_intelligence_report_table() -> None:
+    """Create persisted HR-facing interview intelligence reports."""
+    try:
+        if _db_url.startswith("sqlite") or settings.AUTO_CREATE_DB_SCHEMA:
+            SQLModel.metadata.create_all(engine)
+        else:
+            statement = """
+            CREATE TABLE IF NOT EXISTS interview_intelligence_reports (
+                id SERIAL PRIMARY KEY,
+                application_id INTEGER UNIQUE NOT NULL REFERENCES candidate_applications(id),
+                candidate_id INTEGER NOT NULL REFERENCES users(id),
+                session_id INTEGER UNIQUE NOT NULL REFERENCES interview_sessions(id),
+                resume_score DOUBLE PRECISION DEFAULT 0,
+                technical_score DOUBLE PRECISION DEFAULT 0,
+                behavioral_score DOUBLE PRECISION DEFAULT 0,
+                credibility_score DOUBLE PRECISION DEFAULT 0,
+                overall_score DOUBLE PRECISION DEFAULT 0,
+                recommendation VARCHAR(60) DEFAULT 'Needs Review',
+                executive_summary VARCHAR(4000) DEFAULT '',
+                strengths TEXT DEFAULT '[]',
+                weaknesses TEXT DEFAULT '[]',
+                technical_assessment TEXT DEFAULT '',
+                behavioral_assessment TEXT DEFAULT '',
+                resume_validation TEXT DEFAULT '',
+                source VARCHAR(40) DEFAULT 'fallback',
+                status VARCHAR(30) DEFAULT 'analyzed',
+                created_at TIMESTAMP,
+                updated_at TIMESTAMP
+            )
+            """
+            with Session(engine) as session:
+                session.exec(text(statement))
+                session.commit()
+    except Exception as exc:
+        logger.warning("Interview intelligence report migration skipped: %s", exc)
+
+
+def _ensure_interview_integrity_indexes() -> None:
+    """Best-effort integrity indexes for duplicate applications and interviews."""
+    statements = [
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_candidate_applications_candidate_job_unique ON candidate_applications(candidate_user_id, job_id)",
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_interview_sessions_application_unique ON interview_sessions(application_id) WHERE application_id IS NOT NULL",
+    ]
+    try:
+        with Session(engine) as session:
+            for statement in statements:
+                session.exec(text(statement))
+            session.commit()
+    except Exception as exc:
+        logger.warning("Interview integrity index migration skipped: %s", exc)
 def _ensure_phase2_talent_tables() -> None:
     """Create Phase 2A onboarding and training tables for managed PostgreSQL deployments."""
     try:

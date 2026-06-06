@@ -457,6 +457,11 @@ export const CandidateDashboard = ({ activeTab = 'overview' }) => {
                             Interview Completed {app.interview_score !== null && `(${app.interview_score.toFixed(1)}/10)`}
                           </span>
                         )}
+                        {app.interview_analyzing && (
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200">
+                            Analyzing Interview
+                          </span>
+                        )}
                         {app.interview_status === 'cancelled' && (
                           <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-danger-bg/40 text-danger-primary border border-danger-primary/20">
                             Interview Cancelled

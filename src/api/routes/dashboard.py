@@ -26,8 +26,15 @@ from src.models import (
     TrainingAssignment,
     TrainingProgram,
     InterviewSession,
+    InterviewIntelligenceReport,
 )
 from src.services.recruitment_ai import analysis_payload
+from src.services.interview_status import (
+    INTERVIEW_STATUS_ACTIVE,
+    INTERVIEW_STATUS_ANALYZED,
+    INTERVIEW_STATUS_ANALYZING,
+    INTERVIEW_STATUS_COMPLETED,
+)
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
@@ -58,6 +65,7 @@ def hr_dashboard(
     users_by_id: dict[int, User] = {}
     analyses_by_app: dict[int, ApplicationAIAnalysis] = {}
     sessions_by_app: dict[int, InterviewSession] = {}
+    reports_by_app: dict[int, InterviewIntelligenceReport] = {}
 
     if cand_ids:
         for u in session.exec(select(User).where(User.id.in_(cand_ids))).all():
@@ -73,6 +81,10 @@ def hr_dashboard(
         ).all():
             if sess.application_id not in sessions_by_app:
                 sessions_by_app[sess.application_id] = sess
+        for report in session.exec(
+            select(InterviewIntelligenceReport).where(InterviewIntelligenceReport.application_id.in_(app_ids))
+        ).all():
+            reports_by_app[report.application_id] = report
 
     # ── 4. Candidates list ────────────────────────────────────────────────────
     all_candidates = session.exec(
@@ -86,6 +98,7 @@ def hr_dashboard(
         candidate = users_by_id.get(app.candidate_user_id)
         analysis = analyses_by_app.get(app.id)
         sess = sessions_by_app.get(app.id)
+        report = reports_by_app.get(app.id)
         
         interview_analysis = None
         if sess:
@@ -95,7 +108,10 @@ def hr_dashboard(
                 "completed_at": sess.updated_at.isoformat() if sess.updated_at and sess.status in ["completed", "analyzed"] else None,
                 "competency_scores": sess.competency_scores,
                 "job_fit_report": sess.job_fit_report,
-                "ai_summary": None  # Placeholder if ai_summary is needed, actually job_fit_report has the summary
+                "ai_summary": report.executive_summary if report else None,
+                "overall_score": report.overall_score if report else None,
+                "recommendation": report.recommendation if report else None,
+                "report_id": report.id if report else None,
             }
 
         apps_payload.append({
@@ -209,8 +225,10 @@ def candidate_dashboard(
             "interview_status": sess.status if sess else None,
             "interview_session_id": sess.id if sess else None,
             "can_start_interview": sess is None,
-            "can_resume_interview": sess is not None and sess.status == "active",
-            "interview_completed": sess is not None and sess.status == "completed",
+            "can_resume_interview": sess is not None and sess.status == INTERVIEW_STATUS_ACTIVE,
+            "interview_completed": sess is not None and sess.status in {INTERVIEW_STATUS_COMPLETED, INTERVIEW_STATUS_ANALYZED},
+            "interview_analyzing": sess is not None and sess.status == INTERVIEW_STATUS_ANALYZING,
+            "interview_score": sess.avg_score if sess else None,
         })
 
     return {

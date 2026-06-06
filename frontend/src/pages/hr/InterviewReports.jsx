@@ -9,7 +9,7 @@ import {
   Award, TrendingUp, AlertTriangle, CheckCircle, XCircle, Brain,
   ChevronDown, ChevronUp, UserCheck, ArrowUpRight, ThumbsUp,
   Users, Target, Shield, Zap, Search, X, Clock, BarChart3,
-  Star, Activity, FileText, ExternalLink, RefreshCw,
+  Star, Activity, FileText, ExternalLink, RefreshCw, MessageSquare,
 } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import {

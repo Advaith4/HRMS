@@ -11,6 +11,23 @@ import InterviewStatusCard from './InterviewStatusCard'
 import InterviewSummary from './InterviewSummary'
 import toast from 'react-hot-toast'
 
+const INTERVIEW_PHASES = [
+  'Resume Validation',
+  'Technical Assessment',
+  'Behavioral Assessment',
+  'Final Evaluation',
+]
+
+const parseSessionContext = (value) => {
+  if (!value) return {}
+  if (typeof value === 'object') return value
+  try {
+    return JSON.parse(value)
+  } catch {
+    return {}
+  }
+}
+
 export default function InterviewWorkspaceShell({ session, onEnd, onSubmitAnswer, onTranscribeAudio, onRecordProctoringViolation, onCompleteSession }) {
   const {
     cameraEnabled, cameraStatus, screenShareEnabled, screenShareStatus, screenShareSurface, isMobile,
@@ -32,7 +49,7 @@ export default function InterviewWorkspaceShell({ session, onEnd, onSubmitAnswer
   const [micStatus, setMicStatus] = useState('idle')
   const [inputMode, setInputMode] = useState('voice')
   const [currentQuestion, setCurrentQuestion] = useState(session.question || '')
-  const [currentPhase, setCurrentPhase] = useState(session.phase || 'Introduction')
+  const [currentPhase, setCurrentPhase] = useState(session.phase || 'Resume Validation')
   const [currentPhaseGoal, setCurrentPhaseGoal] = useState(session.phase_goal || '')
   const [lastFeedback, setLastFeedback] = useState(null)
   const [avgScore, setAvgScore] = useState(null)
@@ -82,11 +99,11 @@ export default function InterviewWorkspaceShell({ session, onEnd, onSubmitAnswer
     if (aiMsgs.length > 0) {
       const lastAi = aiMsgs[aiMsgs.length - 1]
       setCurrentQuestion(lastAi.content || '')
-      setCurrentPhase(lastAi.phase || 'Introduction')
+      setCurrentPhase(lastAi.phase || 'Resume Validation')
       setQuestionCount(aiMsgs.length)
     } else {
       setCurrentQuestion(session?.question || '')
-      setCurrentPhase(session?.phase || 'Introduction')
+      setCurrentPhase(session?.phase || 'Resume Validation')
       setQuestionCount(session?.question ? 1 : 0)
     }
     setCurrentPhaseGoal(session?.phase_goal || '')
@@ -361,6 +378,7 @@ export default function InterviewWorkspaceShell({ session, onEnd, onSubmitAnswer
           ...session,
           ...data,
           id: data.db_id || session.db_id || session.id,
+          status: data.status || 'analyzing',
           avg_score: data.avg_score ?? data.evaluation?.score ?? avgScore ?? 0,
           final_feedback: finalFeedbackText || data.feedback_message || '',
           final_verdict: data.final_verdict || data.evaluation?.final_verdict || '',
@@ -407,6 +425,8 @@ export default function InterviewWorkspaceShell({ session, onEnd, onSubmitAnswer
     if (status === 'denied' || status === 'unavailable' || status === 'error') return 'denied'
     return 'idle'
   }
+
+  const personalizationContext = parseSessionContext(session.personalization_context)
 
   const handleConfirmEnd = async () => {
     setIsProcessingEnd(true)
@@ -579,7 +599,7 @@ export default function InterviewWorkspaceShell({ session, onEnd, onSubmitAnswer
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Interview Progression</h3>
         <div className="flex items-center justify-between gap-1 overflow-x-auto pb-1 text-[11px] font-medium text-gray-400 scrollbar-thin">
-          {["Introduction", "Resume Deep Dive", "Core Technical Round", "Problem Solving", "Behavioral Round", "Pressure / Cross-questioning", "Candidate Questions", "Final Evaluation"].map((p, idx, arr) => {
+          {INTERVIEW_PHASES.map((p, idx, arr) => {
             const isCurrent = currentPhase === p;
             const isPast = arr.indexOf(currentPhase) > idx;
             return (
@@ -612,9 +632,9 @@ export default function InterviewWorkspaceShell({ session, onEnd, onSubmitAnswer
                   {session.interviewer_persona || 'Balanced'} Persona (Phase: {currentPhase})
                 </p>
               </div>
-              {session.personalization_context && JSON.parse(session.personalization_context || '{}').verification_active && (
+              {personalizationContext.verification_active && (
                 <span className="bg-amber-100 border border-amber-200 text-amber-800 text-[10px] px-2.5 py-1 rounded-full animate-pulse font-semibold">
-                  Claim Verification: {JSON.parse(session.personalization_context || '{}').current_verification_claim}
+                  Claim Verification: {personalizationContext.current_verification_claim}
                 </span>
               )}
             </div>

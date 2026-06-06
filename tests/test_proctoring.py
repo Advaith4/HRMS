@@ -41,20 +41,20 @@ def _register(username: str, role: str) -> str:
 def test_should_end_interview_early():
     from src.api.routes.interview import _should_end_interview_early
 
-    # < 5 answers should not end early
-    assert not _should_end_interview_early(4, [8, 8, 8])
+    # < 6 answers should not end early
+    assert not _should_end_interview_early(5, [8, 8, 8, 8, 8])
 
-    # 5 answers but inconsistent score should not end early
-    assert not _should_end_interview_early(5, [8, 4, 9, 5, 7])
+    # 6 answers but inconsistent score should not end early
+    assert not _should_end_interview_early(6, [8, 4, 9, 5, 7, 8])
 
-    # 5 answers with consistently excellent scores should end early
-    assert _should_end_interview_early(5, [6, 8, 8, 8, 8])  # last 3 are all >= 7, avg = 8.0, range = 0
+    # 6 answers with consistently excellent scores should end early
+    assert _should_end_interview_early(6, [6, 7, 8, 8, 8, 8])
 
-    # 5 answers with consistently poor scores should end early
-    assert _should_end_interview_early(5, [6, 8, 3, 3, 3])  # last 3 are all <= 5, avg = 3.0, range = 0
+    # 6 answers with consistently poor scores should end early
+    assert _should_end_interview_early(6, [6, 8, 5, 3, 3, 3])
 
-    # 15 answers should always end early
-    assert _should_end_interview_early(15, [6]*15)
+    # 10 answers should always end early
+    assert _should_end_interview_early(10, [6]*10)
 
 def test_start_interview_for_application_and_violations(monkeypatch):
     monkeypatch.setattr(
@@ -116,7 +116,7 @@ def test_start_interview_for_application_and_violations(monkeypatch):
     assert start_res.status_code == 200, start_res.text
     session_data = start_res.json()
     assert session_data["session_id"]
-    assert session_data["question"] == "Tell me about yourself and your experience building APIs with FastAPI."
+    assert session_data["question"] == "Explain your most recent project for this FastAPI Developer role and your personal contribution."
     assert session_data["role"] == "FastAPI Developer"
 
     session_id = session_data["session_id"]

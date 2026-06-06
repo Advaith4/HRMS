@@ -5,6 +5,7 @@ from sqlmodel import Field, SQLModel
 USER_ROLES = {"candidate", "employee", "hr", "manager", "admin"}
 APPLICATION_STATUSES = {"Applied", "Under Review", "Shortlisted", "Selected", "Rejected", "Hired"}
 LEAVE_STATUSES = {"Pending", "Approved", "Rejected"}
+INTERVIEW_STATUSES = {"pending", "active", "completed", "analyzing", "analyzed", "cancelled", "failed"}
 
 
 class User(SQLModel, table=True):
@@ -535,6 +536,32 @@ class CandidateCredibilityReport(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+class InterviewIntelligenceReport(SQLModel, table=True):
+    """Persisted HR-facing interview intelligence summary for one official interview."""
+    __tablename__ = "interview_intelligence_reports"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    application_id: int = Field(foreign_key="candidate_applications.id", index=True, unique=True)
+    candidate_id: int = Field(foreign_key="users.id", index=True)
+    session_id: int = Field(foreign_key="interview_sessions.id", index=True, unique=True)
+    resume_score: float = Field(default=0)
+    technical_score: float = Field(default=0)
+    behavioral_score: float = Field(default=0)
+    credibility_score: float = Field(default=0)
+    overall_score: float = Field(default=0, index=True)
+    recommendation: str = Field(default="Needs Review", max_length=60, index=True)
+    executive_summary: str = Field(default="", max_length=4000)
+    strengths: str = Field(default="[]")
+    weaknesses: str = Field(default="[]")
+    technical_assessment: str = Field(default="")
+    behavioral_assessment: str = Field(default="")
+    resume_validation: str = Field(default="")
+    source: str = Field(default="fallback", max_length=40)
+    status: str = Field(default="analyzed", max_length=30, index=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 class TrainingAssignment(SQLModel, table=True):
     """Assignment of a training program to one employee."""
     __tablename__ = "training_assignments"
@@ -557,4 +584,3 @@ class OnboardingRequiredDocument(SQLModel, table=True):
     template_id: int = Field(foreign_key="onboarding_templates.id", index=True)
     document_type: str = Field(max_length=80)
     created_at: datetime = Field(default_factory=datetime.utcnow)
-

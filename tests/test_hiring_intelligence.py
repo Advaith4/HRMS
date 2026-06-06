@@ -13,7 +13,7 @@ import pytest
 
 from src.main import app
 from src.database.connection import create_db_and_tables, engine
-from src.models import User, InterviewSession, CandidateApplication, JobPosting, Resume
+from src.models import User, InterviewSession, CandidateApplication, JobPosting, Resume, InterviewIntelligenceReport
 from src.services.hiring_intelligence import compile_hiring_intelligence, calculate_benchmarking
 import src.api.routes.interview as interview_route
 
@@ -141,6 +141,7 @@ def test_hiring_intelligence_compilation_and_storage(monkeypatch):
         session_db.add(app_rec)
         session_db.commit()
         session_db.refresh(app_rec)
+        app_id = app_rec.id
 
         resume = Resume(user_id=user.id, raw_text="FastAPI Backend Engineer")
         session_db.add(resume)
@@ -200,6 +201,15 @@ def test_hiring_intelligence_compilation_and_storage(monkeypatch):
         bench = json.loads(updated_sess.benchmarking)
         # 1 completed candidate should flag insufficient data
         assert bench["insufficient_data"] is True
+
+        report = session_db.exec(
+            select(InterviewIntelligenceReport).where(InterviewIntelligenceReport.session_id == sess_id)
+        ).one()
+        assert report.application_id == app_id
+        assert report.status == "analyzed"
+        assert report.source == "ai"
+        assert report.overall_score > 0
+        assert report.technical_score >= 80.0
 
 
 def test_benchmarking_percentile_calculations():
@@ -302,8 +312,8 @@ def test_claim_verification_depth_and_phase_freeze(monkeypatch):
     assert p_context_1.get("verification_active") is True
     assert p_context_1.get("current_verification_claim") == "React"
     assert p_context_1.get("verification_depth") == 0
-    # Phase is frozen (e.g. still at introduction / same round)
-    assert ans_1.json().get("phase") == "Introduction"
+    # Phase is frozen while the claim is being verified.
+    assert ans_1.json().get("phase") == "Resume Validation"
 
     # 2. Second turn: answer follow-up 1
     # This advances verification depth to 1
@@ -317,7 +327,7 @@ def test_claim_verification_depth_and_phase_freeze(monkeypatch):
     assert p_context_2.get("current_verification_claim") == "React"
     assert p_context_2.get("verification_depth") == 1
     # Phase still frozen
-    assert ans_2.json().get("phase") == "Introduction"
+    assert ans_2.json().get("phase") == "Resume Validation"
 
     # 3. Third turn: answer follow-up 2
     # Since depth is 1, answering this completes turn 2 (from perspective of follow-ups)
@@ -333,5 +343,5 @@ def test_claim_verification_depth_and_phase_freeze(monkeypatch):
     assert p_context_3.get("current_verification_claim") is None
     # Claim React is verified
     assert "React" in p_context_3.get("verified_claims", [])
-    # Phase progression resumes to next phase (Resume Deep Dive)
-    assert ans_3.json().get("phase") == "Resume Deep Dive"
+    # Phase progression resumes to the next four-phase stage.
+    assert ans_3.json().get("phase") == "Technical Assessment"
