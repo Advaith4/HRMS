@@ -20,6 +20,13 @@ const cacheKeyFor = (config) => {
   return `${config.baseURL || ''}${config.url || ''}?${params}`
 }
 
+const shouldCacheGet = (config) => {
+  const url = String(config.url || '')
+  // Interview session polling must always reflect live backend status.
+  if (url.includes('/api/interview/sessions/')) return false
+  return true
+}
+
 export const invalidateCache = (urlPattern) => {
   for (const key of _cache.keys()) {
     if (!urlPattern || key.includes(urlPattern)) _cache.delete(key)
@@ -35,10 +42,11 @@ api.interceptors.request.use(
     }
 
     // Check in-memory cache for GET requests
-    if (config.method === 'get' || !config.method) {
+    if ((config.method === 'get' || !config.method) && shouldCacheGet(config)) {
       const cacheKey = cacheKeyFor(config)
       const cached = _cache.get(cacheKey)
       if (cached && Date.now() < cached.expiresAt) {
+        console.info('api_cache_hit', { cacheKey, method: config.method || 'get' })
         // Return a resolved promise that looks like an axios response
         config.adapter = () => Promise.resolve({
           data: cached.data,
@@ -58,8 +66,9 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => {
     const method = response.config.method
-    if (method === 'get' || !method) {
+    if ((method === 'get' || !method) && shouldCacheGet(response.config)) {
       const cacheKey = cacheKeyFor(response.config)
+      console.info('api_cache_store', { cacheKey, method })
       _cache.set(cacheKey, { data: response.data, expiresAt: Date.now() + CACHE_TTL_MS })
     }
     return response

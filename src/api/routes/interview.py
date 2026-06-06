@@ -9,10 +9,13 @@ import uuid
 import json
 import logging
 import os
+import time
+import hashlib
+from difflib import SequenceMatcher
 from datetime import datetime
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks, Form
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
@@ -27,7 +30,10 @@ from src.services.interview_status import (
     SUCCESSFUL_INTERVIEW_STATUSES,
     TERMINAL_INTERVIEW_STATUSES,
     VISIBLE_INTERVIEW_STATUSES,
+    completed_turns_by_phase,
+    has_completed_required_turns,
     is_successful_interview_status,
+    next_phase_for_completed_turn,
 )
 
 logger = logging.getLogger(__name__)
@@ -48,8 +54,9 @@ from src.services.interview_core import (
     TRAINING_MODES,
     _save_session_state,
     _state_from_record,
-    _should_end_interview_early,
-    _pick_next_phase,
+    _ensure_live_state,
+    _is_interview_complete_after_answer,
+    _phase_entry_question,
     _format_feedback_message,
     _generate_daily_plan,
     _unique_strings,
@@ -64,6 +71,7 @@ from src.services.interview_core import (
     _safe_json_load,
     INTERVIEW_PHASES,
     PHASE_SEQUENCE,
+    PHASE_TURN_TARGETS,
     _notify_hr
 )
 
@@ -78,11 +86,13 @@ class StartForApplicationReq(BaseModel):
 
 class AnswerReq(BaseModel):
     session_id: str
-    answer: str
+    answer: str = Field(min_length=1, max_length=5000)
 
 class ViolationReq(BaseModel):
     violation_type: str
     detail: str
+    duration_ms: Optional[int] = None
+    severity: str = Field(default="medium", max_length=20)
 
 class CompareReq(BaseModel):
     candidate_ids: list[int]
@@ -91,6 +101,301 @@ class CompareReq(BaseModel):
 def _safe_load_list(value: str | None) -> list[Any]:
     loaded = _safe_json_load(value, [])
     return loaded if isinstance(loaded, list) else []
+
+
+def _utc_iso() -> str:
+    return datetime.utcnow().isoformat() + "Z"
+
+
+def _log_perf(metric: str, started: float, **fields: Any) -> None:
+    ended = time.perf_counter()
+    logger.info(
+        "perf_metric metric=%s start_time=%s end_time=%s elapsed_ms=%s %s",
+        metric,
+        fields.pop("start_time", ""),
+        _utc_iso(),
+        int((ended - started) * 1000),
+        " ".join(f"{key}={value}" for key, value in fields.items()),
+    )
+
+
+def _log_interview_event(event: str, session_id: str | int | None = None, phase: str | None = None, question_number: int | None = None, **fields: Any) -> None:
+    logger.info(
+        "interview_event event=%s session_id=%s phase=%s question_number=%s timestamp=%s %s",
+        event,
+        session_id or "",
+        phase or "",
+        question_number if question_number is not None else "",
+        _utc_iso(),
+        " ".join(f"{key}={value}" for key, value in fields.items()),
+    )
+
+
+PHASE_TOPIC_PROGRESSIONS = {
+    "Resume Validation": [
+        ("introduction", "Give me a concise introduction for this role, focusing on your background and strongest fit."),
+        ("background", "Walk me through the background, education, or experience that prepared you for this role."),
+        ("resume_project", "Choose one resume project or claim and explain your ownership, evidence, and outcome."),
+    ],
+    "Technical Assessment": [
+        ("project_architecture", "Walk me through the architecture of a project you built, including the major components and why you designed it that way."),
+        ("technical_challenge", "Describe a difficult technical challenge you faced in that project and the engineering decision that resolved it."),
+        ("system_design", "Design a production-ready system for a core feature in this role. Cover data flow, scale, reliability, and tradeoffs."),
+        ("apis", "Explain an API or integration you built or would design here, including endpoints, data contracts, validation, and failure handling."),
+        ("debugging", "Tell me about a production bug or complex debugging scenario. How did you isolate the cause and prevent recurrence?"),
+    ],
+    "Behavioral Assessment": [
+        ("teamwork", "Tell me about a time you worked with a team to deliver something difficult. What was your role and impact?"),
+        ("conflict", "Describe a conflict or disagreement on a project. How did you handle it and what changed afterward?"),
+        ("leadership", "Give me an example of leadership, ownership, or initiative when the path forward was unclear."),
+    ],
+    "Final Evaluation": [
+        ("closing_signal", "Before we wrap up, what is the strongest technical and role-fit evidence you want the hiring team to remember?"),
+    ],
+}
+
+PHASE_ALLOWED_KEYWORDS = {
+    "Resume Validation": (
+        "introduction", "background", "education", "resume", "claim", "experience", "project", "ownership", "outcome",
+    ),
+    "Technical Assessment": (
+        "project", "architecture", "coding", "api", "apis", "database", "databases", "system", "design", "debug", "debugging",
+        "engineering", "technical", "components", "data", "scale", "reliability", "tradeoff", "production", "integration",
+        "failure", "endpoint", "decision", "decisions",
+    ),
+    "Behavioral Assessment": (
+        "team", "teamwork", "conflict", "leadership", "ownership", "collaboration", "stakeholder", "communication", "ambiguity",
+    ),
+    "Final Evaluation": (
+        "wrap", "closing", "strongest", "evidence", "remember", "fit", "role",
+    ),
+}
+
+CLARIFICATION_MARKERS = (
+    "clarification",
+    "clarify",
+    "let me rephrase",
+    "could you provide a different example",
+    "different example regarding",
+    "try again with",
+)
+
+TECHNICAL_FORBIDDEN_MARKERS = (
+    "tell me about yourself",
+    "general introduction",
+    "background and strongest fit",
+    "your background fits",
+    "why you're a good fit",
+    "resume validation",
+)
+
+
+def _question_similarity(a: str, b: str) -> float:
+    return SequenceMatcher(None, str(a or "").lower(), str(b or "").lower()).ratio()
+
+
+def _recent_question_similarity(question: str, previous_questions: list[str], window: int = 3) -> tuple[bool, float]:
+    max_similarity = 0.0
+    for old_q in previous_questions[-window:]:
+        similarity = _question_similarity(question, old_q)
+        max_similarity = max(max_similarity, similarity)
+        if similarity >= 0.82:
+            return True, max_similarity
+    return False, max_similarity
+
+
+def _is_clarification_question(question: str) -> bool:
+    text = str(question or "").lower()
+    return any(marker in text for marker in CLARIFICATION_MARKERS)
+
+
+def _question_matches_phase(question: str, phase: str) -> bool:
+    text = str(question or "").lower()
+    if not text.strip():
+        return False
+    allowed = PHASE_ALLOWED_KEYWORDS.get(phase, ())
+    if phase == "Technical Assessment":
+        if any(marker in text for marker in TECHNICAL_FORBIDDEN_MARKERS):
+            return False
+        if _is_clarification_question(text):
+            return False
+    return any(keyword in text for keyword in allowed)
+
+
+def _topic_for_phase_turn(phase: str, phase_question_count: int) -> tuple[str, str]:
+    progression = PHASE_TOPIC_PROGRESSIONS.get(phase) or PHASE_TOPIC_PROGRESSIONS["Resume Validation"]
+    index = min(max(int(phase_question_count or 0), 0), len(progression) - 1)
+    return progression[index]
+
+
+def _next_progression_question(phase: str, phase_question_count: int, previous_questions: list[str]) -> tuple[str, str, bool, float]:
+    progression = PHASE_TOPIC_PROGRESSIONS.get(phase) or PHASE_TOPIC_PROGRESSIONS["Resume Validation"]
+    start = min(max(int(phase_question_count or 0), 0), len(progression) - 1)
+    best_type, best_question = progression[start]
+    best_duplicate, best_similarity = _recent_question_similarity(best_question, previous_questions)
+    for offset in range(len(progression)):
+        question_type, question = progression[(start + offset) % len(progression)]
+        is_duplicate, similarity = _recent_question_similarity(question, previous_questions)
+        if not is_duplicate:
+            return question_type, question, False, similarity
+        if similarity < best_similarity:
+            best_type, best_question = question_type, question
+            best_duplicate, best_similarity = is_duplicate, similarity
+    return best_type, best_question, best_duplicate, best_similarity
+
+
+def _phase_aware_question(
+    phase: str,
+    phase_question_count: int,
+    role: str,
+    generated_question: str,
+    previous_questions: list[str],
+    clarification_attempts: dict[str, int],
+) -> tuple[str, str, bool, float, bool]:
+    """Return final question, question type, duplicate flag, similarity, and whether generated text was replaced."""
+    generated_question = str(generated_question or "").strip()
+    question_type, fallback_question = _topic_for_phase_turn(phase, phase_question_count)
+    is_duplicate, max_similarity = _recent_question_similarity(generated_question, previous_questions)
+    phase_valid = _question_matches_phase(generated_question, phase)
+    replaced = False
+
+    if phase_valid and not is_duplicate:
+        final_question = generated_question
+    else:
+        replaced = True
+        question_type, final_question, is_duplicate, max_similarity = _next_progression_question(
+            phase,
+            phase_question_count,
+            previous_questions,
+        )
+
+    if is_duplicate:
+        attempts = int(clarification_attempts.get(phase, 0) or 0)
+        if attempts < 1 and phase != "Technical Assessment":
+            clarification_attempts[phase] = attempts + 1
+            final_question = (
+                f"One brief clarification before we move on: answer with a different {question_type.replace('_', ' ')} "
+                f"example for the {role or 'target'} role, including your decision and outcome."
+            )
+            replaced = True
+        else:
+            question_type, final_question, is_duplicate, max_similarity = _next_progression_question(
+                phase,
+                phase_question_count + 1,
+                previous_questions,
+            )
+            clarification_attempts[phase] = 0
+            replaced = True
+        is_duplicate, max_similarity = _recent_question_similarity(final_question, previous_questions)
+
+    if not is_duplicate:
+        clarification_attempts[phase] = 0
+
+    return final_question, question_type, is_duplicate, max_similarity, replaced
+
+
+_CANDIDATE_HIDDEN_MESSAGE_KEYS = {
+    "score", "meta", "difficulty", "focus_area", "focus_type",
+    "adaptive_mode", "interviewer_signal", "pressure_level", "answer_expectation",
+}
+
+
+def _candidate_visible_messages(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Return only candidate-safe messages. Feedback/evaluation is stored but never shown."""
+    visible: list[dict[str, Any]] = []
+    for message in messages:
+        if message.get("role") == "feedback":
+            continue
+        item = {key: value for key, value in message.items() if key not in _CANDIDATE_HIDDEN_MESSAGE_KEYS}
+        visible.append(item)
+    return visible
+
+
+def _sanitize_candidate_response(payload: dict[str, Any]) -> dict[str, Any]:
+    """Strip evaluation artifacts from live interview API responses."""
+    sanitized = dict(payload)
+    sanitized["feedback_message"] = "Your answer has been recorded."
+    sanitized.pop("avg_score", None)
+    sanitized.pop("final_feedback", None)
+    sanitized.pop("final_verdict", None)
+    sanitized.pop("verdict_explanation", None)
+    sanitized.pop("final_feedback_ready", None)
+    sanitized["messages"] = _candidate_visible_messages(sanitized.get("messages") or [])
+    if sanitized.get("interview_complete"):
+        sanitized["next_question"] = ""
+        sanitized["interviewer_response"] = "Interview completed. Generating final report."
+    context = sanitized.get("personalization_context")
+    if isinstance(context, dict):
+        ctx = dict(context)
+        ctx.pop("last_score", None)
+        ctx.pop("coach_memory", None)
+        sanitized["personalization_context"] = ctx
+    sanitized.pop("coach_memory", None)
+    return sanitized
+
+
+def _latest_live_response_from_state(
+    state: dict[str, Any],
+    status: str = INTERVIEW_STATUS_ACTIVE,
+    duplicate: bool = False,
+) -> dict[str, Any]:
+    context = state.get("personalization_context") or {}
+    messages = state.get("messages") or []
+    current_phase = context.get("current_phase", "Resume Validation")
+    last_feedback = next((m for m in reversed(messages) if m.get("role") == "feedback"), {})
+    interview_complete = status != INTERVIEW_STATUS_ACTIVE
+    current_question = "" if interview_complete else str(state.get("current_question") or "")
+    return _sanitize_candidate_response({
+        "next_question": current_question,
+        "difficulty": state.get("difficulty", 5),
+        "focus_area": context.get("current_focus_area", "general"),
+        "focus_type": context.get("last_adaptive_mode", "general"),
+        "weak_areas": context.get("weak_areas", []),
+        "question_mix": context.get("question_mix") or _question_mix_for_mode(context.get("training_mode", state.get("training_mode", "adaptive"))),
+        "training_mode": context.get("training_mode", state.get("training_mode", "adaptive")),
+        "interviewer_persona": context.get("interviewer_persona", state.get("interviewer_persona", "balanced")),
+        "persona": INTERVIEWER_PERSONAS.get(context.get("interviewer_persona", "balanced"), INTERVIEWER_PERSONAS["balanced"]),
+        "feedback_message": last_feedback.get("content", "Thank you, I have your answer."),
+        "interviewer_response": "Interview completed. Generating final report." if interview_complete else current_question,
+        "evaluation_stored": True,
+        "answer_expectation": "",
+        "session_turn": len(state.get("answers", [])),
+        "coach_memory": context.get("coach_memory", {}),
+        "phase": current_phase,
+        "phase_goal": _phase_meta(current_phase)["goal"],
+        "phase_focus": _phase_meta(current_phase)["focus"],
+        "phase_history": context.get("phase_history", [current_phase]),
+        "status": status,
+        "interview_complete": interview_complete,
+        "personalization_context": context,
+        "messages": messages,
+        "db_id": state.get("db_id"),
+        "duplicate_submission": duplicate,
+    })
+
+
+def _enqueue_hiring_intelligence_if_needed(
+    db: Session,
+    background_tasks: BackgroundTasks,
+    rec: InterviewSession,
+) -> bool:
+    if rec.status == "analyzed" and rec.competency_scores and rec.job_fit_report:
+        logger.info("hiring_intelligence_enqueue_skipped session_id=%s reason=cached", rec.id)
+        return False
+    if rec.status == INTERVIEW_STATUS_ANALYZING:
+        logger.info("hiring_intelligence_enqueue_skipped session_id=%s reason=already_analyzing", rec.id)
+        return False
+    rec.status = INTERVIEW_STATUS_ANALYZING
+    rec.updated_at = datetime.utcnow()
+    db.add(rec)
+    db.commit()
+    from src.services.hiring_intelligence import compile_hiring_intelligence
+    background_tasks.add_task(compile_hiring_intelligence, rec.id)
+    context = _safe_json_load(rec.personalization_context, {})
+    phase = context.get("current_phase") if isinstance(context, dict) else None
+    _log_interview_event("report_generation", rec.id, phase, None, status=rec.status)
+    logger.info("hiring_intelligence_enqueued session_id=%s", rec.id)
+    return True
 
 @router.post("/start")
 @router.post("/start-for-application")
@@ -202,21 +507,22 @@ def start_interview(
     phase_details = _phase_meta(current_phase)
 
     first = {
-        "question": f"Explain your most recent project for this {role} role and your personal contribution.",
-        "focus_area": context["weak_areas"][0] if context["weak_areas"] else "resume validation",
-        "focus_type": "weak_area" if context["weak_areas"] else "general",
-        "interviewer_signal": "I will validate resume claims using concrete evidence.",
+        "question": f"Tell me about yourself as it relates to this {role} role.",
+        "focus_area": "general introduction",
+        "focus_type": "general",
+        "interviewer_signal": "I want to hear how your background fits this role and what you can contribute.",
         "pressure_level": INTERVIEWER_PERSONAS[interviewer_persona]["pressure"],
-        "answer_expectation": "Use a concrete project, your decisions, tradeoffs, and measurable outcome.",
+        "answer_expectation": "Share your background, role-relevant strengths, and a brief example of your most relevant experience.",
     }
 
-    question = str(first.get("question") or "Tell me about your most relevant project and what you would improve.").strip()
+    question = str(first.get("question") or f"Tell me about yourself as it relates to this {role} role.").strip()
     answer_expectation = str(first.get("answer_expectation") or "Answer in 5-10 lines with context, decisions, tradeoffs, and measurable outcome.").strip()
     focus_type = _normalize_focus_type(first.get("focus_type"), focus_mode)
     context["focus_counts"][focus_type] = context["focus_counts"].get(focus_type, 0) + 1
     context["current_focus_area"] = first.get("focus_area", context["weak_areas"][0] if context["weak_areas"] else "general")
     context["current_phase"] = current_phase
     context["phase_history"] = [current_phase]
+    context["phase_turn_count"] = 0
 
     session_token = uuid.uuid4().hex
     first_msg = {
@@ -332,7 +638,9 @@ def record_proctoring_violation(
     new_violation = {
         "type": req.violation_type,
         "detail": req.detail,
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.utcnow().isoformat(),
+        "duration_ms": max(0, int(req.duration_ms or 0)),
+        "severity": req.severity if req.severity in ("low", "medium", "high") else "medium",
     }
     violations_list.append(new_violation)
     rec.violations = json.dumps(violations_list)
@@ -380,28 +688,79 @@ def submit_answer(
     db: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
+    try:
+        return _submit_answer_impl(req, background_tasks, db, current_user)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error(
+            "submit_answer_unhandled session_id=%s error=%s",
+            req.session_id,
+            exc,
+            exc_info=True,
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to process your answer. Please try again.",
+        ) from exc
+
+
+def _submit_answer_impl(
+    req: AnswerReq,
+    background_tasks: BackgroundTasks,
+    db: Session,
+    current_user: User,
+):
+    request_started = time.perf_counter()
+    request_start_iso = _utc_iso()
+    answer_text = str(req.answer or "").strip()
+    if not answer_text:
+        raise HTTPException(status_code=422, detail="Answer cannot be empty.")
+    if len(answer_text) > 5000:
+        raise HTTPException(status_code=422, detail="Answer must be 5000 characters or fewer.")
+
+    rec = db.exec(select(InterviewSession).where(InterviewSession.session_token == req.session_id)).first()
+    if rec is None or rec.user_id != current_user.id:
+        raise HTTPException(status_code=400, detail="Invalid session ID. Please start a new interview.")
+    if rec.status != INTERVIEW_STATUS_ACTIVE:
+        state = _ensure_live_state(_sessions.get(req.session_id) or _state_from_record(rec))
+        return _latest_live_response_from_state(state, status=rec.status, duplicate=True)
+
     state = _sessions.get(req.session_id)
     if state is None:
-        rec = db.exec(select(InterviewSession).where(InterviewSession.session_token == req.session_id)).first()
-        if rec is None or rec.user_id != current_user.id:
-            raise HTTPException(status_code=400, detail="Invalid session ID. Please start a new interview.")
-        state = _state_from_record(rec)
+        state = _ensure_live_state(_state_from_record(rec))
         _sessions[req.session_id] = state
-    elif state.get("user_id") is not None and state.get("user_id") != current_user.id:
+    else:
+        state = _ensure_live_state(state)
+    if state.get("user_id") is not None and state.get("user_id") != current_user.id:
         raise HTTPException(status_code=401, detail="Not authenticated")
+
+    if state.get("answers") and str(state["answers"][-1]).strip() == answer_text:
+        _log_interview_event("answer_submit_duplicate", req.session_id, (state.get("personalization_context") or {}).get("current_phase"), len(state.get("answers", [])))
+        return _latest_live_response_from_state(state, status=rec.status, duplicate=True)
 
     import copy
     state = copy.deepcopy(state)
     context = state.setdefault("personalization_context", {})
     focus_mode = _choose_focus_mode(state)
     current_phase = context.get("current_phase", "Resume Validation")
-    phase_details = _phase_meta(current_phase)
+    question_number = len(state.get("answers", [])) + 1
+    phase_turn_count_for_answer = int(context.get("phase_turn_count", 0)) + 1
+    generation_phase, generation_complete = next_phase_for_completed_turn(current_phase, phase_turn_count_for_answer)
+    phase_details = _phase_meta(generation_phase)
+    _log_interview_event("answer_submit", req.session_id, current_phase, question_number, answer_chars=len(answer_text))
 
-    # Claim Verification Engine
+    # Claim Verification Engine — use full resume text when available for claim extraction
     resume_text = ""
     res_ctx = context.get("resume_context", {})
     if isinstance(res_ctx, dict):
-        resume_text = res_ctx.get("summary", "") + " " + " ".join(res_ctx.get("skills", []))
+        resume_text = (
+            res_ctx.get("raw_text")
+            or res_ctx.get("summary", "")
+            or ""
+        )
+        if res_ctx.get("skills"):
+            resume_text = f"{resume_text} {' '.join(res_ctx.get('skills', []))}".strip()
     
     from src.services.interview_consistency import _extract_claims
     resume_claims = _extract_claims(resume_text)
@@ -426,7 +785,7 @@ def submit_answer(
             context["current_focus_area"] = f"claim verification: {current_verification_claim}"
     else:
         detected_claim = None
-        answer_lower = req.answer.lower()
+        answer_lower = answer_text.lower()
         for claim in resume_claims:
             if claim.lower() in answer_lower and claim not in context["verified_claims"]:
                 detected_claim = claim
@@ -443,7 +802,6 @@ def submit_answer(
     context["verification_active"] = verification_active
     context["current_verification_claim"] = current_verification_claim
     import math
-    from difflib import SequenceMatcher
 
     def _clean_nans(obj):
         if isinstance(obj, float) and math.isnan(obj):
@@ -457,12 +815,20 @@ def submit_answer(
     try:
         from crew import run_interview_answer
         
-        logger.debug(f"run_interview_answer trace - session_id: {req.session_id}, current_phase: {current_phase}, answer_count: {len(state.get('answers', []))}, difficulty: {state['difficulty']}, phase_history: {context.get('phase_history', [])}")
+        logger.debug(
+            "run_interview_answer trace - session_id=%s current_phase=%s generation_phase=%s answer_count=%s difficulty=%s phase_history=%s",
+            req.session_id,
+            current_phase,
+            generation_phase,
+            len(state.get("answers", [])),
+            state["difficulty"],
+            context.get("phase_history", []),
+        )
         
         result = run_interview_answer(
             role=state["role"],
             question=state["current_question"],
-            answer=req.answer,
+            answer=answer_text,
             current_diff=state["difficulty"],
             weak_areas=context.get("weak_areas", state.get("weak_areas", [])),
             resume_context=context.get("resume_context", {}),
@@ -477,7 +843,7 @@ def submit_answer(
             domain_focus=context.get("domain_focus", ""),
             conversation_history=state.get("messages", [])[-8:],
             current_focus_area=context.get("current_focus_area", ""),
-            phase_name=current_phase,
+            phase_name=generation_phase,
             phase_goal=phase_details["goal"],
             phase_focus=phase_details["focus"],
         )
@@ -498,10 +864,13 @@ def submit_answer(
             "pressure_level": "medium",
             "answer_expectation": "Answer with a specific example.",
         }
+    finally:
+        _log_perf("interview_answer_generation", request_started, start_time=request_start_iso, session_token=req.session_id)
 
     # Update in-memory state
     state["questions"].append(state["current_question"])
-    state["answers"].append(req.answer)
+    state["answers"].append(answer_text)
+    phase_turn_count = phase_turn_count_for_answer
     
     raw_eval = result.get("evaluation", {})
     if isinstance(raw_eval, str):
@@ -527,38 +896,7 @@ def submit_answer(
     except (TypeError, ValueError):
         new_diff = state["difficulty"]
     state["difficulty"] = max(1, min(10, new_diff))
-    next_q = result.get("next_question") or "Can you explain that with a specific example from your resume?"
-    
-    # Duplicate-question detection & phase advancement safeguard
-    is_duplicate = False
-    max_similarity = 0.0
-    for old_q in state.get("questions", []):
-        sim = SequenceMatcher(None, next_q.lower(), old_q.lower()).ratio()
-        if sim > max_similarity:
-            max_similarity = sim
-        if sim > 0.85:
-            is_duplicate = True
-            break
-            
-    logger.debug(f"Duplicate detection trace - generated_question: '{next_q}', max_similarity: {max_similarity:.2f}, is_duplicate: {is_duplicate}")
-
-    if is_duplicate and verification_active:
-        next_q = f"Please continue with specific evidence for {current_verification_claim or context.get('current_focus_area', 'that claim')}."
-    elif is_duplicate:
-        if len(state["answers"]) >= 2 and current_phase != "Final Evaluation":
-            from src.services.interview_core import PHASE_SEQUENCE
-            try:
-                idx = PHASE_SEQUENCE.index(current_phase)
-            except ValueError:
-                idx = 0
-            next_idx = min(idx + 1, len(PHASE_SEQUENCE) - 1)
-            current_phase = PHASE_SEQUENCE[next_idx]  # Force phase advancement
-            next_q = f"Let's move on to the next phase: {current_phase}. Are you ready to proceed?"
-        else:
-            focus = context.get('current_focus_area', 'your experience')
-            next_q = f"Let me rephrase that. Could you provide a completely different example regarding {focus}?"
-            
-    state["current_question"] = next_q
+    generated_next_q = result.get("next_question") or ""
 
     focus_type = _normalize_focus_type(result.get("focus_type"), focus_mode)
     context.setdefault("focus_counts", {"weak_area": 0, "general": 0, "domain": 0, "behavioral": 0})
@@ -567,16 +905,63 @@ def submit_answer(
     context["difficulty"] = state["difficulty"]
     context["last_score"] = score
     context["last_adaptive_mode"] = result.get("adaptive_mode", focus_mode)
-    resume_score = context.get("resume_score")
-    if verification_active:
-        next_phase = current_phase
+    next_phase, deterministic_complete = generation_phase, generation_complete
+    if next_phase == current_phase:
+        context["phase_turn_count"] = phase_turn_count
+        next_phase_question_count = phase_turn_count
     else:
-        next_phase = _pick_next_phase(current_phase, len(state["answers"]), state["scores"], resume_score)
-        
-    logger.debug(f"Phase progression trace - current_phase: {current_phase}, next_phase: {next_phase}, should_end_interview: {_should_end_interview_early(len(state['answers']), state['scores'], resume_score)}")
-    
-    if next_phase == "Final Evaluation":
+        context["phase_turn_count"] = 0
+        next_phase_question_count = 0
+        _log_interview_event("phase_transition", req.session_id, next_phase, len(state["answers"]) + 1, from_phase=current_phase)
+
+    interview_complete = deterministic_complete and _is_interview_complete_after_answer(current_phase, phase_turn_count)
+    if interview_complete:
         next_q = ""
+        question_type = "complete"
+        is_duplicate = False
+        max_similarity = 0.0
+        question_replaced = False
+        state["current_question"] = ""
+        context["phase_turn_count"] = phase_turn_count
+    else:
+        clarification_attempts = context.setdefault("clarification_attempts_by_phase", {})
+        next_q, question_type, is_duplicate, max_similarity, question_replaced = _phase_aware_question(
+            phase=next_phase,
+            phase_question_count=next_phase_question_count,
+            role=state.get("role", ""),
+            generated_question=generated_next_q,
+            previous_questions=state.get("questions", []),
+            clarification_attempts=clarification_attempts,
+        )
+        state["current_question"] = next_q
+        _log_interview_event(
+            "question_generation_decision",
+            req.session_id,
+            next_phase,
+            len(state["answers"]) + 1,
+            current_phase=current_phase,
+            question_count=len(state["answers"]) + 1,
+            phase_question_count=next_phase_question_count + 1,
+            generated_question=generated_next_q,
+            final_question=next_q,
+            question_type=question_type,
+            duplicate=is_duplicate,
+            max_similarity=round(max_similarity, 3),
+            replaced=question_replaced,
+        )
+
+    logger.debug(
+        "Interview lifecycle trace - session_id=%s current_phase=%s answer_count=%s phase_turn_count=%s next_phase=%s is_complete=%s next_question_generated=%s phase_history=%s",
+        req.session_id,
+        current_phase,
+        len(state["answers"]),
+        phase_turn_count,
+        next_phase,
+        interview_complete,
+        bool(next_q),
+        context.get("phase_history", []),
+    )
+
     context["current_phase"] = next_phase
     phase_history = context.get("phase_history") or []
     if not phase_history:
@@ -590,9 +975,13 @@ def submit_answer(
     now = datetime.utcnow().isoformat()
     # Normalize and repair evaluator output into the strict schema
     normalized_eval = _normalize_and_repair_evaluation(raw_eval, context.get("current_focus_area", ""))
-    feedback = _format_feedback_message(normalized_eval, context.get("current_focus_area", ""))
+    feedback = _format_feedback_message(
+        normalized_eval,
+        context.get("current_focus_area", ""),
+        interview_complete=interview_complete,
+    )
     feedback_text = feedback.get("text") if isinstance(feedback, dict) else str(feedback)
-    state["messages"].append({"role": "user", "content": req.answer, "timestamp": now})
+    state["messages"].append({"role": "user", "content": answer_text, "timestamp": now})
     state["messages"].append({
         "role": "feedback",
         "content": feedback_text,
@@ -601,35 +990,45 @@ def submit_answer(
         "timestamp": now,
         "meta": normalized_eval,
     })
-    state["messages"].append({
-        "role": "ai",
-        "content": state["current_question"] or "Final evaluation is being generated.",
-        "score": score,
-        "difficulty": state["difficulty"],
-        "focus_area": context["current_focus_area"],
-        "focus_type": focus_type,
-        "adaptive_mode": result.get("adaptive_mode", focus_mode),
-        "interviewer_signal": result.get("interviewer_signal", ""),
-        "pressure_level": result.get("pressure_level", INTERVIEWER_PERSONAS.get(context.get("interviewer_persona", "balanced"), INTERVIEWER_PERSONAS["balanced"]).get("pressure", "medium")),
-        "answer_expectation": result.get("answer_expectation", ""),
-        "phase": next_phase,
-        "timestamp": now,
-    })
+    if not interview_complete and next_q:
+        state["messages"].append({
+            "role": "ai",
+            "content": next_q,
+            "score": score,
+            "difficulty": state["difficulty"],
+            "focus_area": context["current_focus_area"],
+            "focus_type": focus_type,
+            "adaptive_mode": result.get("adaptive_mode", focus_mode),
+            "question_type": question_type,
+            "interviewer_signal": result.get("interviewer_signal", ""),
+            "pressure_level": result.get("pressure_level", INTERVIEWER_PERSONAS.get(context.get("interviewer_persona", "balanced"), INTERVIEWER_PERSONAS["balanced"]).get("pressure", "medium")),
+            "answer_expectation": result.get("answer_expectation", ""),
+            "phase": next_phase,
+            "timestamp": now,
+        })
+        _log_interview_event(
+            "question_generate",
+            req.session_id,
+            next_phase,
+            len(state["answers"]) + 1,
+            current_phase=current_phase,
+            question_count=len(state["answers"]) + 1,
+            phase_question_count=next_phase_question_count + 1,
+            generated_question=generated_next_q,
+            question_type=question_type,
+            duplicate=is_duplicate,
+            replaced=question_replaced,
+        )
 
     memory = _update_coach_memory(db, current_user.id, state, score)
     context["coach_memory"] = _memory_snapshot(memory)
     _save_session_state(db, req.session_id, state, avg)
     _sessions[req.session_id] = state
-    if next_phase == "Final Evaluation":
+    if interview_complete:
         rec = db.exec(select(InterviewSession).where(InterviewSession.session_token == req.session_id)).first()
         if rec:
-            rec.status = INTERVIEW_STATUS_ANALYZING
-            db.add(rec)
-            db.commit()
-            
-            # Enqueue asynchronous hiring intelligence compilation task
-            from src.services.hiring_intelligence import compile_hiring_intelligence
-            background_tasks.add_task(compile_hiring_intelligence, rec.id)
+            _enqueue_hiring_intelligence_if_needed(db, background_tasks, rec)
+        _log_interview_event("interview_complete", req.session_id, next_phase, len(state["answers"]))
     state["personalization_context"] = context
 
     # Derive a compact final verdict from rolling scores
@@ -650,7 +1049,7 @@ def submit_answer(
         final_verdict = None
 
     final_feedback = None
-    if next_phase == "Final Evaluation":
+    if interview_complete:
         final_feedback = {
             "overall_score": round(avg, 2) if avg is not None else score,
             "strengths": normalized_eval.get("what_went_well", [])[:3],
@@ -660,10 +1059,8 @@ def submit_answer(
             "verdict_explanation": verdict_explanation,
         }
 
-    return {
-        **result,
-        "evaluation": normalized_eval,
-        "next_question": "" if next_phase == "Final Evaluation" else next_q,
+    response = {
+        "next_question": "" if interview_complete else next_q,
         "difficulty": state["difficulty"],
         "focus_area": context["current_focus_area"],
         "focus_type": focus_type,
@@ -673,21 +1070,29 @@ def submit_answer(
         "interviewer_persona": context.get("interviewer_persona", state.get("interviewer_persona", "balanced")),
         "persona": INTERVIEWER_PERSONAS.get(context.get("interviewer_persona", "balanced"), INTERVIEWER_PERSONAS["balanced"]),
         "feedback_message": feedback_text,
+        "interviewer_response": "Interview completed. Generating final report." if interview_complete else next_q,
+        "evaluation_stored": True,
         "answer_expectation": result.get("answer_expectation", ""),
         "session_turn": len(state["answers"]),
         "coach_memory": context["coach_memory"],
-        "avg_score": avg,
         "phase": next_phase,
         "phase_goal": _phase_meta(next_phase)["goal"],
         "phase_focus": _phase_meta(next_phase)["focus"],
         "phase_history": context.get("phase_history", [next_phase]),
-        "status": INTERVIEW_STATUS_ANALYZING if next_phase == "Final Evaluation" else INTERVIEW_STATUS_ACTIVE,
-        "interview_complete": next_phase == "Final Evaluation",
-        "final_feedback": final_feedback,
-        "final_verdict": final_verdict,
-        "verdict_explanation": verdict_explanation,
+        "status": INTERVIEW_STATUS_ANALYZING if interview_complete else INTERVIEW_STATUS_ACTIVE,
+        "interview_complete": interview_complete,
         "personalization_context": context,
+        "messages": state["messages"],
+        "db_id": state.get("db_id"),
     }
+    if interview_complete:
+        response["final_feedback_ready"] = False
+        response["avg_score"] = round(avg, 2) if avg is not None else None
+        response["final_feedback"] = final_feedback
+        response["final_verdict"] = final_verdict
+        response["verdict_explanation"] = verdict_explanation
+    _log_perf("interview_completion_turn", request_started, start_time=request_start_iso, session_token=req.session_id, complete=interview_complete)
+    return _sanitize_candidate_response(response)
 
 @router.get("/coach-memory")
 def get_coach_memory(
@@ -776,30 +1181,36 @@ def get_session_history(
         violations_list = json.loads(rec.violations) if rec.violations else []
     except Exception:
         violations_list = []
-    return {
+    is_hr_viewer = current_user.role in {"hr", "admin", "manager"}
+    raw_messages = _safe_json_load(rec.messages, [])
+    payload = {
         "id": rec.id,
         "session_token": rec.session_token,
         "role": rec.role,
         "difficulty": rec.difficulty,
         "training_mode": _normalize_training_mode(rec.training_mode),
         "interviewer_persona": _normalize_persona(rec.interviewer_persona),
-        "avg_score": rec.avg_score,
         "status": rec.status,
         "violations_count": rec.violations_count,
         "violations": violations_list,
         "cancellation_reason": rec.cancellation_reason,
         "application_id": rec.application_id,
-        "messages": _safe_json_load(rec.messages, []),
+        "messages": raw_messages if is_hr_viewer else _candidate_visible_messages(raw_messages),
         "personalization_context": _safe_json_load(rec.personalization_context, {}),
-        "competency_scores": _safe_json_load(rec.competency_scores, None),
-        "job_fit_report": _safe_json_load(rec.job_fit_report, None),
-        "communication_metrics": _safe_json_load(rec.communication_metrics, None),
-        "behavioral_report": _safe_json_load(rec.behavioral_report, None),
-        "hiring_risks": _safe_json_load(rec.hiring_risks, None),
-        "timeline_replay": _safe_json_load(rec.timeline_replay, None),
-        "benchmarking": _safe_json_load(rec.benchmarking, None),
         "created_at": rec.created_at.isoformat(),
     }
+    if is_hr_viewer:
+        payload.update({
+            "avg_score": rec.avg_score,
+            "competency_scores": _safe_json_load(rec.competency_scores, None),
+            "job_fit_report": _safe_json_load(rec.job_fit_report, None),
+            "communication_metrics": _safe_json_load(rec.communication_metrics, None),
+            "behavioral_report": _safe_json_load(rec.behavioral_report, None),
+            "hiring_risks": _safe_json_load(rec.hiring_risks, None),
+            "timeline_replay": _safe_json_load(rec.timeline_replay, None),
+            "benchmarking": _safe_json_load(rec.benchmarking, None),
+        })
+    return payload
 
 
 @router.delete("/sessions/{session_id}")
@@ -1298,11 +1709,26 @@ def intelligence_followup_questions(
 
 
 @router.post("/transcribe")
-async def transcribe_audio(audio_file: UploadFile = File(...)):
+async def transcribe_audio(
+    audio_file: UploadFile = File(...),
+    duration_seconds: Optional[float] = Form(default=None),
+    request_id: Optional[str] = Form(default=None),
+    current_user: User = Depends(get_current_user),
+):
     """Transcribe an audio file using Groq Whisper."""
     import tempfile
 
-    from src.services.transcription_service import transcribe_audio as do_transcribe
+    from src.services.transcription_service import transcribe_audio_metadata
+
+    _log_interview_event(
+        "transcription_start",
+        current_user.id,
+        None,
+        None,
+        filename=audio_file.filename,
+        duration_seconds=duration_seconds,
+        request_id=request_id,
+    )
 
     suffix = ".webm"
     if audio_file.filename:
@@ -1316,9 +1742,54 @@ async def transcribe_audio(audio_file: UploadFile = File(...)):
         tmp_path = tmp.name
 
     try:
-        transcript = do_transcribe(tmp_path)
-        return {"transcript": transcript}
+        cache_key = hashlib.sha256(content).hexdigest()[:16]
+        logger.info(
+            "transcription_request_received request_id=%s filename=%s content_type=%s suffix=%s file_size_bytes=%s client_duration_seconds=%s cache_key=%s cache_hit=false",
+            request_id,
+            audio_file.filename,
+            audio_file.content_type,
+            suffix,
+            len(content),
+            duration_seconds,
+            cache_key,
+        )
+        metadata = transcribe_audio_metadata(
+            tmp_path,
+            mime_type=audio_file.content_type,
+            client_duration_seconds=duration_seconds,
+            request_cache_key=cache_key,
+        )
+        if duration_seconds is not None and metadata.get("duration") is None:
+            metadata["duration"] = duration_seconds
+        metadata["request_id"] = request_id
+        logger.info(
+            "transcription_response_ready request_id=%s cache_key=%s transcript_chars=%s processing_time_ms=%s",
+            request_id,
+            cache_key,
+            len(metadata.get("transcript") or ""),
+            metadata.get("processing_time_ms"),
+        )
+        _log_interview_event(
+            "transcription_complete",
+            current_user.id,
+            None,
+            None,
+            transcript_chars=len(metadata.get("transcript") or ""),
+            processing_time_ms=metadata.get("processing_time_ms"),
+            request_id=request_id,
+        )
+        return metadata
     except RuntimeError as e:
+        logger.error(
+            "transcription_endpoint_failed request_id=%s filename=%s content_type=%s suffix=%s file_size_bytes=%s client_duration_seconds=%s reason=%s",
+            request_id,
+            audio_file.filename,
+            audio_file.content_type,
+            suffix,
+            len(content),
+            duration_seconds,
+            e,
+        )
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         try:
@@ -1356,16 +1827,26 @@ def complete_interview(
     db: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
+    completion_started = time.perf_counter()
+    completion_start_iso = _utc_iso()
     rec = db.exec(select(InterviewSession).where(InterviewSession.session_token == session_id)).first()
     if not rec or rec.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Session not found.")
     if rec.status != INTERVIEW_STATUS_ACTIVE:
         raise HTTPException(status_code=400, detail=f"Cannot complete session. Current status is {rec.status}.")
 
-    rec.status = INTERVIEW_STATUS_ANALYZING
-    
     import json
     msgs = json.loads(rec.messages) if rec.messages else []
+    if not has_completed_required_turns(msgs):
+        counts = completed_turns_by_phase(msgs)
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message": "Interview cannot be completed until all deterministic phases are finished.",
+                "required_turns": PHASE_TURN_TARGETS,
+                "completed_turns": counts,
+            },
+        )
     scores = [m["score"] for m in msgs if m.get("role") == "feedback" and m.get("score") is not None]
     if scores:
         rec.avg_score = sum(scores) / len(scores)
@@ -1373,11 +1854,10 @@ def complete_interview(
     db.add(rec)
     db.commit()
 
-    # Enqueue asynchronous hiring intelligence compilation task
-    from src.services.hiring_intelligence import compile_hiring_intelligence
-    background_tasks.add_task(compile_hiring_intelligence, rec.id)
+    _enqueue_hiring_intelligence_if_needed(db, background_tasks, rec)
 
     if session_id in _sessions:
         del _sessions[session_id]
 
+    _log_perf("interview_manual_completion", completion_started, start_time=completion_start_iso, session_id=rec.id)
     return {"status": INTERVIEW_STATUS_ANALYZING, "avg_score": rec.avg_score, "db_id": rec.id}

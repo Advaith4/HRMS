@@ -1,4 +1,4 @@
-import api from './axios'
+import api, { invalidateCache } from './axios'
 
 // Phase 1: Interview API Client
 // These endpoints match the backend interview engine at src/api/routes/interview.py
@@ -103,6 +103,7 @@ export const listSessions = async () => {
  * Response: { session_token, messages[], role, difficulty, training_mode, interviewer_persona, avg_score, status, created_at, updated_at }
  */
 export const getSession = async (sessionId) => {
+  invalidateCache(`/api/interview/sessions/${sessionId}`)
   const response = await api.get(`/api/interview/sessions/${sessionId}`)
   return response.data
 }
@@ -216,12 +217,32 @@ export const rejectCandidate = async (sessionId) => {
   return response.data
 }
 
-export const transcribeAudio = async (audioBlob) => {
+export const transcribeAudio = async (audioBlob, durationSeconds = null, requestId = null) => {
   const formData = new FormData()
   formData.append('audio_file', audioBlob, 'recording.webm')
+  if (durationSeconds !== null && durationSeconds !== undefined) {
+    formData.append('duration_seconds', String(durationSeconds))
+  }
+  if (requestId) {
+    formData.append('request_id', String(requestId))
+  }
+  console.info('audio_transcription_upload_start', {
+    requestId,
+    fileSizeBytes: audioBlob?.size || 0,
+    blobType: audioBlob?.type,
+    durationSeconds,
+    cache: 'bypass-post-no-cache',
+  })
   const response = await api.post('/api/interview/transcribe', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
     timeout: 60000,
+  })
+  console.info('audio_transcription_upload_complete', {
+    requestId: response.data?.request_id || requestId,
+    fileSizeBytes: audioBlob?.size || 0,
+    transcriptChars: response.data?.transcript?.length || 0,
+    confidence: response.data?.confidence,
+    processingTimeMs: response.data?.processing_time_ms,
   })
   return response.data
 }
@@ -246,10 +267,12 @@ export const startInterviewForApplication = async (applicationId) => {
  * Record a proctoring violation for an active interview session
  * POST /api/interview/{session_id}/violation
  */
-export const recordProctoringViolation = async (sessionId, type, detail) => {
+export const recordProctoringViolation = async (sessionId, type, detail, metadata = {}) => {
   const response = await api.post(`/api/interview/${sessionId}/violation`, {
     violation_type: type,
-    detail: detail
+    detail: detail,
+    duration_ms: metadata.duration_ms,
+    severity: metadata.severity || 'medium',
   })
   return response.data
 }

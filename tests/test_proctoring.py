@@ -39,7 +39,7 @@ def _register(username: str, role: str) -> str:
     return login.json()["access_token"]
 
 def test_should_end_interview_early():
-    from src.api.routes.interview import _should_end_interview_early
+    from src.services.interview_core import _should_end_interview_early
 
     # < 6 answers should not end early
     assert not _should_end_interview_early(5, [8, 8, 8, 8, 8])
@@ -55,6 +55,222 @@ def test_should_end_interview_early():
 
     # 10 answers should always end early
     assert _should_end_interview_early(10, [6]*10)
+
+
+def test_first_answer_does_not_complete_interview(monkeypatch):
+    monkeypatch.setattr(
+        applications_route,
+        "extract_text_from_pdf",
+        lambda path: (
+            "Summary\nTalented Backend developer.\nSkills\nPython, FastAPI, SQL, Docker\n"
+            "Projects\nBuilt recruitment workflow APIs."
+        ),
+    )
+
+    def fake_answer(**kwargs):
+        return {
+            "next_question": "Describe one more example of your technical problem solving.",
+            "evaluation": {
+                "score": 8,
+                "what_went_well": ["Clear structure"],
+                "what_was_missing": ["More code detail"],
+                "how_to_improve": ["Include the outcome"],
+                "next_focus": "technical depth",
+                "final_verdict": "Ready",
+                "verdict_explanation": "Strong answer",
+            },
+            "focus_area": "technical",
+            "focus_type": "domain",
+            "new_difficulty": 6,
+            "interviewer_signal": "Walk me through the decision.",
+            "pressure_level": "medium",
+            "answer_expectation": "Describe the tradeoff and result.",
+        }
+
+    fake_crew = types.SimpleNamespace(run_interview_answer=fake_answer)
+    monkeypatch.setitem(sys.modules, "crew", fake_crew)
+
+    candidate_token = _register(f"cand_{uuid.uuid4().hex[:8]}", "candidate")
+    hr_token = _register(f"hr_{uuid.uuid4().hex[:8]}", "hr")
+    candidate_headers = {"Authorization": f"Bearer {candidate_token}"}
+    hr_headers = {"Authorization": f"Bearer {hr_token}"}
+
+    job_res = client.post(
+        "/api/jobs",
+        headers=hr_headers,
+        json={"title": "FastAPI Developer", "description": "Build high-throughput APIs."},
+    )
+    assert job_res.status_code == 201
+    job_id = job_res.json()["id"]
+
+    app_res = client.post(
+        "/api/applications/apply",
+        headers=candidate_headers,
+        data={"job_id": str(job_id)},
+        files={"file": ("resume.pdf", b"%PDF-1.4 fake pdf", "application/pdf")},
+    )
+    assert app_res.status_code == 201
+    app_id = app_res.json()["application"]["id"]
+
+    start_res = client.post(
+        "/api/interview/start-for-application",
+        headers=candidate_headers,
+        json={"application_id": app_id},
+    )
+    assert start_res.status_code == 200, start_res.text
+    session_data = start_res.json()
+    assert session_data["session_id"]
+    assert session_data["question"].startswith("Tell me about yourself")
+
+    answer_res = client.post(
+        "/api/interview/answer",
+        headers=candidate_headers,
+        json={"session_id": session_data["session_id"], "answer": "I led a backend service launch and prioritized API reliability."},
+    )
+    assert answer_res.status_code == 200, answer_res.text
+    answer_payload = answer_res.json()
+    assert answer_payload["interview_complete"] is False
+    assert answer_payload["next_question"] == "Walk me through the background, education, or experience that prepared you for this role."
+    assert "Interview completed. Generating final report." not in answer_payload["feedback_message"]
+    assert answer_payload["phase"] == "Resume Validation"
+    assert "avg_score" not in answer_payload
+    assert "final_feedback" not in answer_payload
+    assert all("score" not in message and "meta" not in message for message in answer_payload["messages"])
+
+
+def test_official_interview_progresses_deterministically_and_is_idempotent(monkeypatch):
+    generator_phases = []
+
+    def fake_answer(**kwargs):
+        generator_phases.append(kwargs["phase_name"])
+        return {
+            "next_question": f"Generated question for {kwargs['phase_name']}",
+            "evaluation": {
+                "score": 7,
+                "what_went_well": ["Specific answer"],
+                "what_was_missing": ["More metrics"],
+                "how_to_improve": ["Quantify impact"],
+                "next_focus": "specific evidence",
+            },
+            "focus_area": "specific evidence",
+            "focus_type": "general",
+            "new_difficulty": 5,
+        }
+
+    monkeypatch.setitem(sys.modules, "crew", types.SimpleNamespace(run_interview_answer=fake_answer))
+    monkeypatch.setattr(interview_route, "_enqueue_hiring_intelligence_if_needed", lambda *args, **kwargs: True)
+
+    username = f"cand_{uuid.uuid4().hex[:8]}"
+    token = _register(username, "candidate")
+    headers = {"Authorization": f"Bearer {token}"}
+    with Session(engine) as session:
+        user = session.exec(select(User).where(User.username == username)).one()
+        rec = InterviewSession(
+            user_id=user.id,
+            session_token=uuid.uuid4().hex,
+            role="Backend Engineer",
+            difficulty=5,
+            messages=json.dumps([
+                {
+                    "role": "ai",
+                    "content": "Tell me about yourself as it relates to this Backend Engineer role.",
+                    "phase": "Resume Validation",
+                }
+            ]),
+            personalization_context=json.dumps({
+                "current_phase": "Resume Validation",
+                "phase_history": ["Resume Validation"],
+                "phase_turn_count": 0,
+                "weak_areas": [],
+                "focus_counts": {"weak_area": 0, "general": 0, "domain": 0, "behavioral": 0},
+                "current_focus_area": "general",
+                "training_mode": "adaptive",
+                "interviewer_persona": "balanced",
+            }),
+        )
+        session.add(rec)
+        session.commit()
+        session.refresh(rec)
+        session_id = rec.session_token
+
+    phases = []
+    for turn in range(1, 13):
+        response = client.post(
+            "/api/interview/answer",
+            headers=headers,
+            json={"session_id": session_id, "answer": f"Answer {turn} with concrete evidence and a measurable result."},
+        )
+        assert response.status_code == 200, response.text
+        payload = response.json()
+        phases.append(payload["phase"])
+        if turn < 12:
+            assert payload["interview_complete"] is False
+            assert payload["next_question"]
+            assert "final_feedback" not in payload
+        else:
+            assert payload["interview_complete"] is True
+            assert payload["next_question"] == ""
+            assert payload["status"] == "analyzing"
+            assert "final_feedback" not in payload
+            assert payload["feedback_message"] == "Your answer has been recorded."
+
+    assert phases[0:3] == ["Resume Validation", "Resume Validation", "Technical Assessment"]
+    assert phases[3:7] == ["Technical Assessment"] * 4
+    assert phases[7] == "Behavioral Assessment"
+    assert phases[8:10] == ["Behavioral Assessment"] * 2
+    assert phases[10] == "Final Evaluation"
+    assert phases[11] == "Final Evaluation"
+    assert generator_phases[:2] == ["Resume Validation", "Resume Validation"]
+    assert generator_phases[2:7] == ["Technical Assessment"] * 5
+    assert generator_phases[7:10] == ["Behavioral Assessment"] * 3
+    assert generator_phases[11] == "Final Evaluation"
+
+    retry = client.post(
+        "/api/interview/answer",
+        headers=headers,
+        json={"session_id": session_id, "answer": "Answer 12 with concrete evidence and a measurable result."},
+    )
+    assert retry.status_code == 200, retry.text
+    retry_payload = retry.json()
+    assert retry_payload["duplicate_submission"] is True
+    assert retry_payload["session_turn"] == 12
+
+    with Session(engine) as session:
+        rec = session.exec(select(InterviewSession).where(InterviewSession.session_token == session_id)).one()
+        messages = json.loads(rec.messages)
+        assert len([m for m in messages if m.get("role") == "user"]) == 12
+
+
+def test_manual_complete_rejects_incomplete_state():
+    username = f"cand_{uuid.uuid4().hex[:8]}"
+    token = _register(username, "candidate")
+    headers = {"Authorization": f"Bearer {token}"}
+    with Session(engine) as session:
+        user = session.exec(select(User).where(User.username == username)).one()
+        rec = InterviewSession(
+            user_id=user.id,
+            session_token=uuid.uuid4().hex,
+            role="Backend Engineer",
+            difficulty=5,
+            status="active",
+            messages=json.dumps([
+                {"role": "ai", "content": "Tell me about yourself.", "phase": "Resume Validation"},
+                {"role": "user", "content": "One answer."},
+            ]),
+            personalization_context=json.dumps({"current_phase": "Resume Validation", "phase_turn_count": 1}),
+        )
+        session.add(rec)
+        session.commit()
+        session.refresh(rec)
+        session_id = rec.session_token
+
+    response = client.post(f"/api/interview/{session_id}/complete", headers=headers)
+    assert response.status_code == 409, response.text
+    body = response.json()
+    detail = body.get("detail") or body.get("error")
+    assert isinstance(detail, dict), response.text
+    assert detail["completed_turns"]["Resume Validation"] == 1
+
 
 def test_start_interview_for_application_and_violations(monkeypatch):
     monkeypatch.setattr(
@@ -116,7 +332,7 @@ def test_start_interview_for_application_and_violations(monkeypatch):
     assert start_res.status_code == 200, start_res.text
     session_data = start_res.json()
     assert session_data["session_id"]
-    assert session_data["question"] == "Explain your most recent project for this FastAPI Developer role and your personal contribution."
+    assert session_data["question"] == "Tell me about yourself as it relates to this FastAPI Developer role."
     assert session_data["role"] == "FastAPI Developer"
 
     session_id = session_data["session_id"]

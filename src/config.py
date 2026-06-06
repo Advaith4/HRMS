@@ -28,6 +28,10 @@ class Settings(BaseSettings):
 
     # --- CORS ---
     ALLOWED_ORIGINS: list[str] = ["http://localhost:8000", "http://127.0.0.1:8000"]
+    # --- DB pool tuning (override via env) ---
+    DB_POOL_SIZE: int = 5
+    DB_MAX_OVERFLOW: int = 5
+    DB_POOL_TIMEOUT: int = 15
 
     @field_validator("DEBUG", mode="before")
     @classmethod

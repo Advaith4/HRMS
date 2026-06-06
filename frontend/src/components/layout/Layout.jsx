@@ -1,5 +1,4 @@
-import React from 'react'
-import { Outlet, Navigate } from 'react-router-dom'
+import { Outlet, Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { Sidebar } from './Sidebar'
 import { TopBar } from './TopBar'
@@ -7,6 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 
 export const Layout = () => {
   const { isAuthenticated } = useAuthStore()
+  const location = useLocation()
+  const isInterviewRoute = location.pathname === '/interview' || location.pathname === '/mock-interview'
 
   // Protect routes - redirect to /login if not authenticated
   if (!isAuthenticated) {
@@ -14,19 +15,20 @@ export const Layout = () => {
   }
 
   return (
-    <div className="flex min-h-screen bg-bg-page select-text">
+    <div className="flex h-screen min-h-0 overflow-hidden bg-bg-page select-text">
       {/* Sidebar Navigation */}
       <Sidebar />
 
       {/* Main Container */}
-      <div className="flex-1 flex flex-col min-w-0 pb-16 md:pb-0">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 pb-16 md:pb-0">
         {/* Top Header */}
         <TopBar />
 
         {/* Dynamic Content Frame */}
-        <main className="flex-1 p-6 md:p-8 overflow-y-auto max-w-7xl mx-auto w-full">
+        <main className={`flex-1 min-h-0 w-full ${isInterviewRoute ? 'overflow-hidden p-0 max-w-none' : 'overflow-y-auto p-6 md:p-8 max-w-7xl mx-auto'}`}>
           <AnimatePresence mode="wait">
             <motion.div
+              className={isInterviewRoute ? 'h-full min-h-0' : undefined}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -12 }}

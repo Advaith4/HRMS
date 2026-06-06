@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Award, FileText, MessageSquare, TrendingUp, Shield, Brain,
@@ -11,6 +11,7 @@ import {
 } from 'recharts'
 import { getSession } from '../../api/interview'
 import CandidateCredibilityCard from './CandidateCredibilityCard'
+import { useAuthStore } from '../../store/authStore'
 import toast from 'react-hot-toast'
 
 const INTELLIGENCE_PENDING_STATUSES = new Set(['active', 'completed', 'analyzing'])
@@ -18,11 +19,14 @@ const INTELLIGENCE_PENDING_STATUSES = new Set(['active', 'completed', 'analyzing
 const isIntelligencePending = (status) => INTELLIGENCE_PENDING_STATUSES.has(status)
 
 export default function InterviewSummary({ session: initialSession, onRestart }) {
+  const viewerRole = useAuthStore(state => state.role)
+  const isHrViewer = ['hr', 'admin', 'manager'].includes(viewerRole)
   const [session, setSession] = useState(initialSession)
   const [loadingIntelligence, setLoadingIntelligence] = useState(
     isIntelligencePending(initialSession?.status)
   )
   const [expandedTurn, setExpandedTurn] = useState(null)
+  const pollAttemptRef = useRef(0)
 
   useEffect(() => {
     if (initialSession) {
@@ -35,23 +39,34 @@ export default function InterviewSummary({ session: initialSession, onRestart })
   useEffect(() => {
     if (!loadingIntelligence || !session?.id) return
 
-    const intervalId = setInterval(async () => {
+    let cancelled = false
+    let timeoutId
+    const poll = async () => {
       try {
         const updated = await getSession(session.id)
+        if (cancelled) return
         if (!isIntelligencePending(updated.status)) {
           setSession(updated)
           setLoadingIntelligence(false)
-          clearInterval(intervalId)
           if (updated.status === 'analyzed') {
             toast.success('Hiring intelligence analysis complete!')
           }
+          return
         }
+        pollAttemptRef.current += 1
       } catch (err) {
         console.error('Error polling session intelligence:', err)
+        pollAttemptRef.current += 1
       }
-    }, 2000)
+      const delay = Math.min(12000, 3000 * Math.max(1, pollAttemptRef.current))
+      timeoutId = window.setTimeout(poll, delay)
+    }
 
-    return () => clearInterval(intervalId)
+    timeoutId = window.setTimeout(poll, 3000)
+    return () => {
+      cancelled = true
+      window.clearTimeout(timeoutId)
+    }
   }, [loadingIntelligence, session?.id])
 
   if (!session) return null
@@ -116,27 +131,52 @@ export default function InterviewSummary({ session: initialSession, onRestart })
         <div className="space-y-2">
           <h2 className="text-xl font-bold text-gray-900 flex items-center justify-center gap-2">
             <Brain className="w-5 h-5 text-brand-indigo animate-pulse" />
-            Synthesizing Hiring Intelligence
+            Interview completed. Generating final report.
           </h2>
           <p className="text-sm text-gray-500 max-w-sm mx-auto leading-relaxed">
-            Our AI engine is compiling your competency profile, analyzing your communication effectiveness, and evaluating job alignment. This will take a few seconds...
+            {isHrViewer
+              ? 'Compiling competency profile, communication metrics, and hiring intelligence for review.'
+              : 'Your responses have been submitted. The hiring team will review your interview shortly.'}
           </p>
         </div>
-        <div className="pt-4 border-t border-gray-100 flex justify-center gap-6 text-xs text-gray-400">
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-brand-indigo animate-ping"></span>
-            Competency Radar
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-purple-500 animate-ping"></span>
-            Linguistic Metrics
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-sky-400 animate-ping"></span>
-            Benchmarking
-          </div>
-        </div>
       </div>
+    )
+  }
+
+  if (!isHrViewer) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="max-w-xl mx-auto bg-white rounded-xl border border-gray-200 shadow-xl p-8 mt-8 text-center space-y-6"
+      >
+        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto text-green-600">
+          <CheckCircle className="w-8 h-8" />
+        </div>
+        <div className="space-y-2">
+          <h1 className="text-2xl font-bold text-gray-900">Interview Submitted</h1>
+          <p className="text-sm text-gray-500 leading-relaxed">
+            Thank you for completing your <strong>{session.role}</strong> interview.
+            Your answers have been recorded and will be reviewed by the hiring team.
+          </p>
+        </div>
+        <div className="pt-4 border-t border-gray-100 flex justify-center gap-3">
+          <a
+            href="/dashboard"
+            className="bg-brand-indigo text-white text-sm font-semibold px-6 py-2.5 rounded-lg hover:bg-brand-indigo-hover transition-colors"
+          >
+            Return to Careers Dashboard
+          </a>
+          {onRestart && (
+            <button
+              onClick={onRestart}
+              className="bg-gray-100 text-gray-700 text-sm font-semibold px-6 py-2.5 rounded-lg hover:bg-gray-200 transition-colors border border-gray-300"
+            >
+              Start Practice Session
+            </button>
+          )}
+        </div>
+      </motion.div>
     )
   }
 

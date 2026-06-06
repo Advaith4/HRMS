@@ -2,6 +2,7 @@ import json
 import logging
 import re
 import os
+import time
 import src.services.llm_router
 from datetime import datetime
 from typing import Any, Optional
@@ -25,6 +26,25 @@ from src.services.interview_status import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _estimate_tokens(text: str) -> int:
+    return max(1, len(text) // 4)
+
+
+def _utc_iso() -> str:
+    return datetime.utcnow().isoformat() + "Z"
+
+
+def _log_perf(metric: str, started: float, start_iso: str, **fields: Any) -> None:
+    logger.info(
+        "perf_metric metric=%s start_time=%s end_time=%s elapsed_ms=%s %s",
+        metric,
+        start_iso,
+        _utc_iso(),
+        int((time.perf_counter() - started) * 1000),
+        " ".join(f"{key}={value}" for key, value in fields.items()),
+    )
 
 def count_filler_words(messages: list[dict[str, Any]]) -> dict[str, int]:
     """Deterministically count filler words in candidate answers."""
@@ -63,6 +83,8 @@ def _extract_json(raw: str) -> dict[str, Any] | None:
 
 def compile_hiring_intelligence(session_id: int):
     """Asynchronous/background task to generate complete hiring intelligence for a session."""
+    total_started = time.perf_counter()
+    total_start_iso = _utc_iso()
     # Since background tasks run outside request scope, create local DB engine/session if needed,
     # or resolve it from get_session. We will import get_session locally or import Session from sqlmodel.
     from sqlmodel import Session
@@ -72,6 +94,17 @@ def compile_hiring_intelligence(session_id: int):
     interview_session = db.get(InterviewSession, session_id)
     if not interview_session:
         logger.error(f"Interview session {session_id} not found for hiring intelligence compilation.")
+        db.close()
+        return
+
+    if (
+        interview_session.status == INTERVIEW_STATUS_ANALYZED
+        and interview_session.competency_scores
+        and interview_session.job_fit_report
+        and interview_session.communication_metrics
+        and interview_session.behavioral_report
+    ):
+        logger.info("hiring_intelligence_cache_hit session_id=%s", session_id)
         db.close()
         return
 
@@ -89,9 +122,13 @@ def compile_hiring_intelligence(session_id: int):
         db.add(interview_session)
         db.commit()
 
+        logger.info("hiring_intelligence_started session_id=%s", session_id)
         logger.info(f"Resolving credibility analysis for session {session_id}...")
         try:
-            cred_report = analyze_credibility(db, session_id, force=False)
+            cred_started = time.perf_counter()
+            cred_start_iso = _utc_iso()
+            cred_report = analyze_credibility(db, session_id, force=False, allow_ai=False)
+            _log_perf("credibility_analysis", cred_started, cred_start_iso, session_id=session_id, source=getattr(cred_report, "source", None))
         except Exception as ce:
             logger.warning(f"Credibility report compilation failed: {ce}")
             cred_report = None
@@ -125,6 +162,7 @@ def compile_hiring_intelligence(session_id: int):
                 current_q = None
 
         qa_transcript_text = "\n".join(qa_transcript)
+        interview_summary = generate_interview_summary(messages, resume_score, interview_score, cred_score)
         job_context = f"Job Title: {job.title}\nDescription: {job.description}\nRequired Skills: {job.required_skills}\n" if job else "No Job Posting Context."
         resume_context = resume.raw_text if resume else "No Resume Context."
 
@@ -139,10 +177,13 @@ JOB POSTING DETAILS:
 {job_context}
 
 RESUME DETAILS:
-{resume_context[:2000]}
+{resume_context[:600]}
 
-INTERVIEW QA TRANSCRIPT:
-{qa_transcript_text}
+INTERVIEW SUMMARY:
+{json.dumps(interview_summary, ensure_ascii=True)}
+
+REPRESENTATIVE QA EVIDENCE:
+{qa_transcript_text[:2500]}
 
 SCORES PROFILE:
 - Resume Match Score: {resume_score}/100
@@ -229,29 +270,53 @@ Return ONLY valid JSON matching this exact structure:
 }}
 """
 
-        response = litellm.completion(
-            model="groq/llama-3.1-8b-instant",
-            messages=[{"role": "user", "content": prompt}],
-            response_format={"type": "json_object"},
-            temperature=0.2,
-            timeout=20.0,
+        logger.info(
+            "hiring_intelligence_prompt_prepared session_id=%s full_transcript_tokens=%s prompt_tokens=%s reduction_ratio=%.2f",
+            session_id,
+            _estimate_tokens(qa_transcript_text + resume_context),
+            _estimate_tokens(prompt),
+            1 - (_estimate_tokens(prompt) / max(_estimate_tokens(qa_transcript_text + resume_context), 1)),
         )
-        
-        raw_text = response.choices[0].message.content.strip()
-        parsed = _extract_json(raw_text)
-        if not parsed or "competency_scores" not in parsed:
-            raise ValueError("LLM output failed validation")
+        if os.getenv("INTERVIEW_ENABLE_LLM_SYNTHESIS", "1").lower() in ("1", "true", "yes"):
+            llm_started = time.perf_counter()
+            llm_start_iso = _utc_iso()
+            response = litellm.completion(
+                model="groq/llama-3.1-8b-instant",
+                messages=[{"role": "user", "content": prompt}],
+                response_format={"type": "json_object"},
+                temperature=0.2,
+                timeout=float(os.getenv("INTERVIEW_SYNTHESIS_TIMEOUT", "8.0")),
+            )
+            _log_perf("hiring_intelligence_synthesis_llm", llm_started, llm_start_iso, session_id=session_id, prompt_tokens_est=_estimate_tokens(prompt))
+            
+            raw_text = response.choices[0].message.content.strip()
+            parsed = _extract_json(raw_text)
+            if not parsed or "competency_scores" not in parsed:
+                raise ValueError("LLM output failed validation")
 
-        parsed["_source"] = "ai"
-        logger.info("AI hiring intelligence synthesis successful.")
+            parsed["_source"] = "ai"
+            parsed["interview_summary"] = interview_summary
+            logger.info("AI hiring intelligence synthesis successful.")
+        else:
+            parsed = run_fallback_generation(messages, filler_counts, cred_report, resume_score, interview_score, cred_score)
+            parsed["_source"] = "fast_fallback"
+            parsed["interview_summary"] = interview_summary
     except Exception as exc:
         logger.warning(f"AI compilation failed, running fallback generator: {exc}")
         parsed = run_fallback_generation(messages, filler_counts, cred_report, resume_score, interview_score, cred_score)
+        parsed["interview_summary"] = generate_interview_summary(messages, resume_score, interview_score, cred_score)
         parsed["_source"] = "fallback"
 
     try:
         benchmarking_data = calculate_benchmarking(db, interview_session, app, interview_score)
         save_hiring_intelligence_results(db, interview_session, parsed, benchmarking_data, filler_counts)
+        logger.info(
+            "hiring_intelligence_completed session_id=%s duration_ms=%s source=%s",
+            session_id,
+            int((time.perf_counter() - total_started) * 1000),
+            parsed.get("_source"),
+        )
+        _log_perf("hiring_intelligence_total", total_started, total_start_iso, session_id=session_id, source=parsed.get("_source"))
     except Exception:
         logger.exception("Failed to persist hiring intelligence for session %s", session_id)
         interview_session.status = INTERVIEW_STATUS_FAILED
@@ -260,6 +325,44 @@ Return ONLY valid JSON matching this exact structure:
         db.commit()
     finally:
         db.close()
+
+
+def generate_interview_summary(
+    messages: list[dict[str, Any]],
+    resume_score: float,
+    interview_score: float,
+    cred_score: float,
+) -> dict[str, Any]:
+    answers = [
+        (msg.get("content") or "").strip()
+        for msg in messages
+        if (msg.get("role") or "").lower() in ("candidate", "user") and (msg.get("content") or "").strip()
+    ]
+    feedback = [
+        msg for msg in messages
+        if (msg.get("role") or "").lower() == "feedback"
+    ]
+    scores = [float(msg.get("score")) for msg in feedback if isinstance(msg.get("score"), (int, float))]
+    avg_score = (sum(scores) / len(scores)) if scores else interview_score / 10.0
+    combined = " ".join(answers).lower()
+    observations = []
+    for keyword in ("api", "database", "project", "team", "leadership", "testing", "deployment", "architecture"):
+        if keyword in combined:
+            observations.append(f"Discussed {keyword} experience.")
+    strengths = ["Clearer answers on topics with concrete examples"] if avg_score >= 6 else ["Shows baseline familiarity with role topics"]
+    weaknesses = ["Needs more measurable outcomes and implementation depth"] if avg_score < 8 else ["Can add more quantified business impact"]
+    return {
+        "strengths": strengths,
+        "weaknesses": weaknesses,
+        "technical_score": round(min(100.0, max(0.0, interview_score * 0.9)), 1),
+        "communication_score": round(min(100.0, max(0.0, interview_score * 0.95)), 1),
+        "behavioral_score": round(min(100.0, max(0.0, (interview_score + cred_score) / 2)), 1),
+        "key_observations": observations[:6] or ["Interview contained limited scorable evidence."],
+        "answer_count": len(answers),
+        "avg_turn_score": round(avg_score, 1),
+        "resume_score": resume_score,
+        "credibility_score": cred_score,
+    }
 
 def run_fallback_generation(
     messages: list[dict[str, Any]],
@@ -463,6 +566,11 @@ def save_hiring_intelligence_results(
     benchmarking_data: dict[str, Any],
     filler_counts: dict[str, int]
 ):
+    if results.get("interview_summary"):
+        job_fit = results.get("job_fit_report") or {}
+        job_fit["interview_summary"] = results["interview_summary"]
+        results["job_fit_report"] = job_fit
+
     interview_session.competency_scores = json.dumps(results.get("competency_scores") or {})
     
     comm_metrics = results.get("communication_metrics") or {}

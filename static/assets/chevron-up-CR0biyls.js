@@ -1,1 +1,0 @@
-import{i as e}from"./axios-D7V3q-eG.js";var t=e(`chevron-up`,[[`path`,{d:`m18 15-6-6-6 6`,key:`153udz`}]]);export{t};

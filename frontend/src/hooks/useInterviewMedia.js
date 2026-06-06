@@ -65,9 +65,13 @@ export default function useInterviewMedia() {
   }, [cameraEnabled])
 
   const stopCamera = useCallback(() => {
-    if (cameraStreamRef.current) {
-      cameraStreamRef.current.getTracks().forEach(t => t.stop())
+    const stream = cameraStreamRef.current
+    if (stream) {
       cameraStreamRef.current = null
+      stream.getTracks().forEach(t => {
+        t.onended = null
+        t.stop()
+      })
     }
     setCameraEnabled(false)
     setCameraStatus('idle')
@@ -110,9 +114,13 @@ export default function useInterviewMedia() {
   }, [screenShareEnabled, isMobile])
 
   const stopScreenShare = useCallback(() => {
-    if (screenStreamRef.current) {
-      screenStreamRef.current.getTracks().forEach(t => t.stop())
+    const stream = screenStreamRef.current
+    if (stream) {
       screenStreamRef.current = null
+      stream.getTracks().forEach(t => {
+        t.onended = null
+        t.stop()
+      })
     }
     setScreenShareEnabled(false)
     setScreenShareSurface(null)

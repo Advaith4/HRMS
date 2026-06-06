@@ -10,6 +10,7 @@ This module keeps the existing architecture intact while improving:
 import concurrent.futures
 import json
 import logging
+import os
 import re
 import time
 import uuid
@@ -710,6 +711,62 @@ def run_interview_answer(
     coach_memory = coach_memory or {}
     conversation_history = conversation_history or []
     interviewer_persona = interviewer_persona or {}
+
+    if os.getenv("INTERVIEW_USE_LLM_ANSWER_EVAL", "0").lower() not in ("1", "true", "yes"):
+        words = re.findall(r"[A-Za-z0-9+#.]+", answer or "")
+        answer_lower = (answer or "").lower()
+        evidence_terms = ("built", "implemented", "designed", "deployed", "measured", "optimized", "debugged", "led", "owned")
+        metric_signal = bool(re.search(r"\b\d+[%x]?\b", answer_lower))
+        specificity = min(10, 3 + len(words) // 18 + sum(1 for term in evidence_terms if term in answer_lower) + (2 if metric_signal else 0))
+        communication = min(10, 4 + len([w for w in words if len(w) > 4]) // 18)
+        technical_depth = min(10, 4 + sum(1 for skill in (resume_context.get("skills") or []) if str(skill).lower() in answer_lower))
+        score = max(1, min(10, round((specificity * 0.45) + (communication * 0.25) + (technical_depth * 0.30))))
+        focus = current_focus_area or (weak_areas[0] if weak_areas else domain_focus or "role fundamentals")
+        phase_label = phase_name or "Interview"
+        if score <= 4:
+            next_question = f"Give me a more concrete example for {focus}. What did you personally do, what tradeoff did you face, and what changed because of it?"
+            adaptive_focus_mode = "simplify_weak_area"
+        elif score >= 8:
+            next_question = f"Now go deeper on {focus}. What constraint, failure mode, or production tradeoff would you consider next?"
+            adaptive_focus_mode = "increase_depth"
+        elif "behavior" in (phase_focus or "").lower() or "Behavioral" in phase_label:
+            next_question = "Walk me through one difficult collaboration using situation, action, result, and what you would change next time."
+            adaptive_focus_mode = "behavioral"
+        else:
+            next_question = f"Let us continue the {phase_label.lower()} with another evidence-backed example. Which decision best shows your judgment for this role?"
+            adaptive_focus_mode = focus_mode
+        return {
+            "next_question": next_question,
+            "evaluation": {
+                "score": score,
+                "confidence": 8 if len(words) >= 35 else 6,
+                "what_went_well": [
+                    "The answer addressed the question directly.",
+                    "The response included role-relevant context.",
+                    "The candidate gave enough signal to continue assessment." if len(words) >= 25 else "The answer was concise but needs more evidence.",
+                ],
+                "what_was_missing": [
+                    "More measurable outcome evidence would strengthen the answer.",
+                    "Tradeoffs and alternatives were not fully explained.",
+                    "Personal ownership could be made more explicit.",
+                ],
+                "how_to_improve": [
+                    "Add one metric or observable result.",
+                    "Name the decision you personally made.",
+                    "Explain the tradeoff, constraint, or failure mode.",
+                ],
+                "next_focus": focus,
+                "final_verdict": "Ready" if score >= 8 else ("Borderline" if score >= 5 else "Not Ready"),
+                "verdict_explanation": "Deterministic scoring used answer specificity, communication clarity, and resume-aligned technical signal.",
+            },
+            "focus_area": focus,
+            "focus_type": "behavioral" if "behavior" in adaptive_focus_mode else ("weak_area" if weak_areas else "general"),
+            "adaptive_mode": adaptive_focus_mode,
+            "new_difficulty": min(10, current_diff + 1) if score >= 8 else max(1, current_diff - 1) if score <= 4 else current_diff,
+            "interviewer_signal": "I am looking for evidence, tradeoffs, and measurable outcomes.",
+            "pressure_level": "high" if score >= 8 else "medium",
+            "answer_expectation": "Answer in 5-10 lines with context, action, tradeoff, and result.",
+        }
 
     ag_eval = create_evaluator()
     t_eval = create_evaluator_task(

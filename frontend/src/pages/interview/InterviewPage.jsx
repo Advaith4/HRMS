@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { abandonSession, startInterviewForApplication } from '../../api/interview'
 import { getCandidateDashboardData } from '../../api'
 import InterviewWorkspace from '../../components/interview/InterviewWorkspace'
@@ -9,7 +9,6 @@ export default function InterviewPage() {
   const [session, setSession] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
-  const [appIdParam, setAppIdParam] = useState(null)
   const [applications, setApplications] = useState([])
   const [loadingApps, setLoadingApps] = useState(false)
 
@@ -22,7 +21,6 @@ export default function InterviewPage() {
       const url = new URL(window.location)
       url.searchParams.set('appId', appId)
       window.history.pushState({}, '', url)
-      setAppIdParam(appId)
       toast.success('Interview started!')
     } catch (err) {
       console.error('Failed to start interview:', err)
@@ -50,7 +48,6 @@ export default function InterviewPage() {
     const params = new URLSearchParams(window.location.search)
     const appId = params.get('appId')
     if (appId) {
-      setAppIdParam(appId)
       handleStartForApplication(appId)
     } else {
       fetchCandidateApplications()
@@ -80,14 +77,13 @@ export default function InterviewPage() {
       const url = new URL(window.location)
       url.searchParams.delete('appId')
       window.history.pushState({}, '', url)
-      setAppIdParam(null)
       window.location.href = '/dashboard/candidate'
     }
   }, [session])
 
   if (session) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="h-full min-h-0 bg-gray-50">
         <InterviewWorkspace session={session} onEnd={handleEnd} />
       </div>
     )

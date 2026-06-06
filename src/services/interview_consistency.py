@@ -31,6 +31,7 @@ def analyze_credibility(
     session_db: Session,
     session_id: int,
     force: bool = False,
+    allow_ai: bool = True,
 ) -> CandidateCredibilityReport:
     interview_session = session_db.get(InterviewSession, session_id)
     if not interview_session:
@@ -61,13 +62,17 @@ def analyze_credibility(
 
     resume_score = _estimate_resume_score(resume_text, messages, job)
 
-    try:
-        result = _run_ai_credibility(resume_text, messages, job)
-        normalized = _normalize_credibility(result, resume_text, messages, avg_score, resume_score, source="ai")
-    except Exception as exc:
-        logger.warning("AI credibility analysis failed: %s", exc)
+    if not allow_ai:
+        logger.info("credibility_cache_miss_fast_path session_id=%s allow_ai=false", session_id)
         normalized = _fallback_credibility(resume_text, messages, avg_score, resume_score)
-        normalized["error_message"] = str(exc)
+    else:
+        try:
+            result = _run_ai_credibility(resume_text, messages, job)
+            normalized = _normalize_credibility(result, resume_text, messages, avg_score, resume_score, source="ai")
+        except Exception as exc:
+            logger.warning("AI credibility analysis failed: %s", exc)
+            normalized = _fallback_credibility(resume_text, messages, avg_score, resume_score)
+            normalized["error_message"] = str(exc)
 
     report = _upsert_report(session_db, interview_session, normalized, existing)
     return report

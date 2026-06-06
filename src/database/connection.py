@@ -32,9 +32,10 @@ engine = create_engine(
     echo=settings.DEBUG,
     connect_args=_connect_args,
     # Keep more connections open so requests don't wait for Supabase handshakes
-    pool_size=10,
-    max_overflow=20,
-    pool_timeout=15,      # fail fast instead of waiting 30s (default)
+    # Use conservative defaults to avoid exceeding hosted DB pool limits (Supabase pgbouncer)
+    pool_size=getattr(settings, "DB_POOL_SIZE", 5),
+    max_overflow=getattr(settings, "DB_MAX_OVERFLOW", 5),
+    pool_timeout=getattr(settings, "DB_POOL_TIMEOUT", 15),      # fail fast instead of waiting 30s (default)
     pool_pre_ping=True,   # drop stale connections before reuse
     pool_recycle=300,     # recycle connections every 5 min
 )
@@ -416,6 +417,9 @@ def _ensure_interview_integrity_indexes() -> None:
     statements = [
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_candidate_applications_candidate_job_unique ON candidate_applications(candidate_user_id, job_id)",
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_interview_sessions_application_unique ON interview_sessions(application_id) WHERE application_id IS NOT NULL",
+        "CREATE INDEX IF NOT EXISTS idx_interview_sessions_user_status_created ON interview_sessions(user_id, status, created_at)",
+        "CREATE INDEX IF NOT EXISTS idx_credibility_candidate_created ON candidate_credibility_reports(candidate_id, created_at)",
+        "CREATE INDEX IF NOT EXISTS idx_intelligence_candidate_status_score ON interview_intelligence_reports(candidate_id, status, overall_score)",
     ]
     try:
         with Session(engine) as session:

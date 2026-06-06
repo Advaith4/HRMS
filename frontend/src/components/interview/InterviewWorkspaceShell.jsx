@@ -1,13 +1,11 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import {
-  Camera, CameraOff, Monitor, MonitorOff, Mic, MicOff,
+  Camera, Monitor, Mic,
   ArrowRight, Edit3, Check, X, Send, AlertTriangle,
   Video, StopCircle, Loader2, Shield,
 } from 'lucide-react'
 import useRecorder from '../../hooks/useRecorder'
 import useInterviewMedia from '../../hooks/useInterviewMedia'
-import InterviewStatusCard from './InterviewStatusCard'
 import InterviewSummary from './InterviewSummary'
 import toast from 'react-hot-toast'
 
@@ -28,15 +26,35 @@ const parseSessionContext = (value) => {
   }
 }
 
+const conversationFromMessages = (sessionData) => {
+  const items = []
+  if (sessionData?.session_intro) {
+    items.push({ type: 'intro', content: sessionData.session_intro, key: 'intro' })
+  }
+  if (Array.isArray(sessionData?.messages) && sessionData.messages.length > 0) {
+    sessionData.messages.forEach((msg, index) => {
+      if (msg.role === 'feedback') return
+      if (msg.role === 'ai') {
+        items.push({ type: 'question', content: msg.content, key: `ai-${index}-${msg.timestamp || index}` })
+      } else if (msg.role === 'user') {
+        items.push({ type: 'answer', content: msg.content, key: `user-${index}-${msg.timestamp || index}` })
+      }
+    })
+  } else if (sessionData?.question) {
+    items.push({ type: 'question', content: sessionData.question, key: 'seed-question' })
+  }
+  return items
+}
+
 export default function InterviewWorkspaceShell({ session, onEnd, onSubmitAnswer, onTranscribeAudio, onRecordProctoringViolation, onCompleteSession }) {
   const {
-    cameraEnabled, cameraStatus, screenShareEnabled, screenShareStatus, screenShareSurface, isMobile,
+    cameraStatus, screenShareEnabled, screenShareStatus, screenShareSurface, isMobile,
     cameraVideoRef, screenVideoRef,
     startCamera, stopCamera, startScreenShare, stopScreenShare,
   } = useInterviewMedia()
 
   const {
-    isRecording, duration, audioBlob, error: recorderError,
+    isRecording, duration, audioBlob, audioMeta, error: recorderError,
     startRecording, stopRecording, clearRecording,
   } = useRecorder()
 
@@ -51,8 +69,6 @@ export default function InterviewWorkspaceShell({ session, onEnd, onSubmitAnswer
   const [currentQuestion, setCurrentQuestion] = useState(session.question || '')
   const [currentPhase, setCurrentPhase] = useState(session.phase || 'Resume Validation')
   const [currentPhaseGoal, setCurrentPhaseGoal] = useState(session.phase_goal || '')
-  const [lastFeedback, setLastFeedback] = useState(null)
-  const [avgScore, setAvgScore] = useState(null)
   const [questionCount, setQuestionCount] = useState(1)
   const [sessionDuration, setSessionDuration] = useState(0)
   const [completedSession, setCompletedSession] = useState(null)
@@ -70,30 +86,12 @@ export default function InterviewWorkspaceShell({ session, onEnd, onSubmitAnswer
   const messagesEndRef = useRef(null)
   const durationTimerRef = useRef(null)
   const violationsRef = useRef([])
+  const proctoringGraceTimersRef = useRef({})
+  const proctoringGraceStartedRef = useRef({})
+  const transcriptionGenerationRef = useRef(0)
 
   useEffect(() => {
-    const initialMessages = []
-    if (session?.session_intro) {
-      initialMessages.push({ type: 'intro', content: session.session_intro })
-    }
-    if (session?.messages && session.messages.length > 0) {
-      session.messages.forEach(msg => {
-        if (msg.role === 'ai') {
-          initialMessages.push({ type: 'question', content: msg.content })
-        } else if (msg.role === 'user') {
-          initialMessages.push({ type: 'answer', content: msg.content })
-        } else if (msg.role === 'feedback') {
-          initialMessages.push({
-            type: 'feedback',
-            content: msg.content,
-            data: { score: msg.score }
-          })
-        }
-      })
-    } else if (session?.question) {
-      initialMessages.push({ type: 'question', content: session.question })
-    }
-    setConversation(initialMessages)
+    setConversation(conversationFromMessages(session))
 
     const aiMsgs = session?.messages?.filter(m => m.role === 'ai') || []
     if (aiMsgs.length > 0) {
@@ -107,22 +105,6 @@ export default function InterviewWorkspaceShell({ session, onEnd, onSubmitAnswer
       setQuestionCount(session?.question ? 1 : 0)
     }
     setCurrentPhaseGoal(session?.phase_goal || '')
-
-    const feedbackScores = session?.messages?.filter(m => m.role === 'feedback' && typeof m.score === 'number').map(m => m.score) || []
-    if (feedbackScores.length > 0) {
-      const avg = feedbackScores.reduce((a, b) => a + b, 0) / feedbackScores.length
-      setAvgScore(avg)
-      const lastF = session.messages.filter(m => m.role === 'feedback')
-      if (lastF.length > 0) {
-        setLastFeedback({
-          feedback_message: lastF[lastF.length - 1].content,
-          evaluation: { score: lastF[lastF.length - 1].score }
-        })
-      }
-    } else {
-      setAvgScore(null)
-      setLastFeedback(null)
-    }
 
     if (session?.status === 'cancelled') {
       setCompletedSession({
@@ -157,23 +139,61 @@ export default function InterviewWorkspaceShell({ session, onEnd, onSubmitAnswer
 
   useEffect(() => {
     if (!audioBlob) return
+    const generation = transcriptionGenerationRef.current + 1
+    transcriptionGenerationRef.current = generation
+    const blobId = audioMeta?.blobId || `${audioBlob.size}-${audioBlob.type}`
     const doTranscribe = async () => {
       setIsTranscribing(true)
       try {
-        const result = await onTranscribeAudio(audioBlob)
-        setTranscript(result.transcript)
+        console.info('audio_transcription_state_before_upload', {
+          generation,
+          blobId,
+          blobSizeBytes: audioBlob.size,
+          blobType: audioBlob.type,
+          audioMeta,
+        })
+        const result = await onTranscribeAudio(audioBlob, audioMeta?.durationMs ? audioMeta.durationMs / 1000 : duration, blobId)
+        if (generation !== transcriptionGenerationRef.current) {
+          console.info('audio_transcription_stale_result_ignored', { generation, current: transcriptionGenerationRef.current, blobId })
+          return
+        }
+        console.info('audio_transcription_complete', {
+          generation,
+          blobId,
+          audioMeta,
+          confidence: result.confidence,
+          processingTimeMs: result.processing_time_ms,
+          duration: result.duration,
+          model: result.model,
+          language: result.language,
+          requestId: result.request_id,
+          transcriptChars: result.transcript?.length || 0,
+        })
+        setTranscript(result.transcript || '')
         setShowTranscriptReview(true)
       } catch (err) {
-        console.error('Transcription failed:', err)
+        if (generation !== transcriptionGenerationRef.current) return
+        console.error('Transcription failed:', {
+          generation,
+          blobId,
+          error: err,
+          status: err?.response?.status,
+          detail: err?.response?.data?.detail,
+          audioMeta,
+          blobSizeBytes: audioBlob.size,
+          blobType: audioBlob.type,
+        })
         toast.error('Unable to transcribe audio. You can type your answer instead.')
         setInputMode('text')
       } finally {
-        setIsTranscribing(false)
-        clearRecording()
+        if (generation === transcriptionGenerationRef.current) {
+          setIsTranscribing(false)
+          clearRecording()
+        }
       }
     }
     doTranscribe()
-  }, [audioBlob, clearRecording])
+  }, [audioBlob, audioMeta, clearRecording, duration, onTranscribeAudio])
 
   useEffect(() => {
     if (completedSession) {
@@ -185,16 +205,21 @@ export default function InterviewWorkspaceShell({ session, onEnd, onSubmitAnswer
   }, [completedSession, stopCamera, stopScreenShare, stopRecording, clearRecording])
 
   const addViolation = useCallback(async (type, detail) => {
+    const startedAt = proctoringGraceStartedRef.current[type] || Date.now()
     const entry = {
       type,
       detail,
       timestamp: new Date().toISOString(),
+      duration_ms: Date.now() - startedAt,
     }
     violationsRef.current = [...violationsRef.current, entry].slice(-20)
     setViolations(violationsRef.current)
 
     try {
-      const result = await onRecordProctoringViolation(session.session_id, type, detail)
+      const result = await onRecordProctoringViolation(session.session_id, type, detail, {
+        duration_ms: entry.duration_ms,
+        severity: entry.duration_ms >= 10000 ? 'high' : 'medium',
+      })
       if (result.cancelled) {
         setCompletedSession({
           ...session,
@@ -208,19 +233,40 @@ export default function InterviewWorkspaceShell({ session, onEnd, onSubmitAnswer
     } catch (err) {
       console.error('Failed to log violation on backend:', err)
     }
-  }, [session])
+  }, [onRecordProctoringViolation, session])
+
+  const scheduleViolation = useCallback((type, detail, graceMs = 4000) => {
+    if (!setupCompleted || completedSession || proctoringGraceTimersRef.current[type]) return
+    proctoringGraceStartedRef.current[type] = Date.now()
+    proctoringGraceTimersRef.current[type] = window.setTimeout(() => {
+      proctoringGraceTimersRef.current[type] = null
+      addViolation(type, detail)
+    }, graceMs)
+  }, [addViolation, completedSession, setupCompleted])
+
+  const clearScheduledViolation = useCallback((type) => {
+    if (proctoringGraceTimersRef.current[type]) {
+      window.clearTimeout(proctoringGraceTimersRef.current[type])
+      proctoringGraceTimersRef.current[type] = null
+    }
+    proctoringGraceStartedRef.current[type] = null
+  }, [])
 
   useEffect(() => {
     const handleFullscreenChange = () => {
       const active = Boolean(document.fullscreenElement)
       setIsFullscreen(active)
       if (setupCompleted && !active) {
-        addViolation('fullscreen_exit', 'Candidate exited fullscreen mode.')
+        scheduleViolation('fullscreen_exit', 'Candidate exited fullscreen mode.')
+      } else if (active) {
+        clearScheduledViolation('fullscreen_exit')
       }
     }
     const handleVisibilityChange = () => {
       if (setupCompleted && document.hidden) {
-        addViolation('tab_switch', 'Candidate switched away from the interview tab.')
+        scheduleViolation('tab_switch', 'Candidate switched away from the interview tab.')
+      } else if (!document.hidden) {
+        clearScheduledViolation('tab_switch')
       }
     }
 
@@ -230,19 +276,23 @@ export default function InterviewWorkspaceShell({ session, onEnd, onSubmitAnswer
       document.removeEventListener('fullscreenchange', handleFullscreenChange)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
-  }, [addViolation, setupCompleted])
+  }, [clearScheduledViolation, scheduleViolation, setupCompleted])
 
   useEffect(() => {
     if (setupCompleted && cameraStatus !== 'active') {
-      addViolation('camera_off', 'Camera was turned off or became unavailable.')
+      scheduleViolation('camera_off', 'Camera was turned off or became unavailable.')
+    } else if (cameraStatus === 'active') {
+      clearScheduledViolation('camera_off')
     }
-  }, [addViolation, cameraStatus, setupCompleted])
+  }, [cameraStatus, clearScheduledViolation, scheduleViolation, setupCompleted])
 
   useEffect(() => {
     if (setupCompleted && screenShareStatus !== 'active') {
-      addViolation('screen_share_off', 'Screen sharing was stopped or became unavailable.')
+      scheduleViolation('screen_share_off', 'Screen sharing was stopped or became unavailable.')
+    } else if (screenShareStatus === 'active') {
+      clearScheduledViolation('screen_share_off')
     }
-  }, [addViolation, screenShareStatus, setupCompleted])
+  }, [clearScheduledViolation, scheduleViolation, screenShareStatus, setupCompleted])
 
   const isEntireScreenShared = !screenShareSurface || screenShareSurface === 'monitor'
   const proctoringReady = (
@@ -252,6 +302,30 @@ export default function InterviewWorkspaceShell({ session, onEnd, onSubmitAnswer
     isFullscreen &&
     isEntireScreenShared
   )
+
+  useEffect(() => {
+    console.info('interview_proctoring_state', {
+      sessionId: session?.session_id,
+      proctoringStarted,
+      proctoringReady,
+      setupCompleted,
+      cameraStatus,
+      screenShareStatus,
+      screenShareSurface,
+      isFullscreen,
+      isEntireScreenShared,
+    })
+  }, [
+    cameraStatus,
+    isEntireScreenShared,
+    isFullscreen,
+    proctoringReady,
+    proctoringStarted,
+    screenShareStatus,
+    screenShareSurface,
+    session?.session_id,
+    setupCompleted,
+  ])
 
   useEffect(() => {
     if (proctoringReady) {
@@ -265,7 +339,7 @@ export default function InterviewWorkspaceShell({ session, onEnd, onSubmitAnswer
       await document.documentElement.requestFullscreen()
       setIsFullscreen(true)
       return true
-    } catch (err) {
+    } catch {
       setIsFullscreen(false)
       return false
     }
@@ -299,6 +373,7 @@ export default function InterviewWorkspaceShell({ session, onEnd, onSubmitAnswer
       toast.error('Complete proctoring setup before answering.')
       return
     }
+    transcriptionGenerationRef.current += 1
     setTranscript('')
     setShowTranscriptReview(false)
     setMicStatus('active')
@@ -325,71 +400,51 @@ export default function InterviewWorkspaceShell({ session, onEnd, onSubmitAnswer
     setShowTranscriptReview(false)
     setTranscript('')
     setAnswer('')
-    setConversation(prev => [...prev, { type: 'answer', content: text }])
 
     try {
+      console.info('interview_answer_submit_start', {
+        sessionId: session.session_id,
+        phase: currentPhase,
+        answerChars: text.length,
+        proctoringReady,
+      })
       const data = await onSubmitAnswer(session.session_id, text)
-      const nextQuestion = data.next_question || ''
       const isComplete = Boolean(data.interview_complete)
-      const finalFeedbackText = typeof data.final_feedback === 'string'
-        ? data.final_feedback
-        : data.final_feedback
-          ? [
-              data.final_feedback.verdict,
-              data.final_feedback.verdict_explanation,
-              ...(data.final_feedback.improvement_plan || []),
-            ].filter(Boolean).join('\n')
-          : ''
+      const nextQuestion = isComplete ? '' : (data.next_question || '')
 
-      setLastFeedback(data)
-      setAvgScore(data.avg_score)
+      console.info('interview_answer_submit_complete', {
+        sessionId: session.session_id,
+        previousPhase: currentPhase,
+        nextPhase: data.phase || currentPhase,
+        isComplete,
+        status: data.status,
+        hasNextQuestion: Boolean(nextQuestion),
+        sessionTurn: data.session_turn,
+      })
+
       setCurrentPhase(data.phase || currentPhase)
       setCurrentPhaseGoal(data.phase_goal || currentPhaseGoal)
 
-      if (nextQuestion) {
-        setCurrentQuestion(nextQuestion)
+      if (Array.isArray(data.messages)) {
+        setConversation(conversationFromMessages({ ...session, messages: data.messages }))
       }
 
-      setConversation(prev => {
-        const nextItems = [
-          ...prev,
-          {
-            type: 'feedback',
-            content: data.feedback_message || data.feedback || 'Answer evaluated.',
-            data: { score: data.evaluation?.score },
-          },
-        ]
-
-        if (isComplete) {
-          nextItems.push({
-            type: 'feedback',
-            content: finalFeedbackText || data.verdict_explanation || 'Interview complete.',
-            data: { score: data.avg_score },
-          })
-        } else if (nextQuestion) {
-          nextItems.push({ type: 'question', content: nextQuestion })
-        }
-
-        return nextItems
-      })
-
       if (isComplete) {
+        setCurrentQuestion('')
         setCompletedSession({
           ...session,
           ...data,
           id: data.db_id || session.db_id || session.id,
           status: data.status || 'analyzing',
-          avg_score: data.avg_score ?? data.evaluation?.score ?? avgScore ?? 0,
-          final_feedback: finalFeedbackText || data.feedback_message || '',
-          final_verdict: data.final_verdict || data.evaluation?.final_verdict || '',
         })
         toast.success('Interview complete!')
       } else {
         if (nextQuestion) {
+          setCurrentQuestion(nextQuestion)
           setQuestionCount(count => count + 1)
         }
         setInputMode('voice')
-        toast.success('Answer evaluated!')
+        toast.success('Answer recorded.')
       }
     } catch (err) {
       console.error('Submit answer failed:', err)
@@ -398,7 +453,7 @@ export default function InterviewWorkspaceShell({ session, onEnd, onSubmitAnswer
     } finally {
       setIsSubmitting(false)
     }
-  }, [avgScore, currentPhase, currentPhaseGoal, isSubmitting, proctoringReady, session])
+  }, [currentPhase, currentPhaseGoal, isSubmitting, onSubmitAnswer, proctoringReady, session])
 
   const handleAcceptTranscript = () => {
     submitAnswerText(transcript)
@@ -409,6 +464,7 @@ export default function InterviewWorkspaceShell({ session, onEnd, onSubmitAnswer
   }
 
   const handleCancelTranscript = () => {
+    transcriptionGenerationRef.current += 1
     setTranscript('')
     setShowTranscriptReview(false)
     setInputMode('voice')
@@ -418,12 +474,6 @@ export default function InterviewWorkspaceShell({ session, onEnd, onSubmitAnswer
   const handleSubmit = async (e) => {
     e.preventDefault()
     submitAnswerText(answer)
-  }
-
-  const statusForCard = (status) => {
-    if (status === 'active') return 'active'
-    if (status === 'denied' || status === 'unavailable' || status === 'error') return 'denied'
-    return 'idle'
   }
 
   const personalizationContext = parseSessionContext(session.personalization_context)
@@ -464,7 +514,7 @@ export default function InterviewWorkspaceShell({ session, onEnd, onSubmitAnswer
   }
 
   return (
-    <div className="h-screen flex flex-col gap-3 p-3 relative overflow-hidden">
+    <div className="h-full min-h-0 flex flex-col gap-3 p-3 relative overflow-hidden">
       {!proctoringReady && (
         <div className="absolute inset-0 z-50 bg-gray-950/85 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="w-full max-w-2xl bg-white border border-gray-200 rounded-xl shadow-xl p-6">
@@ -555,7 +605,7 @@ export default function InterviewWorkspaceShell({ session, onEnd, onSubmitAnswer
         <div>
           <h2 className="text-lg font-semibold text-gray-900">{session.role} Interview</h2>
           <p className="text-sm text-gray-500">
-            Phase: {currentPhase} {avgScore !== null && `| Avg Score: ${avgScore.toFixed(1)}/10`} | Proctoring: {proctoringReady ? 'Active' : 'Required'}
+            Phase: {currentPhase} | Proctoring: {proctoringReady ? 'Active' : 'Required'}
           </p>
         </div>
         <button onClick={() => setShowEndModal(true)} className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-200 shadow-sm flex items-center gap-2">
@@ -645,23 +695,18 @@ export default function InterviewWorkspaceShell({ session, onEnd, onSubmitAnswer
                   {currentQuestion || session.session_intro}
                 </p>
               )}
-              {conversation.map((item, i) => (
-                <div key={i} className={`text-sm p-3 rounded-lg ${
+              {conversation.map((item) => (
+                <div key={item.key || `${item.type}-${item.content?.slice(0, 24)}`} className={`text-sm p-3 rounded-lg ${
                   item.type === 'question' ? 'bg-blue-50 border border-blue-100' :
                   item.type === 'answer' ? 'bg-gray-50 border border-gray-200 ml-4' :
-                  item.type === 'feedback' ? 'bg-green-50 border border-green-100' :
                   'bg-yellow-50 border border-yellow-100'
                 }`}>
                   <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">
                     {item.type === 'question' && 'Question'}
                     {item.type === 'answer' && 'Your Answer'}
-                    {item.type === 'feedback' && 'Feedback'}
                     {item.type === 'intro' && 'Session Intro'}
                   </p>
                   <p className="text-gray-800 whitespace-pre-wrap">{item.content}</p>
-                  {item.data?.score !== undefined && (
-                    <p className="mt-1 text-sm font-medium text-green-700">Score: {item.data.score}/10</p>
-                  )}
                 </div>
               ))}
               <div ref={messagesEndRef} />
@@ -716,7 +761,7 @@ export default function InterviewWorkspaceShell({ session, onEnd, onSubmitAnswer
                 <div className={`text-[10px] font-semibold px-2 py-1 rounded-md shadow-md flex items-center gap-1 ${
                   cameraStatus === 'active' ? 'bg-green-600/90 text-white' : 'bg-red-600/95 text-white'
                 }`}>
-                  {cameraStatus === 'active' ? 'Face Detected ✓' : 'Face Not Detected ✕'}
+                  {cameraStatus === 'active' ? 'Camera Active ✓' : 'Camera Off ✕'}
                 </div>
                 <div className={`text-[10px] font-semibold px-2 py-1 rounded-md shadow-md flex items-center gap-1 ${
                   proctoringReady ? 'bg-blue-600/95 text-white' : 'bg-amber-600/90 text-white animate-pulse'

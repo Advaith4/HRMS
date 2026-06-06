@@ -20,7 +20,7 @@ from src.database.connection import get_session
 from src.models import CareerCoachMemory, CandidateApplication, InterviewSession, Resume, User, CandidateCredibilityReport, HRNotification, JobPosting
 from src.api.dependencies import get_current_user
 from src.resume_lab import analyze_resume, dumps_json, load_json_field, parse_resume
-from src.services.interview_status import INTERVIEW_PHASES_V2, PHASE_SEQUENCE_V2
+from src.services.interview_status import INTERVIEW_PHASES_V2, PHASE_SEQUENCE_V2, PHASE_TURN_TARGETS_V2
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/interview", tags=["interview"])
@@ -30,6 +30,7 @@ _sessions: dict[str, dict[str, Any]] = {}
 
 INTERVIEW_PHASES: list[dict[str, Any]] = [dict(phase) for phase in INTERVIEW_PHASES_V2]
 PHASE_SEQUENCE = list(PHASE_SEQUENCE_V2)
+PHASE_TURN_TARGETS = dict(PHASE_TURN_TARGETS_V2)
 
 TRAINING_MODES = {
     "adaptive": "Mix weak-area drilling with general role coverage.",
@@ -190,22 +191,41 @@ def _should_end_interview_early(answer_count: int, scores: list[int], resume_sco
     return False
 
 
-def _pick_next_phase(current_phase: str, answer_count: int, scores: list[int], resume_score: float | None = None) -> str:
+def _pick_next_phase(
+    current_phase: str,
+    answer_count: int,
+    scores: list[int],
+    resume_score: float | None = None,
+    phase_turn_count: int = 0,
+) -> str:
     if current_phase == "Final Evaluation":
         return "Final Evaluation"
-    if _should_end_interview_early(answer_count, scores, resume_score):
-        return "Final Evaluation"
 
-    if answer_count < 3:
-        return "Resume Validation"
-    if answer_count < 8:
-        return "Technical Assessment"
-    if answer_count < 10:
-        return "Behavioral Assessment"
+    target = PHASE_TURN_TARGETS.get(current_phase, 1)
+    if phase_turn_count < target:
+        return current_phase
 
     idx = _phase_index(current_phase)
     next_idx = min(idx + 1, len(PHASE_SEQUENCE) - 1)
     return PHASE_SEQUENCE[next_idx]
+
+
+def _is_interview_complete_after_answer(current_phase: str, phase_turn_count: int) -> bool:
+    return current_phase == "Final Evaluation" and phase_turn_count >= PHASE_TURN_TARGETS.get("Final Evaluation", 1)
+
+
+def _phase_entry_question(phase_name: str, role: str, focus_area: str = "") -> str:
+    role_text = role or "this role"
+    focus = focus_area or "your experience"
+    if phase_name == "Technical Assessment":
+        return f"Let's move into the technical round. Walk me through a system, feature, or project you built for a {role_text} context and explain the key technical decisions."
+    if phase_name == "Behavioral Assessment":
+        return "Let's switch to behavioral questions. Tell me about a time you handled ambiguity, conflict, or pressure, and what changed because of your actions."
+    if phase_name == "Final Evaluation":
+        return f"Before we wrap up, what is the strongest reason you believe you are a good fit for this {role_text} role?"
+    if phase_name == "Resume Validation":
+        return f"Tell me about yourself and why you're a good fit for this {role_text} role. Keep it concise, specific, and grounded in your actual work."
+    return f"Can you give me a specific example related to {focus}?"
 
 
 def _ensure_intro_question(question: str, role: str) -> str:
@@ -510,10 +530,12 @@ def _choose_focus_mode(state: dict[str, Any]) -> str:
     return "general"
 
 
-def _format_feedback_message(evaluation: dict[str, Any], focus_area: str = "") -> dict[str, Any]:
-    # Expect a normalized evaluation schema and produce a UI-friendly feedback map.
-    score = evaluation.get("score", "--")
-    confidence = evaluation.get("confidence")
+def _format_feedback_message(
+    evaluation: dict[str, Any],
+    focus_area: str = "",
+    interview_complete: bool = False,
+) -> dict[str, Any]:
+    # Expect a normalized evaluation schema and produce a natural interviewer response.
     what_went_well = [str(x) for x in (evaluation.get("what_went_well") or [])][:3]
     what_was_missing = [str(x) for x in (evaluation.get("what_was_missing") or [])][:3]
     how_to_improve = [str(x) for x in (evaluation.get("how_to_improve") or [])][:3]
@@ -521,22 +543,21 @@ def _format_feedback_message(evaluation: dict[str, Any], focus_area: str = "") -
     final_verdict = evaluation.get("final_verdict")
     verdict_explanation = str(evaluation.get("verdict_explanation") or "")
 
-    text_lines = [f"Score: {score}/10"]
-    if confidence is not None:
-        text_lines.append(f"Evaluator confidence: {confidence}/10")
-    text_lines.append(f"What went well: {what_went_well[0] if what_went_well else 'You addressed the prompt and attempted a structured response.'}")
-    text_lines.append(f"What was missing: {what_was_missing[0] if what_was_missing else 'More concrete evidence, metrics, or tradeoffs were needed.'}")
-    if len(what_was_missing) > 1:
-        text_lines.append(f"Other gaps: {', '.join(what_was_missing[1:])}")
+    text_lines = ["Thanks — that gives me a clearer sense of your background."]
+    if what_went_well:
+        text_lines.append(f"I appreciated that {what_went_well[0].lower()}")
+    else:
+        text_lines.append("I was able to follow your response and understand your approach.")
+    if what_was_missing:
+        text_lines.append(f"I would like a bit more detail on {what_was_missing[0].lower()}")
     if how_to_improve:
-        text_lines.append(f"How to improve: {how_to_improve[0]}")
-    text_lines.append(f"Next focus: {next_focus}")
-    if final_verdict:
-        text_lines.append(f"Verdict: {final_verdict} - {verdict_explanation}")
+        text_lines.append(f"For the next question, focus on {how_to_improve[0].lower()}")
+    text_lines.append(f"Next, let's explore {next_focus} more closely.")
+
+    if interview_complete:
+        text_lines = ["Interview completed. Generating final report."]
 
     feedback = {
-        "score": score,
-        "confidence": confidence,
         "what_went_well": what_went_well,
         "what_was_missing": what_was_missing,
         "how_to_improve": how_to_improve,
@@ -674,6 +695,32 @@ def _normalize_and_repair_evaluation(raw_eval: Any, focus_area: str = "") -> dic
     return normalized
 
 
+def _ensure_live_state(state: dict[str, Any]) -> dict[str, Any]:
+    """Guarantee required keys exist so live answer processing never KeyErrors."""
+    state.setdefault("role", "Software Engineer")
+    state.setdefault("difficulty", 5)
+    state.setdefault("current_question", "")
+    state.setdefault("answers", [])
+    state.setdefault("questions", [])
+    state.setdefault("scores", [])
+    state.setdefault("messages", [])
+    state.setdefault("weak_areas", [])
+    state.setdefault("training_mode", "adaptive")
+    state.setdefault("interviewer_persona", "balanced")
+    context = state.get("personalization_context")
+    if not isinstance(context, dict):
+        context = {}
+    context.setdefault("current_phase", "Resume Validation")
+    context.setdefault("phase_turn_count", 0)
+    context.setdefault("phase_history", [context["current_phase"]])
+    context.setdefault("weak_areas", state.get("weak_areas", []))
+    context.setdefault("verified_claims", [])
+    context.setdefault("verification_active", False)
+    context.setdefault("verification_depth", 0)
+    state["personalization_context"] = context
+    return state
+
+
 def _state_from_record(rec: InterviewSession) -> dict[str, Any]:
     context = _safe_json_load(rec.personalization_context, {})
     if isinstance(context, dict) and context.get("interviewer_persona"):
@@ -697,7 +744,18 @@ def _state_from_record(rec: InterviewSession) -> dict[str, Any]:
         if m.get("role") == "feedback" and m.get("score") is not None:
             scores.append(int(m["score"]))
 
-    return {
+    current_phase = context.get("current_phase", "Resume Validation")
+    phase_turn_count = 0
+    for i, m in enumerate(msgs):
+        if m.get("role") == "user":
+            for j in range(i - 1, -1, -1):
+                if msgs[j].get("role") == "ai":
+                    if msgs[j].get("phase") == current_phase:
+                        phase_turn_count += 1
+                    break
+    context["phase_turn_count"] = phase_turn_count
+
+    return _ensure_live_state({
         "role": rec.role,
         "difficulty": rec.difficulty,
         "weak_areas": context.get("weak_areas", []),
@@ -712,7 +770,7 @@ def _state_from_record(rec: InterviewSession) -> dict[str, Any]:
         "training_mode": rec.training_mode,
         "interviewer_persona": _normalize_persona(rec.interviewer_persona),
         "personalization_context": context,
-    }
+    })
 
 
 def _generate_daily_plan(memory: CareerCoachMemory, resume_analysis: dict[str, Any] | None = None) -> dict[str, Any]:
