@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuthStore } from '../../store/authStore'
+import toast from 'react-hot-toast'
 import {
   LayoutDashboard,
   Briefcase,
@@ -94,26 +95,26 @@ const HR_NAV = [
       { path: '/hr/onboarding',       label: 'Onboarding',          icon: UserCheck },
       { path: '/hr/training',         label: 'Training',            icon: BookOpen },
       { path: '/hr/documents',        label: 'Documents',           icon: FileText },
-      { label: 'Goals',               icon: Target,      locked: true, badge: 'Soon' },
-      { label: 'Performance Reviews', icon: BarChart3,   locked: true, badge: 'Soon' },
-      { label: 'Career Development',  icon: Milestone,   locked: true, badge: 'Soon' },
+      { label: 'Goals',               icon: Target,      roadmap: true, badge: 'PHASE 3' },
+      { label: 'Performance Reviews', icon: BarChart3,   roadmap: true, badge: 'PHASE 3' },
+      { label: 'Career Development',  icon: Milestone,   roadmap: true, badge: 'PHASE 3' },
     ],
   },
   {
     type: 'item',
-    path: '/dashboard/hr',
     label: 'Analytics',
     icon: BarChart3,
-    locked: true,
-    badge: 'Soon',
+    roadmap: true,
+    badge: 'ENTERPRISE',
+    tooltip: 'Advanced workforce analytics planned for a future release.',
   },
   {
     type: 'item',
-    path: '/dashboard/hr',
     label: 'Settings',
     icon: Settings,
-    locked: true,
-    badge: 'Soon',
+    roadmap: true,
+    badge: 'ADMIN',
+    tooltip: 'Organization configuration and administration tools are planned for a future release.',
   },
 ]
 
@@ -207,6 +208,33 @@ const NavItem = ({ item, pathname }) => {
     )
   }
 
+  if (item.roadmap) {
+    const handleClick = () => {
+      if (item.label === 'Analytics') {
+        toast.success('Coming in a future release: Advanced workforce capabilities.')
+      } else if (item.label === 'Settings') {
+        toast.success('Coming in a future release: Organization administration tools.')
+      } else {
+        toast.success('This module is planned for a future TalentForge release.')
+      }
+    }
+    return (
+      <div
+        onClick={handleClick}
+        title={item.tooltip}
+        className="group flex items-center space-x-2.5 px-3 py-2 rounded-lg opacity-50 hover:bg-bg-page/50 hover:text-txt-primary transition-all duration-150 cursor-pointer select-none"
+      >
+        <Icon size={15} className="shrink-0 text-txt-secondary" />
+        <span className="text-xs font-medium flex-1 truncate text-txt-secondary group-hover:text-txt-primary">{item.label}</span>
+        {item.badge && (
+          <span className="text-[9px] font-bold uppercase tracking-wider text-txt-tertiary bg-bg-page border border-border-custom px-1.5 py-0.5 rounded-full">
+            {item.badge}
+          </span>
+        )}
+      </div>
+    )
+  }
+
   return (
     <Link
       to={item.path}
@@ -286,6 +314,28 @@ const NavGroup = ({ group, pathname }) => {
                     <div key={i} className="flex items-center space-x-2 px-2.5 py-1.5 rounded-md opacity-35 cursor-not-allowed">
                       <ChildIcon size={13} className="text-txt-tertiary shrink-0" />
                       <span className="text-[11px] font-medium text-txt-tertiary flex-1">{child.label}</span>
+                      {child.badge && (
+                        <span className="text-[8px] font-bold uppercase tracking-wider text-txt-tertiary border border-border-custom px-1.5 py-0.5 rounded-full">
+                          {child.badge}
+                        </span>
+                      )}
+                    </div>
+                  )
+                }
+
+                if (child.roadmap) {
+                  const handleChildClick = (e) => {
+                    e.stopPropagation()
+                    toast.success('This module is planned for Phase 3 of TalentForge.')
+                  }
+                  return (
+                    <div
+                      key={i}
+                      onClick={handleChildClick}
+                      className="group flex items-center space-x-2 px-2.5 py-1.5 rounded-md opacity-50 hover:bg-bg-page/50 transition-all duration-150 cursor-pointer select-none"
+                    >
+                      <ChildIcon size={13} className="shrink-0 text-txt-secondary group-hover:text-txt-primary" />
+                      <span className="text-[11px] font-medium text-txt-secondary flex-1 group-hover:text-txt-primary">{child.label}</span>
                       {child.badge && (
                         <span className="text-[8px] font-bold uppercase tracking-wider text-txt-tertiary border border-border-custom px-1.5 py-0.5 rounded-full">
                           {child.badge}
