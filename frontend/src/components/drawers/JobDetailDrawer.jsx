@@ -43,10 +43,13 @@ export const JobDetailDrawer = ({ isOpen, onClose, job, onApplySuccess }) => {
     }
   }
 
+  const applicationsClosed = (job?.status || 'OPEN') === 'CLOSED'
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: { 'application/pdf': ['.pdf'] },
-    multiple: false
+    multiple: false,
+    disabled: applicationsClosed,
   })
 
   if (!job) return null
@@ -54,6 +57,10 @@ export const JobDetailDrawer = ({ isOpen, onClose, job, onApplySuccess }) => {
   const handleSubmit = async () => {
     if (!file) {
       toast.error('Please upload your resume PDF first.')
+      return
+    }
+    if (applicationsClosed) {
+      toast.error('Applications for this position are closed.')
       return
     }
 
@@ -210,11 +217,18 @@ export const JobDetailDrawer = ({ isOpen, onClose, job, onApplySuccess }) => {
                   {/* Resume Dropzone Upload Area */}
                   <div className="space-y-2.5 pt-4 border-t border-border-custom">
                     <span className="text-[10px] font-bold text-txt-tertiary uppercase tracking-wider block">Submit Resume (PDF Only)</span>
+                    {applicationsClosed && (
+                      <div className="rounded-lg border border-warning-primary/20 bg-warning-bg/30 px-3 py-2 text-xs font-medium text-warning-primary">
+                        Applications for this position are closed.
+                      </div>
+                    )}
                     
                     <div
                       {...getRootProps()}
                       className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
-                        isDragActive
+                        applicationsClosed
+                          ? 'border-border-custom bg-slate-50 cursor-not-allowed opacity-60'
+                          : isDragActive
                           ? 'border-brand-indigo bg-brand-indigo-muted/30'
                           : 'border-border-custom hover:border-brand-indigo bg-bg-page/50'
                       }`}
@@ -223,7 +237,7 @@ export const JobDetailDrawer = ({ isOpen, onClose, job, onApplySuccess }) => {
                       <div className="flex flex-col items-center justify-center space-y-2 text-txt-secondary">
                         <Upload size={24} className="text-txt-tertiary" />
                         <p className="text-xs font-semibold text-txt-primary">
-                          {isDragActive ? 'Drop your PDF here' : 'Drag & drop your resume'}
+                          {applicationsClosed ? 'Applications closed' : isDragActive ? 'Drop your PDF here' : 'Drag & drop your resume'}
                         </p>
                         <span className="text-[10px] text-txt-tertiary">PDF formats up to 5MB</span>
                       </div>
@@ -262,7 +276,7 @@ export const JobDetailDrawer = ({ isOpen, onClose, job, onApplySuccess }) => {
               <div className="p-4 border-t border-border-custom bg-bg-surface">
                 <button
                   onClick={handleSubmit}
-                  disabled={!file || isSubmitting}
+                  disabled={!file || isSubmitting || applicationsClosed}
                   className="w-full h-9 bg-brand-indigo hover:bg-brand-indigo-hover text-white text-xs font-semibold rounded-lg flex items-center justify-center space-x-1.5 transition-all disabled:opacity-50 active:scale-98 cursor-pointer"
                 >
                   {isSubmitting ? (
@@ -274,7 +288,7 @@ export const JobDetailDrawer = ({ isOpen, onClose, job, onApplySuccess }) => {
                       <span>Submitting Profile...</span>
                     </>
                   ) : (
-                    <span>Submit Job Application</span>
+                    <span>{applicationsClosed ? 'Applications Closed' : 'Submit Job Application'}</span>
                   )}
                 </button>
               </div>

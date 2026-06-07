@@ -65,6 +65,13 @@ async def apply_to_job(
     job = session.get(JobPosting, job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
+    if job.status != "OPEN":
+        detail = (
+            "Applications for this position are closed."
+            if job.status == "CLOSED"
+            else "This job is no longer accepting applications."
+        )
+        raise HTTPException(status_code=409, detail=detail)
 
     existing = session.exec(
         select(CandidateApplication)

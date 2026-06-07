@@ -48,8 +48,9 @@ def _rag_stack(path):
 
 def test_access_control_generates_candidate_metadata_filters():
     candidate = User(id=42, username="candidate", hashed_password="x", role="candidate")
-    plan = RAGAccessControl().build_plan(candidate, ["candidate_profiles", "interview_reports"])
-    assert plan.collections == ["candidate_profiles", "interview_reports"]
+    plan = RAGAccessControl().build_plan(candidate, ["job_descriptions", "candidate_profiles", "interview_reports"])
+    assert plan.collections == ["job_descriptions", "candidate_profiles", "interview_reports"]
+    assert plan.filters["job_descriptions"] == {"status": "OPEN"}
     assert plan.filters["candidate_profiles"] == {"user_id": "42"}
     assert plan.filters["interview_reports"] == {"user_id": "42"}
 
@@ -62,6 +63,18 @@ def test_candidate_cannot_request_employee_knowledge():
         assert "employee_knowledge" in str(exc)
     else:
         raise AssertionError("candidate employee_knowledge access should be denied")
+
+
+def test_employee_rag_access_is_limited_to_company_policies_and_employee_knowledge():
+    employee = User(id=42, username="employee", hashed_password="x", role="employee")
+    plan = RAGAccessControl().build_plan(employee)
+    assert plan.collections == ["company_policies", "employee_knowledge"]
+    try:
+        RAGAccessControl().build_plan(employee, ["job_descriptions"])
+    except PermissionError as exc:
+        assert "job_descriptions" in str(exc)
+    else:
+        raise AssertionError("employee job_descriptions access should be denied")
 
 
 def test_candidate_rag_endpoint_only_returns_own_profile(tmp_path):

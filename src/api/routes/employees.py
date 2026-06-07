@@ -1,4 +1,5 @@
 import json
+import logging
 from datetime import date, datetime
 from typing import Any, Optional
 
@@ -10,12 +11,24 @@ from src.api.dependencies import require_roles, get_current_user
 from src.database.connection import get_session
 from src.models import (
     AttendanceRecord, Employee, LeaveRequest, SkillGapAnalysis, User,
-    Department, Designation, EmployeeLifecycleEvent, HRNotification
+    Department, Designation, EmployeeLifecycleEvent, HRNotification,
+    TrainingAssignment, EmployeeTicket, EmployeeProfile
 )
 from src.services.employee_ai import analyze_skill_gap, answer_hr_question
+from src.services.rag.access_control import RAGAccessControl
+from src.services.rag.chat_service import RAGChatService
 
 
 router = APIRouter(prefix="/api/employees", tags=["employees"])
+logger = logging.getLogger(__name__)
+
+
+def get_rag_chat_service() -> RAGChatService:
+    return RAGChatService()
+
+
+def get_rag_access_control() -> RAGAccessControl:
+    return RAGAccessControl()
 
 
 class LeaveCreateReq(BaseModel):
@@ -75,6 +88,92 @@ def my_employee_profile(
     return _employee_payload(session, employee)
 
 
+def _calculate_career_growth(employee: Employee) -> dict[str, Any]:
+    current_skills = [s.strip() for s in employee.skills.split(",") if s.strip()] if employee.skills else []
+    designation = (employee.designation or "Employee").strip()
+    desig_lower = designation.lower()
+    
+    if "backend" in desig_lower or "engineer" in desig_lower and "backend" in desig_lower:
+        next_role = "Senior Backend Engineer"
+        expected_skills = ["Python", "FastAPI", "PostgreSQL", "System Design", "Kubernetes", "Redis", "Microservices"]
+        learning_areas = ["System Design & Distributed Systems", "Containerization & Orchestration (Kubernetes)", "Caching strategies with Redis"]
+    elif "frontend" in desig_lower or "react" in desig_lower or "ui" in desig_lower:
+        next_role = "Senior Frontend Engineer"
+        expected_skills = ["React", "JavaScript", "TypeScript", "Next.js", "State Management", "Performance Optimization"]
+        learning_areas = ["Server-Side Rendering (Next.js)", "Advanced State Management (Redux/Zustand)", "Web Performance Optimization"]
+    elif "qa" in desig_lower or "test" in desig_lower:
+        next_role = "QA Lead"
+        expected_skills = ["Testing", "Selenium", "Cypress", "CI/CD", "Automation", "Performance Testing"]
+        learning_areas = ["Automated Testing Frameworks (Cypress/Playwright)", "CI/CD Pipeline Integration", "Load & Performance Testing"]
+    elif "data" in desig_lower:
+        next_role = "Senior Data Scientist"
+        expected_skills = ["Python", "Machine Learning", "PyTorch", "SQL", "MLOps", "Big Data"]
+        learning_areas = ["MLOps & Model Deployment Pipelines", "Deep Learning with PyTorch", "Big Data Processing (Spark)"]
+    else:
+        next_role = f"Lead {designation}"
+        expected_skills = ["Leadership", "Project Management", "Agile", "System Integration", "Communication"]
+        learning_areas = ["Technical Leadership & Team Management", "System Integration & Architecture", "Agile & Scrum Methodologies"]
+        
+    current_lower = {s.lower() for s in current_skills}
+    found = [s for s in expected_skills if s.lower() in current_lower]
+    for s in current_skills:
+        if s.lower() not in {e.lower() for e in expected_skills}:
+            found.append(s)
+            
+    missing = [s for s in expected_skills if s.lower() not in current_lower]
+    
+    return {
+        "current_role": designation,
+        "suggested_next_role": next_role,
+        "skills_found": found,
+        "skills_missing": missing,
+        "recommended_learning_areas": learning_areas
+    }
+
+
+def _calculate_promotion_readiness(
+    expected_skills: list[str],
+    current_skills: list[str],
+    training_assignments: list[TrainingAssignment],
+    profile_completion: int
+) -> dict[str, Any]:
+    current_lower = {s.lower() for s in current_skills}
+    match_count = len([s for s in expected_skills if s.lower() in current_lower])
+    skill_ratio = match_count / len(expected_skills) if expected_skills else 1.0
+    
+    completed_trainings = [t for t in training_assignments if t.status == "Completed"]
+    training_ratio = len(completed_trainings) / len(training_assignments) if training_assignments else 1.0
+    
+    if skill_ratio >= 0.70 and training_ratio >= 0.75 and profile_completion >= 80:
+        status = "Ready"
+        explanation = (
+            "You have demonstrated strong core competency by matching over 70% of expected skills, "
+            "completing the majority of your assigned training programs, and keeping your employee profile fully up-to-date."
+        )
+    elif skill_ratio >= 0.40 and training_ratio >= 0.50 and profile_completion >= 50:
+        status = "Developing"
+        missing_core = [s for s in expected_skills if s.lower() not in current_lower]
+        missing_str = ", ".join(missing_core[:3])
+        explanation = (
+            f"You are making steady progress towards the next role. Focus on completing pending training assignments "
+            f"and acquiring key missing skills like: {missing_str}."
+        )
+    else:
+        status = "Needs Growth"
+        explanation = (
+            "Focus on expanding your skill set, completing your assigned training courses, "
+            "and ensuring your employee profile is fully completed."
+        )
+        
+    return {
+        "status": status,
+        "explanation": explanation,
+        "skill_match_percent": round(skill_ratio * 100),
+        "training_completion_percent": round(training_ratio * 100),
+        "profile_completion_percent": profile_completion
+    }
+
+
 @router.get("/dashboard")
 def employee_dashboard(
     session: Session = Depends(get_session),
@@ -87,21 +186,84 @@ def employee_dashboard(
         .where(LeaveRequest.employee_id == employee.id)
         .order_by(LeaveRequest.created_at.desc())
     ).all()
+    training_assignments = session.exec(
+        select(TrainingAssignment)
+        .where(TrainingAssignment.employee_id == employee.id)
+        .order_by(TrainingAssignment.created_at.desc())
+    ).all()
+    tickets = session.exec(
+        select(EmployeeTicket)
+        .where(EmployeeTicket.user_id == current_user.id)
+        .order_by(EmployeeTicket.created_at.desc())
+    ).all()
     latest_skill_gap = session.exec(
         select(SkillGapAnalysis)
         .where(SkillGapAnalysis.employee_id == employee.id)
         .order_by(SkillGapAnalysis.updated_at.desc())
     ).first()
+    
+    attendance_records = session.exec(
+        select(AttendanceRecord)
+        .where(AttendanceRecord.employee_id == employee.id)
+    ).all()
+    
+    attendance_summary = {
+        "total_checkins": len(attendance_records),
+        "today_status": today_record.status if today_record else "Not Checked In"
+    }
+    
+    training_summary = {
+        "total_assigned": len(training_assignments),
+        "completed": len([item for item in training_assignments if item.status == "Completed"]),
+        "pending": len([item for item in training_assignments if item.status != "Completed"]),
+    }
+    
+    # Calculate deterministic career growth & promotion readiness
+    career_growth = _calculate_career_growth(employee)
+    
+    profile = session.exec(
+        select(EmployeeProfile)
+        .where(EmployeeProfile.user_id == current_user.id)
+    ).first()
+    profile_completion = profile.completion_percent if profile else 0
+    
+    current_skills_list = [s.strip() for s in employee.skills.split(",") if s.strip()] if employee.skills else []
+    
+    designation = (employee.designation or "Employee").strip().lower()
+    if "backend" in designation:
+        expected_skills = ["Python", "FastAPI", "PostgreSQL", "System Design", "Kubernetes", "Redis", "Microservices"]
+    elif "frontend" in designation or "react" in designation or "ui" in designation:
+        expected_skills = ["React", "JavaScript", "TypeScript", "Next.js", "State Management", "Performance Optimization"]
+    elif "qa" in designation or "test" in designation:
+        expected_skills = ["Testing", "Selenium", "Cypress", "CI/CD", "Automation", "Performance Testing"]
+    elif "data" in designation:
+        expected_skills = ["Python", "Machine Learning", "PyTorch", "SQL", "MLOps", "Big Data"]
+    else:
+        expected_skills = ["Leadership", "Project Management", "Agile", "System Integration", "Communication"]
+        
+    readiness = _calculate_promotion_readiness(
+        expected_skills,
+        current_skills_list,
+        training_assignments,
+        profile_completion
+    )
+    career_growth["promotion_readiness"] = readiness
+    
     return {
         "employee": _employee_payload(session, employee),
         "attendance_status": _attendance_payload(today_record) if today_record else None,
+        "attendance_summary": attendance_summary,
         "leave_summary": {
             "pending": len([item for item in leaves if item.status == "Pending"]),
             "approved": len([item for item in leaves if item.status == "Approved"]),
             "rejected": len([item for item in leaves if item.status == "Rejected"]),
             "recent": [_leave_payload(session, item) for item in leaves[:5]],
         },
+        "leave_balance": _leave_balance(leaves),
+        "training_summary": training_summary,
+        "open_ticket_count": len([ticket for ticket in tickets if ticket.status.lower() != "closed"]),
         "skill_gap": _skill_gap_payload(latest_skill_gap) if latest_skill_gap else None,
+        "career_growth": career_growth,
     }
 
 
@@ -330,8 +492,15 @@ def analyze_my_skill_gap(
 def hr_assistant(
     req: HRAssistantReq,
     current_user: User = Depends(require_roles("employee")),
+    service: RAGChatService = Depends(get_rag_chat_service),
+    access_control: RAGAccessControl = Depends(get_rag_access_control),
 ):
-    return answer_hr_question(req.question)
+    try:
+        plan = access_control.build_plan(current_user, ["company_policies", "employee_knowledge"])
+        return service.answer(req.question, plan.collections, filters=plan.filters, user=current_user)
+    except Exception as exc:
+        logger.exception("Employee RAG assistant failed; falling back to static HR policy answer")
+        return answer_hr_question(req.question)
 
 
 @router.get("/directory")
@@ -441,6 +610,7 @@ def _today_attendance(session: Session, employee: Employee) -> AttendanceRecord 
 
 def _employee_payload(session: Session, employee: Employee) -> dict[str, Any]:
     user = session.get(User, employee.user_id)
+    manager = session.get(User, employee.manager_id) if employee.manager_id else None
     return {
         "id": employee.id,
         "user_id": employee.user_id,
@@ -451,6 +621,8 @@ def _employee_payload(session: Session, employee: Employee) -> dict[str, Any]:
         "salary": employee.salary,
         "joining_date": employee.joining_date.isoformat() if employee.joining_date else None,
         "skills": employee.skills,
+        "manager_name": manager.username if manager else None,
+        "manager_id": employee.manager_id,
     }
 
 
@@ -464,6 +636,12 @@ def _attendance_payload(record: AttendanceRecord) -> dict[str, Any]:
         "check_out": record.check_out.isoformat() + "Z" if record.check_out else None,
         "status": record.status,
     }
+
+
+def _leave_days(leave: LeaveRequest) -> int:
+    if leave.start_date and leave.end_date:
+        return max(0, (leave.end_date - leave.start_date).days + 1)
+    return 0
 
 
 def _leave_payload(session: Session, leave: LeaveRequest) -> dict[str, Any]:
@@ -483,6 +661,23 @@ def _leave_payload(session: Session, leave: LeaveRequest) -> dict[str, Any]:
         "decided_by": leave.decided_by,
         "created_at": leave.created_at.isoformat() + "Z" if leave.created_at else None,
         "updated_at": leave.updated_at.isoformat() + "Z" if leave.updated_at else None,
+    }
+
+
+def _leave_balance(leaves: list[LeaveRequest]) -> dict[str, Any]:
+    allocations = {"Annual": 15, "Sick": 12, "Casual": 7}
+    used = {"Annual": 0, "Sick": 0, "Casual": 0}
+    for leave in leaves:
+        days = _leave_days(leave)
+        key = leave.leave_type.strip().title() if leave.leave_type else "General"
+        if key in used and leave.status == "Approved":
+            used[key] += days
+    remaining = {key: max(0, allocations[key] - used[key]) for key in allocations}
+    return {
+        "allocations": allocations,
+        "used": used,
+        "remaining": remaining,
+        "notes": "Monthly leave balances are estimated from approved leave requests and standard company policy allocations.",
     }
 
 

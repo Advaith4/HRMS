@@ -157,6 +157,7 @@ def _job_payload(job: JobPosting) -> dict[str, Any]:
         "department": job.department,
         "salary_range": job.salary_range,
         "experience_required": job.experience_required,
+        "status": job.status or "OPEN",
         "created_at": job.created_at.isoformat() if job.created_at else None,
         "created_by": job.created_by,
     }
@@ -171,8 +172,12 @@ def candidate_dashboard(
     Single endpoint returning jobs + my applications + resume status.
     Replaces 3 separate API calls (listJobs, getMyApplications, getMyResume).
     """
-    # ── 1. All active jobs ────────────────────────────────────────────────────
-    jobs = session.exec(select(JobPosting).order_by(JobPosting.created_at.desc())).all()
+    # ── 1. Candidate-visible jobs; archived jobs are hidden ──────────────────
+    jobs = session.exec(
+        select(JobPosting)
+        .where(JobPosting.status != "ARCHIVED")
+        .order_by(JobPosting.created_at.desc())
+    ).all()
 
     # ── 2. This candidate's applications ─────────────────────────────────────
     my_apps = session.exec(

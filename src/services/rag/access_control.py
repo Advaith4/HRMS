@@ -5,6 +5,7 @@ from src.services.rag.chroma_service import DEFAULT_COLLECTIONS
 
 PUBLIC_COLLECTIONS = ("company_policies", "job_descriptions")
 PRIVATE_CANDIDATE_COLLECTIONS = ("candidate_profiles", "interview_reports")
+EMPLOYEE_COLLECTIONS = ("company_policies", "employee_knowledge")
 HR_COLLECTIONS = DEFAULT_COLLECTIONS
 HR_ROLES = {"hr", "admin", "manager"}
 
@@ -30,6 +31,8 @@ class RAGAccessControl:
 
         filters: dict[str, dict] = {}
         if user.role == "candidate":
+            if "job_descriptions" in selected:
+                filters["job_descriptions"] = {"status": "OPEN"}
             user_filter = {"user_id": str(user.id)}
             for collection in PRIVATE_CANDIDATE_COLLECTIONS:
                 if collection in selected:
@@ -42,5 +45,5 @@ class RAGAccessControl:
         if user.role == "candidate":
             return list(PUBLIC_COLLECTIONS + PRIVATE_CANDIDATE_COLLECTIONS)
         if user.role == "employee":
-            return ["company_policies", "job_descriptions", "employee_knowledge"]
+            return list(EMPLOYEE_COLLECTIONS)
         return list(PUBLIC_COLLECTIONS)

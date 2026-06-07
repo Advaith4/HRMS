@@ -4,6 +4,7 @@ from sqlmodel import Field, SQLModel
 
 USER_ROLES = {"candidate", "employee", "hr", "manager", "admin"}
 APPLICATION_STATUSES = {"Applied", "Under Review", "Shortlisted", "Selected", "Rejected", "Hired"}
+JOB_STATUSES = {"OPEN", "CLOSED", "ARCHIVED"}
 LEAVE_STATUSES = {"Pending", "Approved", "Rejected"}
 INTERVIEW_STATUSES = {"pending", "active", "completed", "analyzing", "analyzed", "cancelled", "failed"}
 
@@ -142,6 +143,7 @@ class JobPosting(SQLModel, table=True):
     department: str = Field(default="", max_length=120)
     salary_range: str = Field(default="", max_length=120)
     experience_required: str = Field(default="", max_length=120)
+    status: str = Field(default="OPEN", max_length=20, index=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     created_by: int = Field(foreign_key="users.id", index=True)
 

@@ -326,6 +326,7 @@ export const CandidateDashboard = ({ activeTab = 'overview' }) => {
               {filteredJobs.map((job) => {
                 const skills = (job.required_skills || '').split(/[,|;]+/).slice(0, 4)
                 const alreadyApplied = seededApplications.some(a => a.job_title === job.title)
+                const applicationsClosed = (job.status || 'OPEN') === 'CLOSED'
 
                 return (
                   <motion.div
@@ -345,9 +346,13 @@ export const CandidateDashboard = ({ activeTab = 'overview' }) => {
                             <span className="text-[9px] text-txt-tertiary mt-1.5 block leading-none">{job.department}</span>
                           </div>
                         </div>
-                        {alreadyApplied && (
+                        {alreadyApplied ? (
                           <span className="text-[9px] font-bold text-success-primary bg-success-bg border border-success-primary/20 px-2 py-0.5 rounded-full uppercase">
                             Applied
+                          </span>
+                        ) : applicationsClosed && (
+                          <span className="text-[9px] font-bold text-warning-primary bg-warning-bg border border-warning-primary/20 px-2 py-0.5 rounded-full uppercase">
+                            Closed
                           </span>
                         )}
                       </div>
@@ -373,9 +378,11 @@ export const CandidateDashboard = ({ activeTab = 'overview' }) => {
                       
                       <button
                         onClick={() => { setSelectedJob(job); setIsDetailOpen(true); }}
-                        className="px-3.5 py-1.5 bg-brand-indigo hover:bg-brand-indigo-hover text-white text-[11px] font-semibold rounded-lg active:scale-98 transition-all cursor-pointer shadow-xs"
+                        className={`px-3.5 py-1.5 text-white text-[11px] font-semibold rounded-lg active:scale-98 transition-all cursor-pointer shadow-xs ${
+                          applicationsClosed ? 'bg-slate-500 hover:bg-slate-600' : 'bg-brand-indigo hover:bg-brand-indigo-hover'
+                        }`}
                       >
-                        {alreadyApplied ? 'Inspect vacancy' : 'Apply now'}
+                        {alreadyApplied || applicationsClosed ? 'Inspect vacancy' : 'Apply now'}
                       </button>
                     </div>
                   </motion.div>

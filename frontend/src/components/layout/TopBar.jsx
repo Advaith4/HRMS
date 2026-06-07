@@ -1,15 +1,41 @@
-import React, { useState, useEffect } from 'react'
-import { useLocation } from 'react-router-dom'
+import React, { useState, useEffect, useRef } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
-import { Bell } from 'lucide-react'
+import { Bell, ChevronDown, LogOut, UserCircle } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { listNotifications } from '../../api'
 import { NotificationDrawer } from '../drawers/NotificationDrawer'
 
 export const TopBar = () => {
-  const { role, user, isAuthenticated } = useAuthStore()
+  const { role, user, isAuthenticated, logout } = useAuthStore()
   const location = useLocation()
+  const navigate = useNavigate()
   const [unreadCount, setUnreadCount] = useState(0)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const dropdownRef = useRef(null)
+
+  const handleLogout = () => {
+    setDropdownOpen(false)
+    logout()
+    navigate('/login')
+  }
+
+  const getInitials = () => {
+    if (!user?.username) return 'TF'
+    return user.username.slice(0, 2).toUpperCase()
+  }
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
 
   const fetchUnreadCount = async () => {
     if (!isAuthenticated) return
@@ -131,11 +157,57 @@ export const TopBar = () => {
             )}
           </div>
 
-          {/* User initials chip */}
-          <div className="flex items-center space-x-2 border-l border-border-custom pl-4">
-            <span className="text-xs font-semibold text-txt-secondary hidden sm:inline">
-              {user?.username}
-            </span>
+          {/* User initials chip / Dropdown */}
+          <div className="relative border-l border-border-custom pl-4" ref={dropdownRef}>
+            <button
+              onClick={() => setDropdownOpen(o => !o)}
+              className="flex items-center space-x-2 px-2 py-1.5 rounded-lg hover:bg-bg-elevated transition-colors cursor-pointer select-none"
+            >
+              {/* Avatar circle */}
+              <div className="w-7 h-7 rounded-full bg-brand-indigo text-white font-bold text-xs flex items-center justify-center shrink-0">
+                {getInitials()}
+              </div>
+              {/* Username */}
+              <span className="text-xs font-semibold text-txt-secondary hidden sm:inline">
+                {user?.username || 'User'}
+              </span>
+              {/* Chevron Down */}
+              <ChevronDown size={14} className={`text-txt-tertiary transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {/* Dropdown Menu */}
+            <AnimatePresence>
+              {dropdownOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute right-0 mt-1.5 w-48 bg-white border border-border-custom rounded-xl shadow-lg p-1.5 z-50 flex flex-col space-y-0.5"
+                >
+                  {role === 'employee' && (
+                    <button
+                      onClick={() => {
+                        setDropdownOpen(false)
+                        navigate('/dashboard/employee?tab=profile')
+                      }}
+                      className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-lg text-txt-secondary hover:text-txt-primary hover:bg-bg-page transition-all cursor-pointer text-left text-xs font-medium"
+                    >
+                      <UserCircle size={14} className="shrink-0" />
+                      <span>My Profile</span>
+                    </button>
+                  )}
+                  
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-lg text-txt-secondary hover:text-danger-primary hover:bg-danger-bg/20 transition-all cursor-pointer text-left text-xs font-medium"
+                  >
+                    <LogOut size={14} className="shrink-0" />
+                    <span>Sign Out</span>
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </header>

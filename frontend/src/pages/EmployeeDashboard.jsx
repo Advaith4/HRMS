@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { User, Calendar, Clock, Send, MessageSquare, ChevronRight, Check, X, ShieldAlert, Award, BookOpen, AlertCircle, Plus, FileUp, FileText, ShieldCheck } from 'lucide-react'
+import { User, Calendar, Clock, Send, MessageSquare, ChevronRight, Check, X, ShieldAlert, Award, BookOpen, AlertCircle, Plus, FileUp, FileText, ShieldCheck, Sparkles } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import { SkillGapRadial } from '../components/charts/SkillGapRadial'
 import { StatusPill } from '../components/ui/StatusPill'
@@ -36,6 +37,16 @@ import toast from 'react-hot-toast'
 
 export const EmployeeDashboard = () => {
   const { user } = useAuthStore()
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  // Redirect to ?tab=overview if no tab parameter is present in search parameters
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    if (!params.get('tab')) {
+      navigate('/dashboard/employee?tab=overview', { replace: true })
+    }
+  }, [location.search, navigate])
 
   // State Management
   const [loading, setLoading] = useState(true)
@@ -46,6 +57,12 @@ export const EmployeeDashboard = () => {
   const [skillGap, setSkillGap] = useState(null)
   const [profileComplete, setProfileComplete] = useState(null)
   const [profileCompletion, setProfileCompletion] = useState(null)
+  
+  // New metrics dashboard states
+  const [leaveBalance, setLeaveBalance] = useState(null)
+  const [trainingSummary, setTrainingSummary] = useState({ total_assigned: 0, completed: 0, pending: 0 })
+  const [openTicketCount, setOpenTicketCount] = useState(0)
+  const [careerGrowth, setCareerGrowth] = useState(null)
 
   // Tabs navigation and operation states
   const [activeTab, setActiveTab] = useState(() => {
@@ -274,7 +291,30 @@ export const EmployeeDashboard = () => {
       setEmployee(data.employee)
       setAttendance(data.attendance_status)
       setLeaveSummary(data.leave_summary)
+      setLeaveBalance(data.leave_balance || {
+        allocations: { Annual: 15, Sick: 12, Casual: 7 },
+        used: { Annual: 0, Sick: 0, Casual: 0 },
+        remaining: { Annual: 15, Sick: 12, Casual: 7 }
+      })
+      setTrainingSummary(data.training_summary || { total_assigned: 0, completed: 0, pending: 0 })
+      setOpenTicketCount(data.open_ticket_count || 0)
       setSkillGap(data.skill_gap)
+      
+      const defaultCareer = {
+        current_role: data?.employee?.designation || 'Software Engineer',
+        suggested_next_role: 'Senior Software Engineer',
+        skills_found: data?.employee?.skills ? data.employee.skills.split(',').map(s => s.trim()) : ['React', 'JavaScript'],
+        skills_missing: ['System Design', 'Kubernetes', 'Redis'],
+        recommended_learning_areas: ['Distributed Systems & Caching', 'Cloud Orchestrations (Kubernetes)'],
+        promotion_readiness: {
+          status: 'Developing',
+          explanation: 'Steady progress. Continue upskilling on key systems and completing assigned trainings.',
+          skill_match_percent: 50,
+          training_completion_percent: 0,
+          profile_completion_percent: profileData?.profile?.completion_percent || 60
+        }
+      }
+      setCareerGrowth(data.career_growth || defaultCareer)
       setProfileCompletion(profileData.profile || profileData)
       setProfileComplete(!!profileData.profile?.is_complete)
     } catch (err) {
@@ -497,15 +537,15 @@ export const EmployeeDashboard = () => {
         toast.success('Skill gap analysis computed (local fallback)!')
       }
     } finally {
-      setAnalyzingGap(false)
+        setAnalyzingGap(false)
     }
   }
 
   // Helper stream response generator for chat bubbles
-  const streamText = (textToStream) => {
+  const streamText = (textToStream, sources = [], collections = []) => {
     setStreamingText('')
     let currentIdx = 0
-    const delay = 15 // ms per character
+    const delay = 10 // ms per character
 
     const interval = setInterval(() => {
       if (currentIdx < textToStream.length) {
@@ -515,12 +555,36 @@ export const EmployeeDashboard = () => {
         clearInterval(interval)
         setMessages((prev) => [
           ...prev,
-          { sender: 'ai', text: textToStream, timestamp: new Date() }
+          { sender: 'ai', text: textToStream, timestamp: new Date(), sources, collections }
         ])
         setStreamingText('')
         setIsTyping(false)
       }
     }, delay)
+  }
+
+  const sendMessageToAssistant = async (userText) => {
+    setIsTyping(true)
+    try {
+      const res = await askHRAssistant(userText)
+      const answer = res.answer
+      const sources = res.sources || []
+      const collections = res.collections_used || []
+      streamText(answer, sources, collections)
+    } catch (err) {
+      console.error(err)
+      const lower = userText.toLowerCase()
+      let reply = "I understand you're asking about that. As the TalentForge AI Assistant, I can confirm our standard policy allows for flexible remote working options, standard medical leaves require at least 24h notice except in emergencies, and monthly payrolls are processed on the last working day of each calendar month. Let me know if you need specific details!"
+      if (lower.includes('leave') || lower.includes('sick') || lower.includes('vacation') || lower.includes('balance') || lower.includes('days')) {
+        reply = "Under company policy, employees receive 15 days of annual paid leave, 12 days of sick leave, and 7 days of casual leave. You can submit leave requests directly from the dashboard."
+      } else if (lower.includes('payroll') || lower.includes('salary') || lower.includes('pay')) {
+        reply = "Salary payments are processed monthly on the 28th. You can access your payslips directly from the payroll section. For custom inquiries or tax declarations, please contact HR operations."
+      } else if (lower.includes('attendance') || lower.includes('check in') || lower.includes('shift')) {
+        reply = "Standard office core hours are 10:00 AM to 6:00 PM. Daily check-in/out is requested via the portal to log active hours and ensure compliance with team availability rules."
+      }
+      streamText(reply, [], [])
+      toast.success('Offline AI mode fallback activated.')
+    }
   }
 
   // Handle Send Chat
@@ -531,25 +595,13 @@ export const EmployeeDashboard = () => {
     const userText = inputMessage.trim()
     setMessages((prev) => [...prev, { sender: 'user', text: userText, timestamp: new Date() }])
     setInputMessage('')
-    setIsTyping(true)
+    sendMessageToAssistant(userText)
+  }
 
-    try {
-      const res = await askHRAssistant(userText)
-      streamText(res.answer)
-    } catch (err) {
-      console.error(err)
-      const lower = userText.toLowerCase()
-      let reply = "I understand you're asking about that. As the TalentForge AI Assistant, I can confirm our standard policy allows for flexible remote working options, standard medical leaves require at least 24h notice except in emergencies, and monthly payrolls are processed on the last working day of each calendar month. Let me know if you need specific details!"
-      if (lower.includes('leave') || lower.includes('sick') || lower.includes('vacation')) {
-        reply = "Under company policy, employees receive 15 days of annual paid leave and 12 days of sick leave. Leave requests should be submitted via this Employee Portal and are reviewed by your reporting manager within 48 hours."
-      } else if (lower.includes('payroll') || lower.includes('salary') || lower.includes('pay')) {
-        reply = "Salary payments are processed monthly on the 28th. You can access your payslips directly from the payroll section. For custom inquiries or tax declarations, please contact HR operations."
-      } else if (lower.includes('attendance') || lower.includes('check in') || lower.includes('shift')) {
-        reply = "Standard office core hours are 10:00 AM to 6:00 PM. Daily check-in/out is requested via the portal to log active hours and ensure compliance with team availability rules."
-      }
-      streamText(reply)
-      toast.success('Offline AI mode fallback activated.')
-    }
+  const handleSelectPrompt = async (promptText) => {
+    if (isTyping) return
+    setMessages((prev) => [...prev, { sender: 'user', text: promptText, timestamp: new Date() }])
+    sendMessageToAssistant(promptText)
   }
 
   if (loading) {
@@ -598,32 +650,49 @@ export const EmployeeDashboard = () => {
         </div>
       )}
 
-      {/* Tabs Selector */}
-      <div className="flex border-b border-border-custom space-x-6 pb-px">
-        {[
-          { id: 'overview', label: 'Overview' },
-          { id: 'profile', label: 'My Profile' },
-          { id: 'tickets', label: 'My Tickets' },
-          { id: 'timeline', label: 'Career Timeline' },
-          { id: 'onboarding', label: 'Onboarding' },
-          { id: 'training', label: 'Training' }
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`pb-3 text-xs font-semibold tracking-wide border-b-2 transition-all cursor-pointer relative ${
-              activeTab === tab.id
-                ? 'text-brand-indigo border-brand-indigo'
-                : 'text-txt-tertiary hover:text-txt-secondary border-transparent'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+
 
       {activeTab === 'overview' && (
         <div className="space-y-8">
+          
+          {/* Employee Intelligence Overview Metrics Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+            <div className="rounded-xl border border-border-custom bg-bg-surface p-4 flex flex-col justify-between hover:border-brand-indigo/35 transition-colors">
+              <span className="text-[10px] font-bold text-txt-tertiary uppercase tracking-wider block">Employee ID</span>
+              <div>
+                <span className="text-sm font-bold text-txt-primary block mt-1">{employee?.employee_code || 'N/A'}</span>
+                <span className="text-[9px] text-txt-secondary block">Join Date: {employee?.joining_date ? new Date(employee.joining_date).toLocaleDateString() : 'N/A'}</span>
+              </div>
+            </div>
+            <div className="rounded-xl border border-border-custom bg-bg-surface p-4 flex flex-col justify-between hover:border-brand-indigo/35 transition-colors">
+              <span className="text-[10px] font-bold text-txt-tertiary uppercase tracking-wider block">Department</span>
+              <div>
+                <span className="text-sm font-bold text-txt-primary block mt-1 truncate" title={employee?.department}>{employee?.department || 'Not Assigned'}</span>
+                <span className="text-[9px] text-txt-secondary block truncate" title={employee?.designation}>{employee?.designation || 'Not Assigned'}</span>
+              </div>
+            </div>
+            <div className="rounded-xl border border-border-custom bg-bg-surface p-4 flex flex-col justify-between hover:border-brand-indigo/35 transition-colors">
+              <span className="text-[10px] font-bold text-txt-tertiary uppercase tracking-wider block">Reporting Line</span>
+              <div>
+                <span className="text-sm font-bold text-txt-primary block mt-1">{employee?.manager_name || 'Not Assigned'}</span>
+                <span className="text-[9px] text-txt-secondary block">{employee?.manager_name ? 'Direct Manager' : 'No Manager Assigned'}</span>
+              </div>
+            </div>
+            <div className="rounded-xl border border-border-custom bg-bg-surface p-4 flex flex-col justify-between hover:border-brand-indigo/35 transition-colors">
+              <span className="text-[10px] font-bold text-txt-tertiary uppercase tracking-wider block">Time & Tickets</span>
+              <div>
+                <span className="text-sm font-bold text-txt-primary block mt-1">{attendance?.status || 'Not Checked In'}</span>
+                <span className="text-[9px] text-txt-secondary block">{openTicketCount || 0} Open Tickets</span>
+              </div>
+            </div>
+            <div className="rounded-xl border border-border-custom bg-bg-surface p-4 flex flex-col justify-between hover:border-brand-indigo/35 transition-colors">
+              <span className="text-[10px] font-bold text-txt-tertiary uppercase tracking-wider block">Growth & Profile</span>
+              <div>
+                <span className="text-sm font-bold text-txt-primary block mt-1">{trainingSummary?.total_assigned || 0} Assignments</span>
+                <span className="text-[9px] text-txt-secondary block">Profile {profileCompletion?.completion_percent || 0}% Complete</span>
+              </div>
+            </div>
+          </div>
           
           {/* Section: Workday Attendance & Leave Management */}
           <div className="space-y-3">
@@ -710,6 +779,46 @@ export const EmployeeDashboard = () => {
                     profileCompletion={profileCompletion}
                     onAction={() => setProfileComplete(false)}
                   />
+                )}
+
+                {/* Leave Balance Widget */}
+                {leaveBalance && (
+                  <div className="rounded-xl border border-border-custom bg-bg-surface p-6 shadow-xs space-y-4">
+                    <div className="border-b border-border-custom pb-3">
+                      <h4 className="text-sm font-semibold">Leave Balances</h4>
+                      <p className="text-[11px] text-txt-secondary">Your active company leave allocations and usage status</p>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        { label: 'Annual', color: 'border-brand-indigo text-brand-indigo bg-brand-indigo-muted/20' },
+                        { label: 'Sick', color: 'border-danger-primary text-danger-primary bg-danger-bg/20' },
+                        { label: 'Casual', color: 'border-warning-primary text-warning-primary bg-warning-bg/20' }
+                      ].map((item) => {
+                        const total = leaveBalance.allocations?.[item.label] || 0
+                        const used = leaveBalance.used?.[item.label] || 0
+                        const remaining = leaveBalance.remaining?.[item.label] || 0
+                        
+                        return (
+                          <div key={item.label} className="border border-border-custom rounded-xl p-3 text-center space-y-2 bg-bg-page/50">
+                            <span className="text-[9px] font-bold text-txt-tertiary uppercase tracking-wider block">{item.label}</span>
+                            <div className="space-y-0.5">
+                              <span className="text-base font-extrabold text-txt-primary block">{remaining}</span>
+                              <span className="text-[9px] text-txt-secondary block">Days Left</span>
+                            </div>
+                            <div className="pt-1.5 border-t border-border-custom/50 flex justify-between text-[8px] font-semibold">
+                              <span className="text-txt-tertiary">Used: {used}</span>
+                              <span className="text-txt-tertiary">Max: {total}</span>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                    
+                    <p className="text-[9px] text-txt-tertiary leading-normal italic">
+                      {leaveBalance.notes || 'Leave balances estimated based on approved leave requests and company allocations.'}
+                    </p>
+                  </div>
                 )}
 
                 {/* Leave requests card (45%) */}
@@ -804,125 +913,160 @@ export const EmployeeDashboard = () => {
             </div>
           </div>
 
-          {/* Section: Career Path & Organization Policies */}
+          {/* Section: Career Growth & Promotion Readiness */}
           <div className="space-y-3">
-            <h3 className="text-[10px] font-bold tracking-wider uppercase text-txt-secondary">Career Path Fit & Organization Policies</h3>
+            <h3 className="text-[10px] font-bold tracking-wider uppercase text-txt-secondary">Career Growth & Promotion Readiness</h3>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               
-              {/* Skill Gap Analysis Box */}
+              {/* Career Growth Path card */}
               <div className="rounded-xl border border-border-custom bg-bg-surface p-6 shadow-xs space-y-6">
-                <div className="border-b border-border-custom pb-3 flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-semibold">Career Path Gap Analysis</h4>
-                    <p className="text-[11px] text-txt-secondary">
-                      {skillGap?.role_expectations ? `Compare profile against: ${skillGap.role_expectations}` : 'Define a target role to test skills gaps'}
-                    </p>
-                  </div>
+                <div className="border-b border-border-custom pb-3">
+                  <h4 className="text-sm font-semibold text-txt-primary">Career Path Fit & Skills Analytics</h4>
+                  <p className="text-[11px] text-txt-secondary">Deterministic mapping to your next potential career milestone</p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                  
-                  {/* Radial indicators */}
-                  <div className="flex flex-col items-center justify-center">
-                    <SkillGapRadial percent={gapProgress} />
-                  </div>
-
-                  {/* Target Role search */}
-                  <form onSubmit={handleSkillGapAnalyze} className="space-y-4">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-txt-tertiary uppercase block">Target Career Role</label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="e.g. Lead Backend Architect"
-                        value={targetRole}
-                        onChange={(e) => setTargetRole(e.target.value)}
-                        className="w-full bg-bg-page border border-border-custom outline-none px-3 py-1.5 text-xs rounded-lg text-txt-primary focus:border-brand-indigo"
-                      />
+                {careerGrowth ? (
+                  <div className="space-y-5">
+                    {/* Role Progression Mapping */}
+                    <div className="flex items-center justify-between bg-bg-page/50 border border-border-custom p-3.5 rounded-xl">
+                      <div className="space-y-1">
+                        <span className="text-[9px] font-bold text-txt-tertiary uppercase tracking-wider block">Current Designation</span>
+                        <span className="text-xs font-bold text-txt-primary block leading-none">{careerGrowth.current_role}</span>
+                      </div>
+                      <div className="flex items-center text-brand-indigo font-bold text-lg px-2">→</div>
+                      <div className="space-y-1 text-right">
+                        <span className="text-[9px] font-bold text-brand-indigo uppercase tracking-wider block">Suggested Next Role</span>
+                        <span className="text-xs font-bold text-brand-indigo block leading-none">{careerGrowth.suggested_next_role}</span>
+                      </div>
                     </div>
 
-                    <button
-                      type="submit"
-                      disabled={analyzingGap}
-                      className="w-full h-8 bg-brand-indigo hover:bg-brand-indigo-hover text-white text-xs font-semibold rounded-lg flex items-center justify-center cursor-pointer transition-colors"
-                    >
-                      {analyzingGap ? 'Analyzing fit...' : 'Re-analyze Skill Gaps'}
-                    </button>
-                  </form>
-
-                </div>
-
-                {/* Current & Missing lists */}
-                {skillGap && (
-                  <div className="space-y-4 pt-4 border-t border-border-custom/50">
-                    
-                    <div className="grid grid-cols-2 gap-4">
+                    {/* Skill matching tags */}
+                    <div className="space-y-3 pt-2">
                       <div className="space-y-1.5">
-                        <span className="text-[9px] font-bold text-success-primary uppercase tracking-wider block">My Current Skills</span>
-                        <div className="flex flex-wrap gap-1">
-                          {currentSkillsList.map((s, idx) => (
-                            <span key={idx} className="bg-success-bg/20 text-success-primary border border-success-primary/20 px-2 py-0.5 rounded text-[10px]">
-                              {s}
-                            </span>
-                          ))}
+                        <span className="text-[9px] font-bold text-success-primary uppercase tracking-wider block">Core Skills Matched</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {careerGrowth.skills_found?.length > 0 ? (
+                            careerGrowth.skills_found.map((s, idx) => (
+                              <span key={idx} className="bg-success-bg/30 text-success-primary border border-success-primary/20 px-2 py-0.5 rounded text-[10px] font-medium">
+                                {s}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-xs text-txt-tertiary">No matching skills found</span>
+                          )}
                         </div>
                       </div>
 
                       <div className="space-y-1.5">
-                        <span className="text-[9px] font-bold text-warning-primary uppercase tracking-wider block">Identified Gaps</span>
-                        <div className="flex flex-wrap gap-1">
-                          {missingSkillsList.map((s, idx) => (
-                            <span key={idx} className="bg-warning-bg/20 text-warning-primary border border-warning-primary/20 px-2 py-0.5 rounded text-[10px]">
-                              {s}
-                            </span>
-                          ))}
+                        <span className="text-[9px] font-bold text-warning-primary uppercase tracking-wider block">Key Skill Gaps (To Develop)</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {careerGrowth.skills_missing?.length > 0 ? (
+                            careerGrowth.skills_missing.map((s, idx) => (
+                              <span key={idx} className="bg-warning-bg/30 text-warning-primary border border-warning-primary/20 px-2 py-0.5 rounded text-[10px] font-medium">
+                                {s}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-xs text-success-primary">No missing skills detected!</span>
+                          )}
                         </div>
                       </div>
                     </div>
 
-                    {/* Suggestions */}
-                    {skillGap.learning_suggestions && skillGap.learning_suggestions.length > 0 && (
-                      <div className="space-y-2 pt-2 border-t border-border-custom/30">
+                    {/* Recommended learning areas */}
+                    {careerGrowth.recommended_learning_areas?.length > 0 && (
+                      <div className="space-y-2 pt-4 border-t border-border-custom/50">
                         <span className="text-[9px] font-bold text-txt-tertiary uppercase tracking-wider block flex items-center space-x-1">
                           <BookOpen size={10} className="text-brand-indigo" />
-                          <span>Recommended Upskilling Path</span>
+                          <span>Recommended Focus Areas</span>
                         </span>
                         <ul className="space-y-1.5 text-xs text-txt-secondary leading-relaxed">
-                          {skillGap.learning_suggestions.slice(0, 3).map((suggestion, idx) => (
+                          {careerGrowth.recommended_learning_areas.map((area, idx) => (
                             <li key={idx} className="flex items-start space-x-1.5">
-                              <span className="text-brand-indigo">•</span>
-                              <span>{suggestion}</span>
+                              <span className="text-brand-indigo font-bold">•</span>
+                              <span>{area}</span>
                             </li>
                           ))}
                         </ul>
                       </div>
                     )}
-
                   </div>
+                ) : (
+                  <div className="text-xs text-txt-tertiary py-6 text-center">Loading career path insights...</div>
                 )}
-
               </div>
 
-              {/* Static HR/Dashboard policy helper box */}
-              <div className="rounded-xl border border-border-custom bg-bg-surface p-6 shadow-xs flex flex-col justify-between h-full space-y-6">
-                <div className="space-y-3">
-                  <h4 className="text-sm font-semibold flex items-center space-x-1.5">
-                    <AlertCircle size={16} className="text-brand-indigo" />
-                    <span>Workspace Policies Reference</span>
-                  </h4>
-                  <p className="text-xs text-txt-secondary leading-relaxed">
-                    Find standard guidelines regarding work hours, holidays, leaves, and payroll below. For dynamic queries, use the floating chatbot assistant in the bottom right corner.
-                  </p>
+              {/* Promotion Readiness card */}
+              <div className="rounded-xl border border-border-custom bg-bg-surface p-6 shadow-xs space-y-6">
+                <div className="border-b border-border-custom pb-3">
+                  <h4 className="text-sm font-semibold text-txt-primary">Promotion Readiness Insights</h4>
+                  <p className="text-[11px] text-txt-secondary">Compliance and evaluation criteria based on actual HR metrics</p>
                 </div>
 
-                <div className="space-y-2.5 text-xs text-txt-secondary bg-bg-page p-4 border border-border-custom rounded-xl">
-                  <div>
-                    <span className="font-semibold text-txt-primary">Check-In policy:</span> Check in before 10:00 AM local time is considered on-time. Delay triggers warnings.
+                {careerGrowth?.promotion_readiness ? (
+                  <div className="space-y-5">
+                    {/* Large Badge & Explanation */}
+                    <div className="p-4 rounded-xl border border-border-custom/50 bg-bg-page/40 space-y-3">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-[9px] font-bold text-txt-tertiary uppercase tracking-wider block">Current Status</span>
+                        {careerGrowth.promotion_readiness.status === 'Ready' ? (
+                          <span className="bg-success-bg/40 text-success-primary border border-success-primary/30 px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                            Ready
+                          </span>
+                        ) : careerGrowth.promotion_readiness.status === 'Developing' ? (
+                          <span className="bg-warning-bg/40 text-warning-primary border border-warning-primary/30 px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                            Developing
+                          </span>
+                        ) : (
+                          <span className="bg-danger-bg/40 text-danger-primary border border-danger-primary/30 px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                            Needs Growth
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-txt-secondary leading-relaxed font-medium">
+                        {careerGrowth.promotion_readiness.explanation}
+                      </p>
+                    </div>
+
+                    {/* Readiness progress metrics */}
+                    <div className="space-y-4 pt-2">
+                      {/* Metric 1: Skill Match */}
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider">
+                          <span className="text-txt-secondary">Core Skill Match</span>
+                          <span className="text-brand-indigo">{careerGrowth.promotion_readiness.skill_match_percent}%</span>
+                        </div>
+                        <div className="h-1.5 bg-bg-page rounded-full overflow-hidden border border-border-custom/50">
+                          <div className="h-full bg-brand-indigo rounded-full" style={{ width: `${careerGrowth.promotion_readiness.skill_match_percent}%` }} />
+                        </div>
+                      </div>
+
+                      {/* Metric 2: Training Completion */}
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider">
+                          <span className="text-txt-secondary">Assigned Training Complete</span>
+                          <span className="text-success-primary">{careerGrowth.promotion_readiness.training_completion_percent}%</span>
+                        </div>
+                        <div className="h-1.5 bg-bg-page rounded-full overflow-hidden border border-border-custom/50">
+                          <div className="h-full bg-success-primary rounded-full" style={{ width: `${careerGrowth.promotion_readiness.training_completion_percent}%` }} />
+                        </div>
+                      </div>
+
+                      {/* Metric 3: Profile completeness */}
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider">
+                          <span className="text-txt-secondary">Profile Setup Verification</span>
+                          <span className="text-warning-primary">{careerGrowth.promotion_readiness.profile_completion_percent}%</span>
+                        </div>
+                        <div className="h-1.5 bg-bg-page rounded-full overflow-hidden border border-border-custom/50">
+                          <div className="h-full bg-warning-primary rounded-full" style={{ width: `${careerGrowth.promotion_readiness.profile_completion_percent}%` }} />
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="border-t border-border-custom/50 pt-2">
-                    <span className="font-semibold text-txt-primary">Leave submissions:</span> Casual leave requests must be submitted 2 days in advance.
-                  </div>
-                </div>
+                ) : (
+                  <div className="text-xs text-txt-tertiary py-6 text-center">Loading readiness assessment...</div>
+                )}
               </div>
 
             </div>
@@ -1083,6 +1227,7 @@ export const EmployeeDashboard = () => {
           trainingAssignments={trainingAssignments}
           loadingTraining={loadingTraining}
           handleTrainingProgress={handleTrainingProgress}
+          onAskAssistant={handleSelectPrompt}
         />
       )}
 
@@ -1133,6 +1278,43 @@ export const EmployeeDashboard = () => {
 
               {/* Message scroll list */}
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {messages.length <= 1 && (
+                  <div className="p-4 border border-border-custom rounded-xl bg-bg-page/40 space-y-4 text-center">
+                    <div className="w-10 h-10 rounded-full bg-brand-indigo/10 flex items-center justify-center mx-auto text-brand-indigo">
+                      <Sparkles size={20} />
+                    </div>
+                    <div className="space-y-1">
+                      <h5 className="text-xs font-bold text-txt-primary">Employee Intelligence Copilot</h5>
+                      <p className="text-[10px] text-txt-secondary leading-normal">
+                        Ask me details about your leaves, check-in status, open tickets, or explore organization policy documents.
+                      </p>
+                    </div>
+                    
+                    {/* Suggested prompts grid */}
+                    <div className="pt-2 space-y-1.5 text-left">
+                      <span className="text-[8px] font-bold text-txt-tertiary uppercase tracking-wider block">Suggested Questions</span>
+                      <div className="grid grid-cols-1 gap-1.5">
+                        {[
+                          "How many leave days do I have?",
+                          "What is the leave policy?",
+                          "What training is assigned to me?",
+                          "What skills should I improve?",
+                          "Explain the promotion process.",
+                          "What onboarding tasks remain?"
+                        ].map((prompt, pIdx) => (
+                          <button
+                            key={pIdx}
+                            onClick={() => handleSelectPrompt(prompt)}
+                            className="text-[10px] text-txt-secondary hover:text-brand-indigo hover:border-brand-indigo bg-bg-surface border border-border-custom px-3 py-1.5 rounded-lg text-left transition-colors cursor-pointer block truncate"
+                          >
+                            {prompt}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {messages.map((msg, idx) => {
                   const isAI = msg.sender === 'ai'
                   return (
@@ -1156,12 +1338,34 @@ export const EmployeeDashboard = () => {
                       >
                         {msg.text}
                       </div>
+
+                      {/* Deduped Source Attribution badges */}
+                      {isAI && msg.sources && msg.sources.length > 0 && (
+                        <div className="flex flex-wrap gap-1 pl-1 pt-0.5 select-none">
+                          {Array.from(new Set(msg.sources.map(s => {
+                            if (s.collection === 'database') {
+                              return s.source_collection || 'Live Employee Data'
+                            } else if (s.collection === 'company_policies') {
+                              return 'Company Policy'
+                            } else if (s.collection === 'employee_knowledge') {
+                              return 'Employee Knowledge'
+                            }
+                            return 'Company Knowledge'
+                          }))).map((srcLabel, sIdx) => (
+                            <span key={sIdx} className="inline-flex items-center space-x-0.5 bg-success-bg/25 border border-success-primary/20 text-success-primary text-[8px] font-bold px-1 py-0.2 rounded">
+                              <span className="mr-0.5">✓</span>
+                              <span>{srcLabel}</span>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
                       <span className={`text-[9px] text-txt-tertiary px-1 ${!isAI && 'text-right'}`}>
                         {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
-                  )}
-                )}
+                  )
+                })}
 
                 {/* Typing status bubble */}
                 {isTyping && (

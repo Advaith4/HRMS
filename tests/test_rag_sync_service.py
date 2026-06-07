@@ -38,11 +38,14 @@ def test_job_create_update_delete_sync_is_idempotent(tmp_path):
     assert metadata["entity_type"] == "job"
     assert metadata["user_id"] == "7"
     assert metadata["source_collection"] == "job_descriptions"
+    assert metadata["status"] == "OPEN"
 
     job.description = "Build FastAPI services, Chroma retrieval, and PostgreSQL integrations."
+    job.status = "CLOSED"
     sync.sync_job(job)
     retrieved = retrieval.retrieve("Who builds Chroma retrieval?", ["job_descriptions"])
     assert "Chroma retrieval" in retrieved["context"]
+    assert "Status: CLOSED" in retrieved["context"]
     assert retrieved["sources"][0]["collection"] == "job_descriptions"
 
     sync.delete_job(job.id)

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Briefcase, Eye, Award, Trash2, Edit2, GitMerge, FileText, Search, UserCheck, Users, X, ChevronRight } from 'lucide-react'
+import { Plus, Briefcase, Eye, Award, Trash2, Edit2, GitMerge, FileText, Search, UserCheck, Users, X, ChevronRight, Archive, LockKeyhole } from 'lucide-react'
 import { MetricCard } from '../components/ui/MetricCard'
 import { StatusPill } from '../components/ui/StatusPill'
 import { SkeletonCard } from '../components/ui/SkeletonCard'
@@ -9,7 +9,7 @@ import { ApplicationTrend } from '../components/charts/ApplicationTrend'
 import { ScoreDistribution } from '../components/charts/ScoreDistribution'
 import { AnalysisDrawer } from '../components/drawers/AnalysisDrawer'
 import { PostJobModal } from '../components/modals/PostJobModal'
-import { getHRDashboardData, deleteJob, listLeaveRequests, decideLeaveRequest, getHRReviews, listApplications } from '../api'
+import { getHRDashboardData, deleteJob, closeJob, archiveJob, listLeaveRequests, decideLeaveRequest, getHRReviews, listApplications } from '../api'
 import { useAuthStore } from '../store/authStore'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
@@ -256,6 +256,32 @@ export const HRDashboard = ({ activeTab = 'overview' }) => {
     }
   }
 
+  const handleCloseJob = async (job) => {
+    if (!window.confirm(`Close applications for ${job.title}? Candidates will still see the job, but cannot apply.`)) return
+    try {
+      const updated = await closeJob(job.id)
+      toast.success('Applications closed')
+      setJobs(jobs.map(j => j.id === updated.id ? updated : j))
+      await fetchData().catch(() => {})
+    } catch (err) {
+      console.error(err)
+      toast.error(err.response?.data?.detail || 'Failed to close applications.')
+    }
+  }
+
+  const handleArchiveJob = async (job) => {
+    if (!window.confirm(`Archive ${job.title}? Candidates will no longer see this job.`)) return
+    try {
+      const updated = await archiveJob(job.id)
+      toast.success('Job archived')
+      setJobs(jobs.map(j => j.id === updated.id ? updated : j))
+      await fetchData().catch(() => {})
+    } catch (err) {
+      console.error(err)
+      toast.error(err.response?.data?.detail || 'Failed to archive job.')
+    }
+  }
+
   // Edit Job handler
   const handleEditJob = (job) => {
     setJobToEdit(job)
@@ -281,13 +307,20 @@ export const HRDashboard = ({ activeTab = 'overview' }) => {
   const seededCandidates = candidates
 
   // KPI Calculations
-  const openJobsCount = seededJobs.length
+  const openJobsCount = seededJobs.filter(j => (j.status || 'OPEN') === 'OPEN').length
   const totalAppsCount = seededApplications.length
   const pendingReviewCount = seededApplications.filter(a => a.status === 'Applied').length
   const hiredCount = seededApplications.filter(a => a.status === 'Hired').length
   const avgScore = Math.round(
     seededApplications.reduce((acc, a) => acc + (a.ai_analysis?.fit_score || 0), 0) / (totalAppsCount || 1)
   )
+
+  const jobStatusClasses = (status) => {
+    const normalized = status || 'OPEN'
+    if (normalized === 'CLOSED') return 'bg-warning-bg text-warning-primary border-warning-primary/20'
+    if (normalized === 'ARCHIVED') return 'bg-slate-100 text-slate-500 border-slate-300'
+    return 'bg-success-bg text-success-primary border-success-primary/20'
+  }
 
   // Sort and Search Applications
   const filteredApps = seededApplications.filter(app => {
@@ -442,7 +475,7 @@ export const HRDashboard = ({ activeTab = 'overview' }) => {
               {/* Active Jobs list summary (40%) */}
               <div className="rounded-xl border border-border-custom bg-bg-surface p-6 shadow-xs space-y-4">
                 <div className="flex items-center justify-between border-b border-border-custom pb-3">
-                  <h4 className="text-sm font-semibold">Active Postings</h4>
+                  <h4 className="text-sm font-semibold">Job Postings</h4>
                   <span className="text-[10px] text-brand-indigo font-bold bg-brand-indigo-muted px-2 py-0.5 rounded-full">{seededJobs.length} total</span>
                 </div>
 
@@ -459,6 +492,7 @@ export const HRDashboard = ({ activeTab = 'overview' }) => {
                           <span className="text-xs font-semibold text-txt-primary group-hover:text-brand-indigo transition-colors block truncate">{job.title}</span>
                           <div className="flex items-center space-x-2 text-[10px] text-txt-secondary">
                             <span className="bg-bg-surface px-1.5 py-0.5 rounded text-txt-tertiary font-medium">{job.department}</span>
+                            <span className={`border px-1.5 py-0.5 rounded font-bold ${jobStatusClasses(job.status)}`}>{job.status || 'OPEN'}</span>
                             <span>·</span>
                             <span>{job.salary_range}</span>
                           </div>
@@ -495,9 +529,14 @@ export const HRDashboard = ({ activeTab = 'overview' }) => {
               >
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-semibold text-brand-indigo bg-brand-indigo-muted border border-brand-indigo/20 px-2 py-0.5 rounded uppercase">
-                      {job.department}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-semibold text-brand-indigo bg-brand-indigo-muted border border-brand-indigo/20 px-2 py-0.5 rounded uppercase">
+                        {job.department}
+                      </span>
+                      <span className={`text-[10px] font-bold border px-2 py-0.5 rounded uppercase ${jobStatusClasses(job.status)}`}>
+                        {job.status || 'OPEN'}
+                      </span>
+                    </div>
                     <span className="text-[10px] font-medium text-txt-tertiary">
                       Posted {new Date(job.created_at || Date.now()).toLocaleDateString()}
                     </span>
@@ -528,16 +567,38 @@ export const HRDashboard = ({ activeTab = 'overview' }) => {
                     <div className="flex items-center space-x-2 justify-end">
                       <button
                         onClick={() => handleEditJob(job)}
+                        title="Edit job"
                         className="p-1.5 rounded-lg border border-border-custom bg-bg-page hover:bg-bg-elevated text-txt-secondary hover:text-brand-indigo transition-colors cursor-pointer"
                       >
                         <Edit2 size={13} />
                       </button>
-                      <button
-                        onClick={() => handleDeleteJob(job.id)}
-                        className="p-1.5 rounded-lg border border-border-custom bg-bg-page hover:bg-danger-bg/40 text-txt-secondary hover:text-danger-primary transition-colors cursor-pointer"
-                      >
-                        <Trash2 size={13} />
-                      </button>
+                      {(job.status || 'OPEN') === 'OPEN' && (
+                        <button
+                          onClick={() => handleCloseJob(job)}
+                          title="Close applications"
+                          className="p-1.5 rounded-lg border border-border-custom bg-bg-page hover:bg-warning-bg/40 text-txt-secondary hover:text-warning-primary transition-colors cursor-pointer"
+                        >
+                          <LockKeyhole size={13} />
+                        </button>
+                      )}
+                      {(job.status || 'OPEN') !== 'ARCHIVED' && (
+                        <button
+                          onClick={() => handleArchiveJob(job)}
+                          title="Archive job"
+                          className="p-1.5 rounded-lg border border-border-custom bg-bg-page hover:bg-slate-100 text-txt-secondary hover:text-slate-600 transition-colors cursor-pointer"
+                        >
+                          <Archive size={13} />
+                        </button>
+                      )}
+                      {count === 0 && (
+                        <button
+                          onClick={() => handleDeleteJob(job.id)}
+                          title="Delete unused job"
+                          className="p-1.5 rounded-lg border border-border-custom bg-bg-page hover:bg-danger-bg/40 text-txt-secondary hover:text-danger-primary transition-colors cursor-pointer"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

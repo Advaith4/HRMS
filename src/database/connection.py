@@ -58,6 +58,7 @@ def create_db_and_tables() -> None:
     _ensure_phase2_talent_tables()
     _ensure_profile_completion_tables()
     _ensure_profile_prepopulated_column()
+    _ensure_job_status_column()
 
 
 def _ensure_user_role_column() -> None:
@@ -659,3 +660,24 @@ def _ensure_profile_prepopulated_column() -> None:
                 session.commit()
     except Exception as exc:
         logger.warning("Employee profile pre_populated column migration skipped: %s", exc)
+
+
+def _ensure_job_status_column() -> None:
+    """Lightweight migration for job lifecycle status."""
+    try:
+        if _db_url.startswith("sqlite"):
+            with Session(engine) as session:
+                existing = {row[1] for row in session.exec(text("PRAGMA table_info(job_postings)")).all()}
+                if not existing:
+                    return
+                if "status" not in existing:
+                    session.exec(text("ALTER TABLE job_postings ADD COLUMN status VARCHAR(20) DEFAULT 'OPEN'"))
+                session.exec(text("UPDATE job_postings SET status = 'OPEN' WHERE status IS NULL OR status = ''"))
+                session.commit()
+        else:
+            with Session(engine) as session:
+                session.exec(text("ALTER TABLE job_postings ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'OPEN'"))
+                session.exec(text("UPDATE job_postings SET status = 'OPEN' WHERE status IS NULL OR status = ''"))
+                session.commit()
+    except Exception as exc:
+        logger.warning("Job status column migration skipped: %s", exc)

@@ -88,6 +88,7 @@ class RAGSyncService:
         content = "\n".join(
             [
                 f"Job Title: {job.title}",
+                f"Status: {getattr(job, 'status', 'OPEN') or 'OPEN'}",
                 f"Department: {job.department}",
                 f"Description: {job.description}",
                 f"Required Skills: {job.required_skills}",
@@ -103,7 +104,7 @@ class RAGSyncService:
             user_id=job.created_by,
             created_at=job.created_at,
             updated_at=getattr(job, "updated_at", None) or datetime.utcnow(),
-            metadata={"title": job.title, "department": job.department},
+            metadata={"title": job.title, "department": job.department, "status": getattr(job, "status", "OPEN") or "OPEN"},
         )
 
     def delete_job(self, job_id: int | str) -> str:

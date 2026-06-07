@@ -159,10 +159,18 @@ const MANAGER_NAV = [
 // ─── Employee nav ─────────────────────────────────────────────────────────────
 const EMPLOYEE_NAV = [
   {
-    type: 'item',
-    path: '/dashboard/employee',
-    label: 'Employee Portal',
+    type: 'group',
+    id: 'employee-hub',
+    label: 'Employee Hub',
     icon: UserCircle,
+    children: [
+      { path: '/dashboard/employee?tab=overview',   label: 'Overview',        icon: LayoutDashboard },
+      { path: '/dashboard/employee?tab=profile',    label: 'My Profile',      icon: UserCircle },
+      { path: '/dashboard/employee?tab=tickets',    label: 'My Tickets',      icon: LifeBuoy },
+      { path: '/dashboard/employee?tab=timeline',   label: 'Career Timeline', icon: Milestone },
+      { path: '/dashboard/employee?tab=onboarding', label: 'Onboarding',      icon: UserCheck },
+      { path: '/dashboard/employee?tab=training',   label: 'Training',        icon: BookOpen },
+    ],
   },
 ]
 
@@ -349,15 +357,14 @@ export const Sidebar = () => {
   const location = useLocation()
   const navigate = useNavigate()
   const pathname = location.pathname
+  const currentFullPath = location.pathname + (location.search || (location.pathname === '/dashboard/employee' ? '?tab=overview' : ''))
+  
+  const [mobileMoreOpen, setMobileMoreOpen] = useState(false)
 
   const handleLogout = () => {
+    setMobileMoreOpen(false)
     logout()
     navigate('/login')
-  }
-
-  const getInitials = () => {
-    if (!user?.username) return 'TF'
-    return user.username.slice(0, 2).toUpperCase()
   }
 
   const getNav = () => {
@@ -375,6 +382,18 @@ export const Sidebar = () => {
     if (item.type === 'group' && !item.locked && item.children?.[0]?.path) return [item.children[0]]
     return []
   }).slice(0, 5) // max 5 on mobile
+
+  const employeeMobileLinks = [
+    { path: '/dashboard/employee?tab=overview', label: 'Overview', icon: LayoutDashboard },
+    { path: '/dashboard/employee?tab=profile', label: 'Profile', icon: UserCircle },
+    { path: '/dashboard/employee?tab=training', label: 'Training', icon: BookOpen },
+  ]
+
+  const employeeMoreLinks = [
+    { path: '/dashboard/employee?tab=tickets', label: 'Tickets', icon: LifeBuoy },
+    { path: '/dashboard/employee?tab=timeline', label: 'Timeline', icon: Milestone },
+    { path: '/dashboard/employee?tab=onboarding', label: 'Onboarding', icon: UserCheck },
+  ]
 
   return (
     <>
@@ -396,61 +415,119 @@ export const Sidebar = () => {
         <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
           {nav.map((item, idx) => {
             if (item.type === 'item') {
-              return <NavItem key={item.path + idx} item={item} pathname={pathname} />
+              return <NavItem key={item.path + idx} item={item} pathname={currentFullPath} />
             }
             if (item.type === 'group') {
-              return <NavGroup key={item.id} group={item} pathname={pathname} />
+              return <NavGroup key={item.id} group={item} pathname={currentFullPath} />
             }
             return null
           })}
         </nav>
-
-        {/* Bottom user strip */}
-        <div className="border-t border-border-custom px-3 py-3 shrink-0 space-y-1">
-          <div className="flex items-center space-x-2.5 px-2 py-1.5 rounded-lg">
-            <div className="w-7 h-7 rounded-full bg-brand-indigo text-white font-bold text-xs flex items-center justify-center shrink-0">
-              {getInitials()}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-txt-primary truncate">{user?.username || 'User'}</p>
-              <p className="text-[10px] text-txt-tertiary capitalize">{role}</p>
-            </div>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-lg text-txt-secondary hover:text-danger-primary hover:bg-danger-bg/20 transition-all cursor-pointer text-xs font-medium"
-          >
-            <LogOut size={14} className="shrink-0" />
-            <span>Sign Out</span>
-          </button>
-        </div>
       </aside>
 
       {/* ── Mobile Bottom Bar ───────────────────────────────────────────── */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 h-14 bg-white border-t border-border-custom flex items-center justify-around px-2 z-30">
-        {mobileLinks.map((link, i) => {
-          const Icon = link.icon || HelpCircle
-          const isActive = pathname === link.path
-          return (
-            <Link
-              key={link.path + i}
-              to={link.path}
-              className={`flex flex-col items-center justify-center px-3 py-1.5 rounded-lg transition-colors ${
-                isActive ? 'text-brand-indigo' : 'text-txt-tertiary'
-              }`}
+        {role === 'employee' ? (
+          <>
+            {employeeMobileLinks.map((link, i) => {
+              const Icon = link.icon || HelpCircle
+              const isActive = currentFullPath === link.path
+              return (
+                <Link
+                  key={link.path + i}
+                  to={link.path}
+                  onClick={() => setMobileMoreOpen(false)}
+                  className={`flex flex-col items-center justify-center px-3 py-1.5 rounded-lg transition-colors ${
+                    isActive ? 'text-brand-indigo' : 'text-txt-tertiary'
+                  }`}
+                >
+                  <Icon size={18} />
+                  <span className="text-[9px] mt-0.5 font-semibold truncate max-w-[48px] text-center">{link.label}</span>
+                </Link>
+              )
+            })}
+            
+            {/* More button */}
+            <div className="relative">
+              <button
+                onClick={() => setMobileMoreOpen(o => !o)}
+                className={`flex flex-col items-center justify-center px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
+                  mobileMoreOpen || employeeMoreLinks.some(l => currentFullPath === l.path)
+                    ? 'text-brand-indigo'
+                    : 'text-txt-tertiary'
+                }`}
+              >
+                <ChevronDown size={18} className={`transform transition-transform duration-200 ${mobileMoreOpen ? 'rotate-180' : ''}`} />
+                <span className="text-[9px] mt-0.5 font-semibold">More</span>
+              </button>
+
+              <AnimatePresence>
+                {mobileMoreOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 15 }}
+                    className="absolute bottom-16 right-0 w-40 bg-white border border-border-custom rounded-xl shadow-lg p-2 z-50 flex flex-col space-y-1"
+                  >
+                    {employeeMoreLinks.map((link, i) => {
+                      const Icon = link.icon || HelpCircle
+                      const isActive = currentFullPath === link.path
+                      return (
+                        <Link
+                          key={link.path + i}
+                          to={link.path}
+                          onClick={() => setMobileMoreOpen(false)}
+                          className={`flex items-center space-x-2.5 px-3 py-2 rounded-lg transition-all text-left text-xs font-medium ${
+                            isActive
+                              ? 'bg-brand-indigo-muted/60 text-brand-indigo font-semibold'
+                              : 'text-txt-secondary hover:bg-bg-page hover:text-txt-primary'
+                          }`}
+                        >
+                          <Icon size={14} className="shrink-0" />
+                          <span className="truncate">{link.label}</span>
+                        </Link>
+                      )
+                    })}
+                    
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-lg text-txt-secondary hover:text-danger-primary hover:bg-danger-bg/20 transition-all cursor-pointer text-left text-xs font-medium"
+                    >
+                      <LogOut size={14} className="shrink-0" />
+                      <span>Sign Out</span>
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </>
+        ) : (
+          <>
+            {mobileLinks.map((link, i) => {
+              const Icon = link.icon || HelpCircle
+              const isActive = pathname === link.path
+              return (
+                <Link
+                  key={link.path + i}
+                  to={link.path}
+                  className={`flex flex-col items-center justify-center px-3 py-1.5 rounded-lg transition-colors ${
+                    isActive ? 'text-brand-indigo' : 'text-txt-tertiary'
+                  }`}
+                >
+                  <Icon size={18} />
+                  <span className="text-[9px] mt-0.5 font-semibold truncate max-w-[48px] text-center">{link.label}</span>
+                </Link>
+              )
+            })}
+            <button
+              onClick={handleLogout}
+              className="flex flex-col items-center justify-center px-3 py-1.5 rounded-lg text-txt-tertiary hover:text-danger-primary transition-colors cursor-pointer"
             >
-              <Icon size={18} />
-              <span className="text-[9px] mt-0.5 font-semibold truncate max-w-[48px] text-center">{link.label}</span>
-            </Link>
-          )
-        })}
-        <button
-          onClick={handleLogout}
-          className="flex flex-col items-center justify-center px-3 py-1.5 rounded-lg text-txt-tertiary hover:text-danger-primary transition-colors"
-        >
-          <LogOut size={18} />
-          <span className="text-[9px] mt-0.5 font-semibold">Out</span>
-        </button>
+              <LogOut size={18} />
+              <span className="text-[9px] mt-0.5 font-semibold">Out</span>
+            </button>
+          </>
+        )}
       </div>
     </>
   )

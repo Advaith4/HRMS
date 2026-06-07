@@ -14,6 +14,11 @@ from src.services.rag.sync_service import RAGSyncService
 router = APIRouter(prefix="/api/jobs", tags=["jobs"])
 logger = logging.getLogger(__name__)
 
+JOB_STATUS_OPEN = "OPEN"
+JOB_STATUS_CLOSED = "CLOSED"
+JOB_STATUS_ARCHIVED = "ARCHIVED"
+JOB_DELETE_BLOCKED_MESSAGE = "This job contains applicant history and cannot be deleted. Close or archive the job instead."
+
 
 class JobCreateReq(BaseModel):
     title: str = Field(min_length=1, max_length=200)
@@ -38,7 +43,10 @@ def list_jobs(
     session: Session = Depends(get_session),
     current_user: User = Depends(require_roles("candidate", "hr", "manager")),
 ):
-    jobs = session.exec(select(JobPosting).order_by(JobPosting.created_at.desc())).all()
+    query = select(JobPosting)
+    if current_user.role == "candidate":
+        query = query.where(JobPosting.status != JOB_STATUS_ARCHIVED)
+    jobs = session.exec(query.order_by(JobPosting.created_at.desc())).all()
     return [_job_payload(job) for job in jobs]
 
 
@@ -50,6 +58,8 @@ def get_job(
 ):
     job = session.get(JobPosting, job_id)
     if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if current_user.role == "candidate" and job.status == JOB_STATUS_ARCHIVED:
         raise HTTPException(status_code=404, detail="Job not found")
     return _job_payload(job)
 
@@ -67,6 +77,7 @@ def create_job(
         department=req.department.strip(),
         salary_range=req.salary_range.strip(),
         experience_required=req.experience_required.strip(),
+        status=JOB_STATUS_OPEN,
         created_by=current_user.id,
         created_at=datetime.utcnow(),
     )
@@ -102,7 +113,7 @@ def update_job(
 def delete_job(
     job_id: int,
     session: Session = Depends(get_session),
-    current_user: User = Depends(require_roles("hr")),
+    current_user: User = Depends(require_roles("hr", "manager")),
 ):
     job = session.get(JobPosting, job_id)
     if not job:
@@ -111,11 +122,47 @@ def delete_job(
         select(CandidateApplication).where(CandidateApplication.job_id == job_id)
     ).first()
     if application:
-        raise HTTPException(status_code=409, detail="Cannot delete a job with candidate applications")
+        raise HTTPException(status_code=409, detail=JOB_DELETE_BLOCKED_MESSAGE)
     session.delete(job)
     session.commit()
     _delete_job_from_rag(job_id)
     return {"success": True, "message": "Job deleted"}
+
+
+@router.post("/{job_id}/close")
+def close_job(
+    job_id: int,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_roles("hr", "manager")),
+):
+    job = session.get(JobPosting, job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if job.status == JOB_STATUS_ARCHIVED:
+        raise HTTPException(status_code=409, detail="Archived jobs cannot be reopened or closed.")
+    job.status = JOB_STATUS_CLOSED
+    session.add(job)
+    session.commit()
+    session.refresh(job)
+    _sync_job_to_rag(job)
+    return _job_payload(job)
+
+
+@router.post("/{job_id}/archive")
+def archive_job(
+    job_id: int,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_roles("hr", "manager")),
+):
+    job = session.get(JobPosting, job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    job.status = JOB_STATUS_ARCHIVED
+    session.add(job)
+    session.commit()
+    session.refresh(job)
+    _sync_job_to_rag(job)
+    return _job_payload(job)
 
 
 def _sync_job_to_rag(job: JobPosting) -> None:
@@ -141,6 +188,7 @@ def _job_payload(job: JobPosting) -> dict[str, Any]:
         "department": job.department,
         "salary_range": job.salary_range,
         "experience_required": job.experience_required,
+        "status": job.status or JOB_STATUS_OPEN,
         "created_at": job.created_at.isoformat() if job.created_at else None,
         "created_by": job.created_by,
     }

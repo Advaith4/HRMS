@@ -2,6 +2,7 @@ import json
 import logging
 import re
 from dataclasses import dataclass, field
+from datetime import date
 from typing import Any
 
 from sqlmodel import Session, select
@@ -15,6 +16,14 @@ from src.models import (
     InterviewSession,
     JobPosting,
     User,
+    AttendanceRecord,
+    LeaveRequest,
+    TrainingAssignment,
+    TrainingProgram,
+    EmployeeTicket,
+    EmployeeProfile,
+    Department,
+    Designation,
 )
 from src.services.rag.access_control import HR_ROLES
 
@@ -104,6 +113,22 @@ class QueryRouter:
                 database_context=self._build_candidate_context(user),
                 database_sources=self._sources("Database", "Candidate applications and interview progress"),
             )
+
+        if user.role == "employee":
+            personal_query_indicators = {
+                "my", "i", "me", "we", "us", "am i", "do i", "have i", "how many", "how much",
+                "balance", "remaining", "used", "status", "assigned", "open", "manager", "department",
+                "designation", "salary", "joining", "code", "profile"
+            }
+            has_db_subject = self._contains_any(lowered, {"leave", "vacation", "sick", "casual", "training", "course", "ticket", "attendance", "manager", "department", "designation", "salary", "joining", "profile"})
+            has_personal_indicator = self._contains_any(lowered, personal_query_indicators)
+            
+            if has_db_subject and has_personal_indicator:
+                return QueryRoute(
+                    mode="hybrid",
+                    database_context=self._build_employee_context(user),
+                    database_sources=self._sources("Database", "Live Employee Data"),
+                )
 
         if self._contains_any(lowered, DATABASE_KEYWORDS):
             if is_hr:
@@ -235,6 +260,114 @@ class QueryRouter:
         if len(lines) == 2:
             lines.append("No candidate-owned application records were found.")
         return "\n".join(lines)
+
+    def _build_employee_context(self, user: User) -> str:
+        with Session(engine) as session:
+            employee = session.exec(select(Employee).where(Employee.user_id == user.id)).first()
+            if not employee:
+                return "SOURCE: Database\nTYPE: Employee live personal data\nNo employee profile record found for this user."
+            
+            # Optimized query path: load related records in single queries
+            attendance_records = session.exec(
+                select(AttendanceRecord)
+                .where(AttendanceRecord.employee_id == employee.id)
+                .order_by(AttendanceRecord.work_date.desc())
+            ).all()
+            
+            leaves = session.exec(
+                select(LeaveRequest)
+                .where(LeaveRequest.employee_id == employee.id)
+                .order_by(LeaveRequest.created_at.desc())
+            ).all()
+            
+            training_assignments = session.exec(
+                select(TrainingAssignment)
+                .where(TrainingAssignment.employee_id == employee.id)
+            ).all()
+            
+            # Batch fetch programs to avoid N+1 queries
+            program_ids = list({ta.program_id for ta in training_assignments if ta.program_id})
+            programs_by_id = {}
+            if program_ids:
+                programs = session.exec(select(TrainingProgram).where(TrainingProgram.id.in_(program_ids))).all()
+                programs_by_id = {p.id: p for p in programs}
+                
+            tickets = session.exec(
+                select(EmployeeTicket)
+                .where(EmployeeTicket.user_id == user.id)
+                .order_by(EmployeeTicket.created_at.desc())
+            ).all()
+            
+            profile = session.exec(select(EmployeeProfile).where(EmployeeProfile.user_id == user.id)).first()
+            profile_completion = profile.completion_percent if profile else 0
+            
+            manager_username = "Not Assigned"
+            if employee.manager_id:
+                mgr = session.get(User, employee.manager_id)
+                manager_username = mgr.username if mgr else "Not Assigned"
+                
+            dept_name = employee.department
+            if employee.department_id:
+                dept = session.get(Department, employee.department_id)
+                if dept:
+                    dept_name = dept.name
+                    
+            desig_name = employee.designation
+            if employee.designation_id:
+                desig = session.get(Designation, employee.designation_id)
+                if desig:
+                    desig_name = desig.name
+
+            # Today's attendance
+            today_record = None
+            for rec in attendance_records:
+                if rec.work_date == date.today():
+                    today_record = rec
+                    break
+            attendance_status = today_record.status if today_record else "Not Checked In"
+            total_checkins = len(attendance_records)
+            
+            # Leave Balance (deterministic calculation matching backend/frontend)
+            allocations = {"Annual": 15, "Sick": 12, "Casual": 7}
+            used = {"Annual": 0, "Sick": 0, "Casual": 0}
+            for leave in leaves:
+                if leave.status == "Approved" and leave.start_date and leave.end_date:
+                    days = max(0, (leave.end_date - leave.start_date).days + 1)
+                    key = leave.leave_type.strip().title() if leave.leave_type else "General"
+                    if key in used:
+                        used[key] += days
+            remaining = {key: max(0, allocations[key] - used[key]) for key in allocations}
+            
+            assigned_trainings = []
+            for ta in training_assignments:
+                prog = programs_by_id.get(ta.program_id)
+                prog_title = prog.title if prog else f"Program {ta.program_id}"
+                assigned_trainings.append(f"{prog_title} (Status: {ta.status}, Progress: {ta.progress_percent}%)")
+                
+            open_tickets = [t for t in tickets if t.status.lower() != "closed"]
+            ticket_summaries = [f"Title: {t.title} (Priority: {t.priority}, Status: {t.status})" for t in open_tickets]
+            
+            lines = [
+                "SOURCE: Database",
+                "TYPE: Employee live personal data",
+                f"Employee ID: {employee.id}",
+                f"Employee Code: {employee.employee_code}",
+                f"Full Name: {employee.full_name or user.username}",
+                f"Department: {dept_name or 'Not Assigned'}",
+                f"Designation: {desig_name or 'Not Assigned'}",
+                f"Manager: {manager_username}",
+                f"Join Date: {employee.joining_date.isoformat() if employee.joining_date else 'Not set'}",
+                f"Profile Completion: {profile_completion}%",
+                f"Today's Attendance Status: {attendance_status}",
+                f"Total Attendance Check-ins: {total_checkins}",
+                f"Leave Balance (Annual): Allocation=15, Used={used['Annual']}, Remaining={remaining['Annual']}",
+                f"Leave Balance (Sick): Allocation=12, Used={used['Sick']}, Remaining={remaining['Sick']}",
+                f"Leave Balance (Casual): Allocation=7, Used={used['Casual']}, Remaining={remaining['Casual']}",
+                f"Assigned Trainings: {', '.join(assigned_trainings) if assigned_trainings else 'None'}",
+                f"Open Tickets: {', '.join(ticket_summaries) if ticket_summaries else 'None'}",
+                f"All leave types available: Annual (15 days/year), Sick (12 days/year), Casual (7 days/year)."
+            ]
+            return "\n".join(lines)
 
     def _analysis_summary(self, analysis: ApplicationAIAnalysis | None) -> str:
         if not analysis:
