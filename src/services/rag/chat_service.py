@@ -2,14 +2,22 @@ import logging
 import os
 import re
 
+from src.models import User
+from src.services.rag.query_router import QueryRouter
 from src.services.rag.retrieval_service import RetrievalService
 
 logger = logging.getLogger(__name__)
 
 
 class RAGChatService:
-    def __init__(self, retrieval_service: RetrievalService | None = None, max_context_chars: int | None = None):
+    def __init__(
+        self,
+        retrieval_service: RetrievalService | None = None,
+        query_router: QueryRouter | None = None,
+        max_context_chars: int | None = None,
+    ):
         self.retrieval = retrieval_service or RetrievalService()
+        self.query_router = query_router or QueryRouter()
         self.max_context_chars = max_context_chars or int(os.getenv("RAG_MAX_CONTEXT_CHARS", "6000"))
 
     def answer(
@@ -17,17 +25,38 @@ class RAGChatService:
         query: str,
         collections: list[str] | None = None,
         filters: dict[str, dict] | None = None,
+        user: User | None = None,
     ) -> dict:
         clean_query = (query or "").strip()
         if not clean_query:
             raise ValueError("query is required")
+
+        route = self.query_router.route(clean_query, user) if user else None
+        if route and route.mode == "database":
+            answer = self._generate_answer(clean_query, self._trim_context(route.database_context))
+            return {
+                "answer": answer,
+                "sources": route.database_sources,
+                "collections_used": ["database"],
+            }
+
         retrieval = self.retrieval.retrieve(clean_query, collections=collections, filters=filters)
-        context = self._trim_context(retrieval["context"])
+        context_parts = []
+        sources = []
+        collections_used = []
+        if route and route.mode == "hybrid" and route.database_context:
+            context_parts.append(route.database_context)
+            sources.extend(route.database_sources)
+            collections_used.append("database")
+        context_parts.append(retrieval["context"])
+        sources.extend(retrieval["sources"])
+        collections_used.extend(retrieval["collections_used"])
+        context = self._trim_context("\n\n".join(part for part in context_parts if part.strip()))
         answer = self._generate_answer(clean_query, context)
         return {
             "answer": answer,
-            "sources": retrieval["sources"],
-            "collections_used": retrieval["collections_used"],
+            "sources": sources,
+            "collections_used": list(dict.fromkeys(collections_used)),
         }
 
     def _generate_answer(self, query: str, context: str) -> str:

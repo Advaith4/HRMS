@@ -58,7 +58,7 @@ def rag_chat(
             current_user.role,
             plan.collections,
         )
-        return service.answer(body.query, plan.collections, filters=plan.filters)
+        return service.answer(body.query, plan.collections, filters=plan.filters, user=current_user)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except PermissionError as exc:
