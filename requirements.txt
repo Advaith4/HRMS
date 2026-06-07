@@ -4,6 +4,8 @@ requests>=2.31.0
 groq
 python-dotenv
 pypdf
+python-docx
+chromadb
 fastapi
 uvicorn[standard]
 python-multipart

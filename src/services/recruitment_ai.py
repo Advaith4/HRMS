@@ -332,7 +332,22 @@ def _upsert_analysis(
     session.add(analysis)
     session.commit()
     session.refresh(analysis)
+    _sync_candidate_profile_to_rag(session, application, analysis)
     return analysis
+
+
+def _sync_candidate_profile_to_rag(
+    session: Session,
+    application: CandidateApplication,
+    analysis: ApplicationAIAnalysis,
+) -> None:
+    try:
+        from src.services.rag.sync_service import RAGSyncService
+
+        job = session.get(JobPosting, application.job_id)
+        RAGSyncService().sync_candidate_profile(application, analysis, job)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("RAG candidate profile sync failed application_id=%s error=%s", application.id, exc)
 
 
 def _failed_payload(message: str) -> dict[str, Any]:

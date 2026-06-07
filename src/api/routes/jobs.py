@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from typing import Any
 
@@ -8,8 +9,10 @@ from sqlmodel import Session, select
 from src.api.dependencies import require_roles
 from src.database.connection import get_session
 from src.models import CandidateApplication, JobPosting, User
+from src.services.rag.sync_service import RAGSyncService
 
 router = APIRouter(prefix="/api/jobs", tags=["jobs"])
+logger = logging.getLogger(__name__)
 
 
 class JobCreateReq(BaseModel):
@@ -70,6 +73,7 @@ def create_job(
     session.add(job)
     session.commit()
     session.refresh(job)
+    _sync_job_to_rag(job)
     return _job_payload(job)
 
 
@@ -90,6 +94,7 @@ def update_job(
     session.add(job)
     session.commit()
     session.refresh(job)
+    _sync_job_to_rag(job)
     return _job_payload(job)
 
 
@@ -109,7 +114,22 @@ def delete_job(
         raise HTTPException(status_code=409, detail="Cannot delete a job with candidate applications")
     session.delete(job)
     session.commit()
+    _delete_job_from_rag(job_id)
     return {"success": True, "message": "Job deleted"}
+
+
+def _sync_job_to_rag(job: JobPosting) -> None:
+    try:
+        RAGSyncService().sync_job(job)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("RAG job sync failed job_id=%s error=%s", job.id, exc)
+
+
+def _delete_job_from_rag(job_id: int) -> None:
+    try:
+        RAGSyncService().delete_job(job_id)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("RAG job delete sync failed job_id=%s error=%s", job_id, exc)
 
 
 def _job_payload(job: JobPosting) -> dict[str, Any]:

@@ -593,6 +593,25 @@ def save_hiring_intelligence_results(
         source=str(results.get("_source") or "fallback"),
     )
     session_db.commit()
+    _sync_interview_report_to_rag(session_db, interview_session)
+
+
+def _sync_interview_report_to_rag(
+    session_db: Session,
+    interview_session: InterviewSession,
+) -> None:
+    try:
+        from src.services.rag.sync_service import RAGSyncService
+
+        report = session_db.exec(
+            select(InterviewIntelligenceReport).where(InterviewIntelligenceReport.session_id == interview_session.id)
+        ).first()
+        if not report:
+            return
+        app = session_db.get(CandidateApplication, report.application_id)
+        RAGSyncService().sync_interview_report(report, interview_session, app)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("RAG interview report sync failed session_id=%s error=%s", interview_session.id, exc)
 
 
 def _score_from_competency(competency: dict[str, Any], keys: tuple[str, ...], fallback: float) -> float:
