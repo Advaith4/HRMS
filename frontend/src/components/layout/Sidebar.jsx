@@ -33,6 +33,7 @@ import {
   DollarSign,
   ClipboardList,
   MessageCircle,
+  Bot,
 } from 'lucide-react'
 
 // ─── HR grouped nav definition ───────────────────────────────────────────────
@@ -42,6 +43,12 @@ const HR_NAV = [
     path: '/dashboard/hr',
     label: 'Dashboard',
     icon: LayoutDashboard,
+  },
+  {
+    type: 'item',
+    path: '/hr/copilot',
+    label: 'HR Copilot',
+    icon: Bot,
   },
   {
     type: 'group',
@@ -119,6 +126,12 @@ const MANAGER_NAV = [
     icon: LayoutDashboard,
   },
   {
+    type: 'item',
+    path: '/hr/copilot',
+    label: 'HR Copilot',
+    icon: Bot,
+  },
+  {
     type: 'group',
     id: 'mgr-recruitment',
     label: 'Recruitment',
@@ -155,6 +168,7 @@ const EMPLOYEE_NAV = [
 
 const CANDIDATE_NAV = [
   { type: 'item', path: '/dashboard/candidate', label: 'Home',            icon: Home          },
+  { type: 'item', path: '/career-assistant',     label: 'Career Assistant', icon: Bot         },
   { type: 'item', path: '/jobs',                label: 'Browse Jobs',     icon: Search        },
   { type: 'item', path: '/applications',        label: 'My Applications', icon: FileText      },
   { type: 'item', path: '/interview',           label: 'Interview',       icon: MessageCircle },

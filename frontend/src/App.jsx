@@ -14,6 +14,7 @@ const EmployeeDashboard = lazy(() => import('./pages/EmployeeDashboard').then(m 
 const InterviewPage = lazy(() => import('./pages/interview/InterviewPage').then(m => ({ default: m.default })))
 const MockInterviewPage = lazy(() => import('./pages/interview/MockInterviewPage').then(m => ({ default: m.default })))
 const InterviewReports = lazy(() => import('./pages/hr/InterviewReports').then(m => ({ default: m.InterviewReports })))
+const AssistantPage = lazy(() => import('./pages/assistant/AssistantPage').then(m => ({ default: m.AssistantPage })))
 
 // Minimal loading fallback shown while a chunk downloads
 const PageLoader = () => (
@@ -125,6 +126,7 @@ export const App = () => {
             <Route path="/hr/tickets" element={<RoleGuard allowedRoles={['hr', 'admin']}><HRDashboard activeTab="tickets" /></RoleGuard>} />
             <Route path="/hr/promotions" element={<RoleGuard allowedRoles={['hr', 'admin']}><HRDashboard activeTab="promotions" /></RoleGuard>} />
             <Route path="/hr/intelligence" element={<RoleGuard allowedRoles={['hr', 'admin', 'manager']}><InterviewReports /></RoleGuard>} />
+            <Route path="/hr/copilot" element={<RoleGuard allowedRoles={['hr', 'admin', 'manager']}><AssistantPage mode="hr" /></RoleGuard>} />
             <Route path="/hr/onboarding" element={<RoleGuard allowedRoles={['hr', 'admin']}><HRDashboard activeTab="onboarding" /></RoleGuard>} />
             <Route path="/hr/training" element={<RoleGuard allowedRoles={['hr', 'admin']}><HRDashboard activeTab="training" /></RoleGuard>} />
             <Route path="/hr/documents" element={<RoleGuard allowedRoles={['hr', 'admin']}><HRDashboard activeTab="documents" /></RoleGuard>} />
@@ -134,6 +136,7 @@ export const App = () => {
             <Route path="/manager/training" element={<RoleGuard allowedRoles={['manager']}><ManagerDashboard activeTab="training" /></RoleGuard>} />
 
             {/* Candidate Sub routes */}
+            <Route path="/career-assistant" element={<RoleGuard allowedRoles={['candidate']}><AssistantPage mode="candidate" /></RoleGuard>} />
             <Route path="/jobs" element={<RoleGuard allowedRoles={['candidate']}><CandidateDashboard activeTab="jobs" /></RoleGuard>} />
             <Route path="/applications" element={<RoleGuard allowedRoles={['candidate']}><CandidateDashboard activeTab="applications" /></RoleGuard>} />
 

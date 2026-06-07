@@ -51,6 +51,12 @@ export const TopBar = () => {
     if (path.startsWith('/dashboard/candidate')) {
       return { title: 'Candidate Portal', breadcrumb: 'Candidate Portal / Home' }
     }
+    if (path.startsWith('/hr/copilot')) {
+      return { title: 'HR Copilot', breadcrumb: 'Talent Intelligence / Copilot' }
+    }
+    if (path.startsWith('/career-assistant')) {
+      return { title: 'Career Assistant', breadcrumb: 'Candidate Portal / Assistant' }
+    }
     if (path.startsWith('/hr/jobs')) {
       return { title: 'Job Openings', breadcrumb: 'HR Portal / Job Management' }
     }
