@@ -20,3 +20,9 @@ export const updateTicketStatus = async (id, status, resolutionNote) => {
   const response = await api.put(`/api/tickets/${id}/status`, { status, resolution_note: resolutionNote })
   return response.data
 }
+
+export const listResolvers = async () => {
+  const response = await api.get('/api/tickets/resolvers')
+  return response.data
+}
+

@@ -4,14 +4,14 @@ import {
   AlertCircle, ShieldAlert, User, Clock, 
   HelpCircle, DollarSign, Calendar, MessageSquare, ChevronDown, ChevronUp, UserCheck 
 } from 'lucide-react'
-import { listTickets, assignTicket, updateTicketStatus, listEmployees } from '../../api'
+import { listTickets, assignTicket, updateTicketStatus, listResolvers } from '../../api'
 import { MetricCard } from '../../components/ui/MetricCard'
 import { StatusPill } from '../../components/ui/StatusPill'
 import toast from 'react-hot-toast'
 
 export const GrievanceDashboard = () => {
   const [tickets, setTickets] = useState([])
-  const [employees, setEmployees] = useState([])
+  const [resolvers, setResolvers] = useState([])
   const [loading, setLoading] = useState(true)
   const [expandedTicketId, setExpandedTicketId] = useState(null)
   
@@ -24,7 +24,7 @@ export const GrievanceDashboard = () => {
 
   useEffect(() => {
     fetchTickets()
-    fetchEmployees()
+    fetchResolvers()
   }, [])
 
   const fetchTickets = async () => {
@@ -39,10 +39,10 @@ export const GrievanceDashboard = () => {
     }
   }
 
-  const fetchEmployees = async () => {
+  const fetchResolvers = async () => {
     try {
-      const data = await listEmployees()
-      setEmployees(data || [])
+      const data = await listResolvers()
+      setResolvers(data || [])
     } catch (err) {
       console.error(err)
     }
@@ -232,9 +232,9 @@ export const GrievanceDashboard = () => {
                         className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 focus:border-brand-indigo focus:outline-none transition cursor-pointer"
                       >
                         <option value="">Assign To...</option>
-                        {employees.map((emp) => (
-                          <option key={emp.user_id} value={emp.user_id}>
-                            {emp.username} ({emp.department})
+                        {resolvers.map((res) => (
+                          <option key={res.id} value={res.id}>
+                            {res.username} ({res.department || res.role.toUpperCase()})
                           </option>
                         ))}
                       </select>

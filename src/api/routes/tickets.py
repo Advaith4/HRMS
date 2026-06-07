@@ -123,6 +123,36 @@ def list_tickets(
         
     return [_ticket_payload(t, session) for t in tickets]
 
+@router.get("/resolvers")
+def list_resolvers(
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_roles("hr", "manager", "admin"))
+):
+    """List all users who can be assigned to resolve tickets (HR, Manager, Admin)."""
+    users = session.exec(
+        select(User).where(User.role.in_(["hr", "manager", "admin"])).order_by(User.username.asc())
+    ).all()
+    
+    # Get all employee records for these users to extract their departments if they exist
+    user_ids = [u.id for u in users]
+    employees = session.exec(
+        select(Employee).where(Employee.user_id.in_(user_ids))
+    ).all()
+    
+    emp_by_user_id = {e.user_id: e for e in employees if e.user_id}
+    
+    result = []
+    for u in users:
+        emp = emp_by_user_id.get(u.id)
+        dept = emp.department if emp else "N/A"
+        result.append({
+            "id": u.id,
+            "username": u.username,
+            "role": u.role,
+            "department": dept
+        })
+    return result
+
 @router.get("/{ticket_id}")
 def get_ticket(
     ticket_id: int,

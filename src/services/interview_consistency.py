@@ -194,22 +194,57 @@ def _extract_claims(resume_text: str) -> list[str]:
 
 
 def _extract_qa_pairs(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Extract Q/A/score triples from interview messages.
+
+    The session message format stores scores in the *feedback* message that
+    immediately follows each candidate ("user") answer — not in the user message
+    itself.  Pairing structure:
+
+        {role: "ai",       content: "<question>"}
+        {role: "user",     content: "<answer>"}
+        {role: "feedback", content: "<text>", score: <int>}
+    """
     pairs = []
-    current_q = None
+    current_q: str | None = None
+    pending: dict[str, Any] | None = None  # waiting for its feedback score
+
     for msg in messages:
         role = (msg.get("role") or "").lower()
         content = (msg.get("content") or "").strip()
-        if not content:
-            continue
+
         if role in ("interviewer", "assistant", "ai", "coach"):
-            current_q = content
-        elif role in ("candidate", "user") and current_q:
-            pairs.append({
+            # Flush any pending answer that had no feedback
+            if pending is not None:
+                pairs.append(pending)
+                pending = None
+            if content:
+                current_q = content
+
+        elif role in ("candidate", "user") and current_q and content:
+            # Store tentatively; score arrives in the next feedback message
+            pending = {
                 "question": current_q[:200],
                 "answer": content[:500],
-                "score": msg.get("score"),
-            })
+                "score": None,
+            }
             current_q = None
+
+        elif role == "feedback" and pending is not None:
+            # Attach the score from the feedback message to the preceding answer
+            raw_score = msg.get("score")
+            if raw_score is not None:
+                try:
+                    raw_score = int(float(raw_score))
+                except (TypeError, ValueError):
+                    raw_score = None
+            pending["score"] = raw_score
+            pairs.append(pending)
+            pending = None
+
+    # Flush any trailing unanswered pair
+    if pending is not None:
+        pairs.append(pending)
+
     return pairs
 
 
