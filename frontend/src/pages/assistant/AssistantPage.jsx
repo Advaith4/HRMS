@@ -213,8 +213,8 @@ const SourceList = ({ sources }) => {
           const relevance = relevanceLabel(source.distance)
           return (
             <div key={`${source.collection}-${sourceName(source)}-${index}`} className="rounded-lg border border-border-custom bg-bg-page px-3 py-2">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
+              <div className="flex items-start justify-between gap-3 min-w-0 w-full">
+                <div className="min-w-0 flex-1">
                   <p className="truncate text-xs font-semibold text-txt-primary">{sourceName(source)}</p>
                   <p className="mt-0.5 truncate text-[11px] text-txt-tertiary">{source.collection || 'collection unavailable'}</p>
                 </div>
@@ -338,7 +338,7 @@ export const AssistantPage = ({ mode = 'hr' }) => {
   }
 
   return (
-    <div className="flex h-[calc(100vh-5.5rem)] min-h-[640px] flex-col gap-4 text-txt-primary md:h-[calc(100vh-6rem)]">
+    <div className="flex h-[calc(100vh-10.5rem)] md:h-[calc(100vh-6.5rem)] min-h-[400px] md:min-h-[640px] flex-col gap-4 text-txt-primary w-full min-w-0">
       <div className="flex flex-col justify-between gap-3 border-b border-border-custom pb-4 md:flex-row md:items-end">
         <div className="min-w-0">
           <div className="mb-2 inline-flex items-center gap-2 rounded-lg border border-border-custom bg-white px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-txt-tertiary">
@@ -354,20 +354,20 @@ export const AssistantPage = ({ mode = 'hr' }) => {
         </div>
       </div>
 
-      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
-        <aside className="flex min-h-0 flex-col gap-3 rounded-lg border border-border-custom bg-white p-4 shadow-xs">
+      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[280px_minmax(0,1fr)] w-full min-w-0">
+        <aside className="flex min-h-0 flex-col gap-3 rounded-lg border border-border-custom bg-white p-4 shadow-xs w-full min-w-0">
           <div>
             <h3 className="text-xs font-bold uppercase tracking-wider text-txt-secondary">Suggested Prompts</h3>
             <p className="mt-1 text-xs leading-relaxed text-txt-tertiary">Use these to start a grounded session.</p>
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:flex lg:flex-col lg:gap-2">
             {config.prompts.map((prompt) => (
               <button
                 key={prompt}
                 type="button"
                 onClick={() => submitQuery(prompt)}
                 disabled={isSubmitting}
-                className="min-w-[220px] rounded-lg border border-border-custom bg-bg-page px-3 py-2 text-left text-xs font-medium text-txt-secondary transition-colors hover:border-brand-indigo/30 hover:bg-brand-indigo-muted/40 hover:text-txt-primary disabled:cursor-not-allowed disabled:opacity-60 lg:min-w-0"
+                className="w-full min-w-0 rounded-lg border border-border-custom bg-bg-page px-3 py-2 text-left text-xs font-medium text-txt-secondary transition-colors hover:border-brand-indigo/30 hover:bg-brand-indigo-muted/40 hover:text-txt-primary disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {prompt}
               </button>
@@ -375,7 +375,7 @@ export const AssistantPage = ({ mode = 'hr' }) => {
           </div>
         </aside>
 
-        <section className="flex min-h-0 flex-col rounded-lg border border-border-custom bg-white shadow-xs">
+        <section className="flex min-h-0 flex-col rounded-lg border border-border-custom bg-white shadow-xs w-full min-w-0">
           <div className="flex items-center justify-between border-b border-border-custom px-4 py-3">
             <div className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-indigo text-white">

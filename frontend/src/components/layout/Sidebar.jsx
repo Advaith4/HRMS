@@ -364,6 +364,27 @@ export const Sidebar = () => {
   const pathname = location.pathname
   const currentFullPath = location.pathname + (location.search || (location.pathname === '/dashboard/employee' ? '?tab=overview' : ''))
   
+  const getMobileLabel = (label) => {
+    switch (label) {
+      case 'Dashboard': return 'Dash'
+      case 'HR Copilot': return 'Copilot'
+      case 'Career Assistant': return 'Assistant'
+      case 'Employee Directory': return 'Staff'
+      case 'Leave Management': return 'Leaves'
+      case 'User Management': return 'Users'
+      case 'Company Policies': return 'Policies'
+      case 'Employee Knowledge': return 'Knowledge'
+      case 'Browse Jobs': return 'Jobs'
+      case 'My Applications': return 'Apps'
+      case 'Mock Interview': return 'Mock'
+      case 'Overview': return 'Overview'
+      case 'My Profile': return 'Profile'
+      case 'Team Training': return 'Training'
+      case 'Leave Approvals': return 'Leaves'
+      default: return label
+    }
+  }
+  
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false)
 
   const handleLogout = () => {
@@ -448,7 +469,7 @@ export const Sidebar = () => {
                   }`}
                 >
                   <Icon size={18} />
-                  <span className="text-[9px] mt-0.5 font-semibold truncate max-w-[48px] text-center">{link.label}</span>
+                  <span className="text-[9px] mt-0.5 font-semibold text-center leading-none">{getMobileLabel(link.label)}</span>
                 </Link>
               )
             })}
@@ -521,7 +542,7 @@ export const Sidebar = () => {
                   }`}
                 >
                   <Icon size={18} />
-                  <span className="text-[9px] mt-0.5 font-semibold truncate max-w-[48px] text-center">{link.label}</span>
+                  <span className="text-[9px] mt-0.5 font-semibold text-center leading-none">{getMobileLabel(link.label)}</span>
                 </Link>
               )
             })}

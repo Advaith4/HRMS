@@ -656,7 +656,7 @@ export const EmployeeDashboard = () => {
         <div className="space-y-8">
           
           {/* Employee Intelligence Overview Metrics Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
             <div className="rounded-xl border border-border-custom bg-bg-surface p-4 flex flex-col justify-between hover:border-brand-indigo/35 transition-colors">
               <span className="text-[10px] font-bold text-txt-tertiary uppercase tracking-wider block">Employee ID</span>
               <div>
@@ -743,7 +743,7 @@ export const EmployeeDashboard = () => {
                 {/* Weekly Heatmap (Mon-Sun) */}
                 <div className="space-y-2">
                   <span className="text-[10px] font-bold text-txt-tertiary uppercase tracking-wider block">Weekly Heatmap</span>
-                  <div className="grid grid-cols-7 gap-2">
+                  <div className="grid grid-cols-7 gap-1 sm:gap-2">
                     {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, idx) => {
                       // Mock highlights: present on Mon, Tue. Absent on others
                       const isToday = idx === (new Date().getDay() - 1 + 7) % 7
@@ -789,7 +789,7 @@ export const EmployeeDashboard = () => {
                       <p className="text-[11px] text-txt-secondary">Your active company leave allocations and usage status</p>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-3 gap-2 sm:gap-3">
                       {[
                         { label: 'Annual', color: 'border-brand-indigo text-brand-indigo bg-brand-indigo-muted/20' },
                         { label: 'Sick', color: 'border-danger-primary text-danger-primary bg-danger-bg/20' },

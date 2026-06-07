@@ -5,7 +5,19 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TalentForge AI — Premium Talent Intelligence & HRMS</title>
-    <script type="module" crossorigin src="/assets/index-BBqoIMc4.js"></script>
+    <script>
+      (function() {
+        const persisted = localStorage.getItem('talentforge-theme');
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const theme = persisted === 'light' || persisted === 'dark' ? persisted : (systemPrefersDark ? 'dark' : 'light');
+        if (theme === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      })();
+    </script>
+    <script type="module" crossorigin src="/assets/index-Y2EjIhCf.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/rolldown-runtime-Cyuzqnbw.js">
     <link rel="modulepreload" crossorigin href="/assets/vendor-charts-BId0uYQ3.js">
     <link rel="modulepreload" crossorigin href="/assets/vendor-router-Cinwya5U.js">
@@ -14,9 +26,9 @@
     <link rel="modulepreload" crossorigin href="/assets/vendor-axios-BTEV2dRg.js">
     <link rel="modulepreload" crossorigin href="/assets/axios-D_heFj0H.js">
     <link rel="modulepreload" crossorigin href="/assets/vendor-react-C87nq4lf.js">
-    <link rel="stylesheet" crossorigin href="/assets/index-DX-Sfp3u.css">
+    <link rel="stylesheet" crossorigin href="/assets/index-CQTFpruK.css">
   </head>
-  <body class="bg-[#0B0F1A]">
+  <body class="bg-bg-page text-txt-primary">
     <div id="root"></div>
   </body>
 </html>

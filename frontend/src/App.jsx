@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { useAuthStore } from './store/authStore'
 import { Layout } from './components/layout/Layout'
+import { ThemeProvider } from './context/ThemeContext'
 
 // Lazy-load page components – each becomes a separate async chunk
 // They only download when the user first navigates to that route
@@ -82,84 +83,87 @@ const RoleGuard = ({ allowedRoles, children }) => {
 
 export const App = () => {
   return (
-    <BrowserRouter>
-      {/* Toast Notification Container with Dark Spec Custom Colors */}
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          style: {
-            background: '#1A2236',
-            color: '#F1F5F9',
-            border: '1px solid #2A3F5F',
-            fontSize: '13px',
-            fontFamily: 'Inter, system-ui, sans-serif'
-          },
-          success: {
-            iconTheme: {
-              primary: '#10B981',
-              secondary: '#1A2236'
+    <ThemeProvider>
+      <BrowserRouter>
+        {/* Toast Notification Container with Dark Spec Custom Colors */}
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            style: {
+              background: '#1A2236',
+              color: '#F1F5F9',
+              border: '1px solid #2A3F5F',
+              fontSize: '13px',
+              fontFamily: 'Inter, system-ui, sans-serif'
+            },
+            success: {
+              iconTheme: {
+                primary: '#10B981',
+                secondary: '#1A2236'
+              }
+            },
+            error: {
+              iconTheme: {
+                primary: '#EF4444',
+                secondary: '#1A2236'
+              }
             }
-          },
-          error: {
-            iconTheme: {
-              primary: '#EF4444',
-              secondary: '#1A2236'
-            }
-          }
-        }}
-      />
+          }}
+        />
 
-      <Suspense fallback={<PageLoader />}>
-        <Routes>
-          {/* Auth Route */}
-          <Route path="/login" element={<LoginPage />} />
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            {/* Auth Route */}
+            <Route path="/login" element={<LoginPage />} />
 
-          {/* Protected Dashboard Layout Routes */}
-          <Route element={<Layout />}>
-            {/* Dashboards */}
-            <Route path="/dashboard/hr" element={<RoleGuard allowedRoles={['hr', 'admin']}><HRDashboard /></RoleGuard>} />
-            <Route path="/dashboard/admin" element={<RoleGuard allowedRoles={['admin']}><AdminDashboard /></RoleGuard>} />
-            <Route path="/dashboard/manager" element={<RoleGuard allowedRoles={['manager']}><ManagerDashboard /></RoleGuard>} />
-            <Route path="/dashboard/candidate" element={<RoleGuard allowedRoles={['candidate']}><CandidateDashboard /></RoleGuard>} />
-            <Route path="/dashboard/employee" element={<RoleGuard allowedRoles={['employee']}><EmployeeDashboard /></RoleGuard>} />
+            {/* Protected Dashboard Layout Routes */}
+            <Route element={<Layout />}>
+              {/* Dashboards */}
+              <Route path="/dashboard/hr" element={<RoleGuard allowedRoles={['hr', 'admin']}><HRDashboard /></RoleGuard>} />
+              <Route path="/dashboard/admin" element={<RoleGuard allowedRoles={['admin']}><AdminDashboard /></RoleGuard>} />
+              <Route path="/dashboard/manager" element={<RoleGuard allowedRoles={['manager']}><ManagerDashboard /></RoleGuard>} />
+              <Route path="/dashboard/candidate" element={<RoleGuard allowedRoles={['candidate']}><CandidateDashboard /></RoleGuard>} />
+              <Route path="/dashboard/employee" element={<RoleGuard allowedRoles={['employee']}><EmployeeDashboard /></RoleGuard>} />
 
-            {/* HR Sub routes */}
-            <Route path="/hr/jobs" element={<RoleGuard allowedRoles={['hr', 'admin']}><HRDashboard activeTab="jobs" /></RoleGuard>} />
-            <Route path="/hr/pipeline" element={<RoleGuard allowedRoles={['hr', 'admin', 'manager']}><HRDashboard activeTab="pipeline" /></RoleGuard>} />
-            <Route path="/hr/candidates" element={<RoleGuard allowedRoles={['hr', 'admin', 'manager']}><HRDashboard activeTab="candidates" /></RoleGuard>} />
-            <Route path="/hr/leaves" element={<RoleGuard allowedRoles={['hr', 'admin']}><HRDashboard activeTab="leaves" /></RoleGuard>} />
-            <Route path="/hr/directory" element={<RoleGuard allowedRoles={['hr', 'admin']}><HRDashboard activeTab="directory" /></RoleGuard>} />
-            <Route path="/hr/departments" element={<RoleGuard allowedRoles={['hr', 'admin']}><HRDashboard activeTab="departments" /></RoleGuard>} />
-            <Route path="/hr/designations" element={<RoleGuard allowedRoles={['hr', 'admin']}><HRDashboard activeTab="designations" /></RoleGuard>} />
-            <Route path="/hr/tickets" element={<RoleGuard allowedRoles={['hr', 'admin']}><HRDashboard activeTab="tickets" /></RoleGuard>} />
-            <Route path="/hr/promotions" element={<RoleGuard allowedRoles={['hr', 'admin']}><HRDashboard activeTab="promotions" /></RoleGuard>} />
-            <Route path="/hr/intelligence" element={<RoleGuard allowedRoles={['hr', 'admin', 'manager']}><InterviewReports /></RoleGuard>} />
-            <Route path="/hr/copilot" element={<RoleGuard allowedRoles={['hr', 'admin', 'manager']}><AssistantPage mode="hr" /></RoleGuard>} />
-            <Route path="/hr/onboarding" element={<RoleGuard allowedRoles={['hr', 'admin']}><HRDashboard activeTab="onboarding" /></RoleGuard>} />
-            <Route path="/hr/training" element={<RoleGuard allowedRoles={['hr', 'admin']}><HRDashboard activeTab="training" /></RoleGuard>} />
-            <Route path="/hr/documents" element={<RoleGuard allowedRoles={['hr', 'admin']}><HRDashboard activeTab="documents" /></RoleGuard>} />
+              {/* HR Sub routes */}
+              <Route path="/hr/jobs" element={<RoleGuard allowedRoles={['hr', 'admin']}><HRDashboard activeTab="jobs" /></RoleGuard>} />
+              <Route path="/hr/pipeline" element={<RoleGuard allowedRoles={['hr', 'admin', 'manager']}><HRDashboard activeTab="pipeline" /></RoleGuard>} />
+              <Route path="/hr/candidates" element={<RoleGuard allowedRoles={['hr', 'admin', 'manager']}><HRDashboard activeTab="candidates" /></RoleGuard>} />
+              <Route path="/hr/leaves" element={<RoleGuard allowedRoles={['hr', 'admin']}><HRDashboard activeTab="leaves" /></RoleGuard>} />
+              <Route path="/hr/directory" element={<RoleGuard allowedRoles={['hr', 'admin']}><HRDashboard activeTab="directory" /></RoleGuard>} />
+              <Route path="/hr/departments" element={<RoleGuard allowedRoles={['hr', 'admin']}><HRDashboard activeTab="departments" /></RoleGuard>} />
+              <Route path="/hr/designations" element={<RoleGuard allowedRoles={['hr', 'admin']}><HRDashboard activeTab="designations" /></RoleGuard>} />
+              <Route path="/hr/tickets" element={<RoleGuard allowedRoles={['hr', 'admin']}><HRDashboard activeTab="tickets" /></RoleGuard>} />
+              <Route path="/hr/promotions" element={<RoleGuard allowedRoles={['hr', 'admin']}><HRDashboard activeTab="promotions" /></RoleGuard>} />
+              <Route path="/hr/intelligence" element={<RoleGuard allowedRoles={['hr', 'admin', 'manager']}><InterviewReports /></RoleGuard>} />
+              <Route path="/hr/copilot" element={<RoleGuard allowedRoles={['hr', 'admin', 'manager']}><AssistantPage mode="hr" /></RoleGuard>} />
+              <Route path="/hr/onboarding" element={<RoleGuard allowedRoles={['hr', 'admin']}><HRDashboard activeTab="onboarding" /></RoleGuard>} />
+              <Route path="/hr/training" element={<RoleGuard allowedRoles={['hr', 'admin']}><HRDashboard activeTab="training" /></RoleGuard>} />
+              <Route path="/hr/documents" element={<RoleGuard allowedRoles={['hr', 'admin']}><HRDashboard activeTab="documents" /></RoleGuard>} />
 
-            {/* Manager Sub routes */}
-            <Route path="/manager/leaves" element={<RoleGuard allowedRoles={['manager']}><ManagerDashboard activeTab="leaves" /></RoleGuard>} />
-            <Route path="/manager/training" element={<RoleGuard allowedRoles={['manager']}><ManagerDashboard activeTab="training" /></RoleGuard>} />
+              {/* Manager Sub routes */}
+              <Route path="/manager/leaves" element={<RoleGuard allowedRoles={['manager']}><ManagerDashboard activeTab="leaves" /></RoleGuard>} />
+              <Route path="/manager/training" element={<RoleGuard allowedRoles={['manager']}><ManagerDashboard activeTab="training" /></RoleGuard>} />
 
-            {/* Candidate Sub routes */}
-            <Route path="/career-assistant" element={<RoleGuard allowedRoles={['candidate']}><AssistantPage mode="candidate" /></RoleGuard>} />
-            <Route path="/jobs" element={<RoleGuard allowedRoles={['candidate']}><CandidateDashboard activeTab="jobs" /></RoleGuard>} />
-            <Route path="/applications" element={<RoleGuard allowedRoles={['candidate']}><CandidateDashboard activeTab="applications" /></RoleGuard>} />
+              {/* Candidate Sub routes */}
+              <Route path="/career-assistant" element={<RoleGuard allowedRoles={['candidate']}><AssistantPage mode="candidate" /></RoleGuard>} />
+              <Route path="/jobs" element={<RoleGuard allowedRoles={['candidate']}><CandidateDashboard activeTab="jobs" /></RoleGuard>} />
+              <Route path="/applications" element={<RoleGuard allowedRoles={['candidate']}><CandidateDashboard activeTab="applications" /></RoleGuard>} />
 
-            {/* Interview Routes */}
-            <Route path="/interview" element={<RoleGuard allowedRoles={['candidate']}><InterviewPage /></RoleGuard>} />
-            <Route path="/mock-interview" element={<RoleGuard allowedRoles={['candidate']}><MockInterviewPage /></RoleGuard>} />
-          </Route>
+              {/* Interview Routes */}
+              <Route path="/interview" element={<RoleGuard allowedRoles={['candidate']}><InterviewPage /></RoleGuard>} />
+              <Route path="/mock-interview" element={<RoleGuard allowedRoles={['candidate']}><MockInterviewPage /></RoleGuard>} />
+            </Route>
 
-          {/* Catch-all root redirect */}
-          <Route path="/" element={<RootRedirect />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
+            {/* Catch-all root redirect */}
+            <Route path="/" element={<RootRedirect />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
 
-    </BrowserRouter>
+      </BrowserRouter>
+    </ThemeProvider>
   )
 }
+
 export default App

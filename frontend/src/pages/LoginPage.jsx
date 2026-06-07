@@ -103,7 +103,7 @@ export const LoginPage = () => {
   }
 
   return (
-    <div className="flex flex-row min-h-screen w-full bg-[#fafbfc] text-slate-800 font-sans select-none overflow-x-hidden">
+    <div className="flex flex-row min-h-screen w-full bg-bg-page text-txt-primary font-sans select-none overflow-x-hidden">
       
       {/* LEFT PANEL (65%) — Background Image with Warm Color Tone Overlay */}
       <div className="w-[60%] xl:w-[65%] hidden lg:block relative overflow-hidden bg-[#2e130a]">
@@ -156,8 +156,8 @@ export const LoginPage = () => {
 
       </div>
 
-      {/* RIGHT PANEL (35%) — Clean White Authentication Panel */}
-      <div className="w-full lg:w-[40%] xl:w-[35%] flex flex-col justify-center items-center p-8 lg:p-12 bg-white relative min-h-screen lg:min-h-0 border-l border-slate-200">
+      {/* RIGHT PANEL (35%) — Clean Authentication Panel */}
+      <div className="w-full lg:w-[40%] xl:w-[35%] flex flex-col justify-center items-center p-6 sm:p-8 lg:p-12 bg-bg-surface relative min-h-screen lg:min-h-0 border-l border-border-custom">
         
         {/* Login Card Form Container */}
         <div className="w-full max-w-[360px] my-auto py-8">
@@ -167,14 +167,14 @@ export const LoginPage = () => {
             <div className="w-8 h-8 rounded-lg bg-brand-indigo flex items-center justify-center text-white font-extrabold text-base shadow-md shadow-brand-indigo/35">
               TF
             </div>
-            <span className="text-lg font-bold tracking-tight text-slate-900">
-              TalentForge <span className="text-slate-400 font-normal">HRMS</span>
+            <span className="text-lg font-bold tracking-tight text-txt-primary">
+              TalentForge <span className="text-txt-secondary font-normal">HRMS</span>
             </span>
           </div>
 
           {/* Heading */}
           <div className="mb-6">
-            <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+            <h2 className="text-2xl font-bold text-txt-primary tracking-tight">
               {isLogin ? 'Sign In' : 'Create Account'}
             </h2>
             <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
@@ -189,13 +189,13 @@ export const LoginPage = () => {
             
             {/* Username/Email Input */}
             <div className="flex flex-col space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700">Username or Email</label>
+              <label className="text-xs font-semibold text-txt-secondary">Username or Email</label>
               <input
                 type="text"
                 disabled={isLoading}
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full px-3.5 py-2 text-sm text-slate-950 bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-brand-indigo focus:ring-1 focus:ring-brand-indigo disabled:opacity-50 transition"
+                className="w-full px-3.5 py-2 text-sm text-txt-primary bg-bg-surface border border-border-custom rounded-lg focus:outline-none focus:border-brand-indigo focus:ring-1 focus:ring-brand-indigo disabled:opacity-50 transition"
                 placeholder="e.g. employee.name"
               />
             </div>
@@ -218,7 +218,7 @@ export const LoginPage = () => {
                   disabled={isLoading}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-3.5 py-2 text-sm text-slate-950 bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-brand-indigo focus:ring-1 focus:ring-brand-indigo disabled:opacity-50 transition pr-10"
+                  className="w-full px-3.5 py-2 text-sm text-txt-primary bg-bg-surface border border-border-custom rounded-lg focus:outline-none focus:border-brand-indigo focus:ring-1 focus:ring-brand-indigo disabled:opacity-50 transition pr-10"
                   placeholder="••••••••"
                 />
                 <button
@@ -233,12 +233,12 @@ export const LoginPage = () => {
 
             {/* Actions (Remember Me) */}
             <div className="flex items-center text-xs pt-0.5">
-              <label className="flex items-center gap-2 text-slate-600 cursor-pointer select-none">
+              <label className="flex items-center gap-2 text-txt-secondary cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 bg-white border border-slate-300 rounded focus:ring-0 accent-brand-indigo cursor-pointer"
+                  className="w-4 h-4 bg-bg-surface border border-border-custom rounded focus:ring-0 accent-brand-indigo cursor-pointer"
                 />
                 <span className="font-medium">Remember me on this device</span>
               </label>
@@ -335,7 +335,7 @@ export const LoginPage = () => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl border border-slate-200 p-6 max-w-sm w-full shadow-2xl relative"
+              className="bg-bg-surface rounded-2xl border border-border-custom p-6 max-w-sm w-full shadow-2xl relative"
             >
               {/* Close Button */}
               <button
@@ -348,7 +348,7 @@ export const LoginPage = () => {
 
               <div className="flex items-center gap-2 mb-4 text-[#EA580C]">
                 <AlertCircle size={20} />
-                <h3 className="text-base font-bold text-slate-900">Demo System Access</h3>
+                <h3 className="text-base font-bold text-txt-primary">Demo System Access</h3>
               </div>
 
               <p className="text-xs text-slate-500 mb-4 leading-normal">
@@ -358,10 +358,10 @@ export const LoginPage = () => {
               {/* Roles List */}
               <div className="space-y-3">
                 
-                <div className="p-3 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-between">
+                <div className="p-3 rounded-xl border border-border-custom bg-bg-page flex items-center justify-between">
                   <div>
-                    <div className="text-xs font-bold text-slate-800">HR Administrator</div>
-                    <div className="text-[10px] text-slate-400">User: demo_hr | Pass: Pass123!</div>
+                    <div className="text-xs font-bold text-txt-primary">HR Administrator</div>
+                    <div className="text-[10px] text-txt-tertiary">User: demo_hr | Pass: Pass123!</div>
                   </div>
                   <button
                     type="button"
@@ -372,10 +372,10 @@ export const LoginPage = () => {
                   </button>
                 </div>
 
-                <div className="p-3 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-between">
+                <div className="p-3 rounded-xl border border-border-custom bg-bg-page flex items-center justify-between">
                   <div>
-                    <div className="text-xs font-bold text-slate-800">Department Manager</div>
-                    <div className="text-[10px] text-slate-400">User: demo_manager | Pass: Pass123!</div>
+                    <div className="text-xs font-bold text-txt-primary">Department Manager</div>
+                    <div className="text-[10px] text-txt-tertiary">User: demo_manager | Pass: Pass123!</div>
                   </div>
                   <button
                     type="button"
@@ -386,10 +386,10 @@ export const LoginPage = () => {
                   </button>
                 </div>
 
-                <div className="p-3 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-between">
+                <div className="p-3 rounded-xl border border-border-custom bg-bg-page flex items-center justify-between">
                   <div>
-                    <div className="text-xs font-bold text-slate-800">Staff Employee</div>
-                    <div className="text-[10px] text-slate-400">User: demo_employee | Pass: Pass123!</div>
+                    <div className="text-xs font-bold text-txt-primary">Staff Employee</div>
+                    <div className="text-[10px] text-txt-tertiary">User: demo_employee | Pass: Pass123!</div>
                   </div>
                   <button
                     type="button"

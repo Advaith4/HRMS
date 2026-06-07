@@ -25,7 +25,7 @@ export const Layout = () => {
         {!isInterviewRoute && <TopBar />}
 
         {/* Dynamic Content Frame */}
-        <main className={`flex-1 min-h-0 w-full ${isInterviewRoute ? 'overflow-hidden p-0 max-w-none h-full' : 'overflow-y-auto p-6 md:p-8 max-w-7xl mx-auto'}`}>
+        <main className={`flex-1 min-h-0 w-full ${isInterviewRoute ? 'overflow-hidden p-0 max-w-none h-full' : 'overflow-y-auto p-4 sm:p-6 md:p-8 max-w-7xl mx-auto'}`}>
           <AnimatePresence mode="wait">
             <motion.div
               className={isInterviewRoute ? 'h-full min-h-0' : undefined}

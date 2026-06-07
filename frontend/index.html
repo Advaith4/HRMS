@@ -5,8 +5,20 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TalentForge AI — Premium Talent Intelligence & HRMS</title>
+    <script>
+      (function() {
+        const persisted = localStorage.getItem('talentforge-theme');
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const theme = persisted === 'light' || persisted === 'dark' ? persisted : (systemPrefersDark ? 'dark' : 'light');
+        if (theme === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      })();
+    </script>
   </head>
-  <body class="bg-[#0B0F1A]">
+  <body class="bg-bg-page text-txt-primary">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

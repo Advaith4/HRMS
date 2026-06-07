@@ -90,15 +90,15 @@ export default function InterviewPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
+      <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="border-b border-gray-200 pb-4">
-          <h1 className="text-3xl font-extrabold text-gray-950 flex items-center gap-2">
-            <Shield className="w-8 h-8 text-blue-600" />
+        <div className="border-b border-gray-200 pb-3 sm:pb-4">
+          <h1 className="text-xl sm:text-3xl font-extrabold text-gray-950 flex items-center gap-2">
+            <Shield className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 shrink-0" />
             AI Interview Portal
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-xs sm:text-sm text-gray-500 mt-1">
             Standardized, secure proctored job interviews. Complete your interview to finalize your application.
           </p>
         </div>
@@ -124,7 +124,7 @@ export default function InterviewPage() {
           </div>
         ) : (
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="p-5 border-b border-gray-100 bg-gray-50/50">
+            <div className="p-4 sm:p-5 border-b border-gray-100 bg-gray-50/50">
               <h2 className="text-base font-bold text-gray-900">Your Active Applications</h2>
               <p className="text-xs text-gray-500 mt-0.5">Below is the status of AI interviews linked to your applications.</p>
             </div>
@@ -148,65 +148,62 @@ export default function InterviewPage() {
             ) : (
               <div className="divide-y divide-gray-100">
                 {applications.map((app) => (
-                  <div key={app.id} className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-gray-900">{app.job_title}</span>
-                        <span className="text-[10px] text-gray-400 bg-gray-100 border px-2 py-0.5 rounded font-mono">
-                          ID: {app.id}
-                        </span>
+                  <div key={app.id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+                    <div className="min-w-0">
+                      <div className="text-sm font-bold text-gray-900 leading-snug">{app.job_title}</div>
+                      <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-1 flex-wrap">
+                        <span className="text-[10px] text-gray-400 font-mono">ID {app.id}</span>
+                        <span className="text-gray-300">•</span>
+                        <span>Applied {new Date(app.application_date).toLocaleDateString()}</span>
                       </div>
-                      <p className="text-xs text-gray-500">
-                        Applied on {new Date(app.application_date).toLocaleDateString()}
-                      </p>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 shrink-0">
                       {/* Interview status badge */}
                       {app.can_start_interview && (
-                        <div className="flex items-center gap-2">
-                          <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full uppercase tracking-wider">
-                            <Clock className="w-3.5 h-3.5" />
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="inline-flex items-center gap-1 text-[11px] sm:text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full uppercase tracking-wider">
+                            <Clock className="w-3 h-3" />
                             Pending
                           </span>
                           <button
                             onClick={() => handleStartForApplication(app.id)}
-                            className="inline-flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors cursor-pointer shadow-sm"
+                            className="inline-flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white text-[11px] sm:text-xs font-bold px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg transition-colors cursor-pointer shadow-sm"
                           >
                             <span>Start Interview</span>
-                            <ArrowRight className="w-3.5 h-3.5" />
+                            <ArrowRight className="w-3 h-3" />
                           </button>
                         </div>
                       )}
                       {app.can_resume_interview && (
-                        <div className="flex items-center gap-2">
-                          <span className="inline-flex items-center gap-1 text-xs font-bold text-brand-indigo bg-brand-indigo/10 border border-brand-indigo/20 px-3 py-1 rounded-full uppercase tracking-wider">
-                            <Clock className="w-3.5 h-3.5" />
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="inline-flex items-center gap-1 text-[11px] sm:text-xs font-bold text-brand-indigo bg-brand-indigo/10 border border-brand-indigo/20 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full uppercase tracking-wider">
+                            <Clock className="w-3 h-3" />
                             Active
                           </span>
                           <button
                             onClick={() => handleStartForApplication(app.id)}
-                            className="inline-flex items-center gap-1 bg-brand-indigo hover:bg-brand-indigo-hover text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors cursor-pointer shadow-sm"
+                            className="inline-flex items-center gap-1 bg-brand-indigo hover:bg-brand-indigo-hover text-white text-[11px] sm:text-xs font-bold px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg transition-colors cursor-pointer shadow-sm"
                           >
                             <span>Resume Interview</span>
-                            <ArrowRight className="w-3.5 h-3.5" />
+                            <ArrowRight className="w-3 h-3" />
                           </button>
                         </div>
                       )}
                       {app.interview_completed && (
-                        <span className="inline-flex items-center gap-1 text-xs font-bold text-green-700 bg-green-50 border border-green-200 px-3 py-1 rounded-full uppercase tracking-wider">
+                        <span className="inline-flex items-center gap-1 text-[11px] sm:text-xs font-bold text-green-700 bg-green-50 border border-green-200 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full uppercase tracking-wider">
                           <CheckCircle className="w-3.5 h-3.5" />
                           Completed {app.interview_score !== null && `(${app.interview_score.toFixed(1)}/10)`}
                         </span>
                       )}
                       {app.interview_analyzing && (
-                        <span className="inline-flex items-center gap-1 text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 px-3 py-1 rounded-full uppercase tracking-wider">
+                        <span className="inline-flex items-center gap-1 text-[11px] sm:text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full uppercase tracking-wider">
                           <Clock className="w-3.5 h-3.5" />
                           Analyzing
                         </span>
                       )}
                       {app.interview_status === 'cancelled' && (
-                        <span className="inline-flex items-center gap-1 text-xs font-bold text-red-700 bg-red-50 border border-red-200 px-3 py-1 rounded-full uppercase tracking-wider">
+                        <span className="inline-flex items-center gap-1 text-[11px] sm:text-xs font-bold text-red-700 bg-red-50 border border-red-200 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full uppercase tracking-wider">
                           <AlertTriangle className="w-3.5 h-3.5" />
                           Cancelled
                         </span>

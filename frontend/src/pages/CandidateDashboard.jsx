@@ -430,7 +430,7 @@ export const CandidateDashboard = ({ activeTab = 'overview' }) => {
                         </div>
                       </div>
 
-                       <div className="flex items-center space-x-4 self-end sm:self-auto">
+                       <div className="flex flex-wrap items-center gap-2 sm:space-x-4 self-end sm:self-auto">
                         {app.can_start_interview && (
                           <div className="flex items-center gap-2">
                             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-warning-bg/40 text-warning-primary border border-warning-primary/20">
@@ -506,7 +506,7 @@ export const CandidateDashboard = ({ activeTab = 'overview' }) => {
                                   </p>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4 pt-2">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                                   {/* Strengths */}
                                   {app.ai_analysis.strengths?.length > 0 && (
                                     <div className="space-y-1.5">

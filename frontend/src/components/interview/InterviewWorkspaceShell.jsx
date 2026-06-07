@@ -671,7 +671,7 @@ export default function InterviewWorkspaceShell({ session, onEnd, onSubmitAnswer
         </div>
       </div>
 
-      <div className="flex-1 grid grid-cols-12 gap-3 min-h-0 overflow-hidden">
+      <div className="flex-1 grid grid-cols-12 gap-3 min-h-0 overflow-y-auto lg:overflow-hidden">
         {/* LEFT COLUMN — AI Interviewer Message Log */}
         <div className="col-span-12 lg:col-span-8 flex flex-col gap-3 min-h-0">
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm flex-1 flex flex-col min-h-0">

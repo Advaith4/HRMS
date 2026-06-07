@@ -115,7 +115,7 @@ export const GrievanceDashboard = () => {
       </div>
 
       {/* Metrics Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <MetricCard title="Open" value={openCount} icon={AlertCircle} description="Awaiting action" />
         <MetricCard title="Assigned" value={assignedCount} icon={User} description="Active review" />
         <MetricCard title="In Review" value={reviewCount} icon={Clock} description="Investigating" />

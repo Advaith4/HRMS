@@ -244,7 +244,7 @@ export const EmployeeProfileDrawer = ({ isOpen, onClose, employeeId }) => {
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Read-Only Details */}
                   <div className="rounded-xl bg-slate-50 p-3 border border-slate-200">
                     <span className="block text-slate-400 text-[10px] uppercase font-bold tracking-wider">Department</span>

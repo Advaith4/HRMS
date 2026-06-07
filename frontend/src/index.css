@@ -1,59 +1,151 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
-@theme {
-  --color-bg-page: #F8FAFC;
-  --color-bg-surface: #FFFFFF;
-  --color-bg-elevated: #FFFFFF;
-  --color-border-custom: #E2E8F0;
-  --color-border-hover-custom: #CBD5E1;
+:root {
+  --bg-page: #F8FAFC;
+  --bg-surface: #FFFFFF;
+  --bg-elevated: #FFFFFF;
+  --border-custom: #E2E8F0;
+  --border-hover-custom: #CBD5E1;
 
-  --color-brand-indigo: #2563EB;
-  --color-brand-indigo-hover: #1D4ED8;
-  --color-brand-indigo-muted: #DBEAFE;
+  --brand-indigo: #2563EB;
+  --brand-indigo-hover: #1D4ED8;
+  --brand-indigo-muted: #DBEAFE;
 
-  --color-ai-teal: #2563EB;
-  --color-ai-teal-glow: #DBEAFE;
+  --ai-teal: #2563EB;
+  --ai-teal-glow: #DBEAFE;
 
-  --color-txt-primary: #0F172A;
-  --color-txt-secondary: #64748B;
-  --color-txt-tertiary: #94A3B8;
+  --txt-primary: #0F172A;
+  --txt-secondary: #64748B;
+  --txt-tertiary: #94A3B8;
 
-  --color-success-primary: #16A34A;
-  --color-success-bg: #DCFCE7;
-  --color-warning-primary: #D97706;
-  --color-warning-bg: #FEF3C7;
-  --color-danger-primary: #DC2626;
-  --color-danger-bg: #FEE2E2;
-  --color-info-primary: #2563EB;
-  --color-info-bg: #DBEAFE;
+  --success-primary: #16A34A;
+  --success-bg: #DCFCE7;
+  --warning-primary: #D97706;
+  --warning-bg: #FEF3C7;
+  --danger-primary: #DC2626;
+  --danger-bg: #FEE2E2;
+  --info-primary: #2563EB;
+  --info-bg: #DBEAFE;
 
   /* Global Tailwind Indigo Override to match corporate blue theme */
-  --color-indigo-50: #F8FAFC;
-  --color-indigo-100: #E0F2FE;
-  --color-indigo-200: #BAE6FD;
-  --color-indigo-300: #7DD3FC;
-  --color-indigo-400: #38BDF8;
-  --color-indigo-500: #2563EB;
-  --color-indigo-600: #1D4ED8;
-  --color-indigo-700: #1E40AF;
-  --color-indigo-800: #1E3A8A;
-  --color-indigo-900: #172554;
-  --color-indigo-950: #0F172A;
+  --indigo-50: #F8FAFC;
+  --indigo-100: #E0F2FE;
+  --indigo-200: #BAE6FD;
+  --indigo-300: #7DD3FC;
+  --indigo-400: #38BDF8;
+  --indigo-500: #2563EB;
+  --indigo-600: #1D4ED8;
+  --indigo-700: #1E40AF;
+  --indigo-800: #1E3A8A;
+  --indigo-900: #172554;
+  --indigo-950: #0F172A;
 
   /* Global Tailwind Violet & Purple Override to match indigo/sky gradients */
-  --color-violet-500: #4F46E5;
-  --color-violet-600: #4338CA;
-  --color-purple-500: #0EA5E9;
-  --color-purple-600: #0284C7;
+  --violet-500: #4F46E5;
+  --violet-600: #4338CA;
+  --purple-500: #0EA5E9;
+  --purple-600: #0284C7;
+}
+
+.dark {
+  --bg-page: #0B0F19;
+  --bg-surface: #131B2E;
+  --bg-elevated: #1C273F;
+  --border-custom: #222F4C;
+  --border-hover-custom: #344874;
+
+  --brand-indigo: #3B82F6;
+  --brand-indigo-hover: #60A5FA;
+  --brand-indigo-muted: rgba(59, 130, 246, 0.15);
+
+  --ai-teal: #14B8A6;
+  --ai-teal-glow: rgba(20, 184, 166, 0.15);
+
+  --txt-primary: #F8FAFC;
+  --txt-secondary: #94A3B8;
+  --txt-tertiary: #64748B;
+
+  --success-primary: #34D399;
+  --success-bg: rgba(52, 211, 153, 0.15);
+  --warning-primary: #F59E0B;
+  --warning-bg: rgba(245, 158, 11, 0.15);
+  --danger-primary: #EF4444;
+  --danger-bg: rgba(239, 68, 68, 0.15);
+  --info-primary: #3B82F6;
+  --info-bg: rgba(59, 130, 246, 0.15);
+
+  /* Global Tailwind Indigo Override to match corporate blue theme in dark mode */
+  --indigo-50: #0B0F19;
+  --indigo-100: #131B2E;
+  --indigo-200: #1E293B;
+  --indigo-300: #334155;
+  --indigo-400: #475569;
+  --indigo-500: #3B82F6;
+  --indigo-600: #2563EB;
+  --indigo-700: #1D4ED8;
+  --indigo-800: #1E40AF;
+  --indigo-900: #1E3A8A;
+  --indigo-950: #0F172A;
+
+  /* Global Tailwind Violet & Purple Override to match indigo/sky gradients in dark mode */
+  --violet-500: #6366F1;
+  --violet-600: #4F46E5;
+  --purple-500: #38BDF8;
+  --purple-600: #0284C7;
+}
+
+@theme {
+  --color-bg-page: var(--bg-page);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-border-custom: var(--border-custom);
+  --color-border-hover-custom: var(--border-hover-custom);
+
+  --color-brand-indigo: var(--brand-indigo);
+  --color-brand-indigo-hover: var(--brand-indigo-hover);
+  --color-brand-indigo-muted: var(--brand-indigo-muted);
+
+  --color-ai-teal: var(--ai-teal);
+  --color-ai-teal-glow: var(--ai-teal-glow);
+
+  --color-txt-primary: var(--txt-primary);
+  --color-txt-secondary: var(--txt-secondary);
+  --color-txt-tertiary: var(--txt-tertiary);
+
+  --color-success-primary: var(--success-primary);
+  --color-success-bg: var(--success-bg);
+  --color-warning-primary: var(--warning-primary);
+  --color-warning-bg: var(--warning-bg);
+  --color-danger-primary: var(--danger-primary);
+  --color-danger-bg: var(--danger-bg);
+  --color-info-primary: var(--info-primary);
+  --color-info-bg: var(--info-bg);
+
+  --color-indigo-50: var(--indigo-50);
+  --color-indigo-100: var(--indigo-100);
+  --color-indigo-200: var(--indigo-200);
+  --color-indigo-300: var(--indigo-300);
+  --color-indigo-400: var(--indigo-400);
+  --color-indigo-500: var(--indigo-500);
+  --color-indigo-600: var(--indigo-600);
+  --color-indigo-700: var(--indigo-700);
+  --color-indigo-800: var(--indigo-800);
+  --color-indigo-900: var(--indigo-900);
+  --color-indigo-950: var(--indigo-950);
+
+  --color-violet-500: var(--violet-500);
+  --color-violet-600: var(--violet-600);
+  --color-purple-500: var(--purple-500);
+  --color-purple-600: var(--purple-600);
 
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 @layer base {
   body {
-    background-color: #F8FAFC;
-    color: #0F172A;
+    background-color: var(--bg-page);
+    color: var(--txt-primary);
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     letter-spacing: 0;
     line-height: 1.5;
@@ -61,20 +153,20 @@
     overflow-x: hidden;
   }
 
-  /* Custom scrollbars for light theme */
+  /* Custom scrollbars */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
   ::-webkit-scrollbar-track {
-    background: #F8FAFC;
+    background: var(--bg-page);
   }
   ::-webkit-scrollbar-thumb {
-    background: #E2E8F0;
+    background: var(--border-custom);
     border-radius: 3px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #CBD5E1;
+    background: var(--border-hover-custom);
   }
 }
 
@@ -89,9 +181,14 @@
 }
 
 .animate-shimmer {
-  background: linear-gradient(90deg, #E2E8F0 25%, #F1F5F9 50%, #E2E8F0 75%);
+  background: linear-gradient(90deg, var(--border-custom) 25%, var(--bg-elevated) 50%, var(--border-custom) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite linear;
+}
+
+.dark .animate-shimmer {
+  background: linear-gradient(90deg, #1C273F 25%, #253555 50%, #1C273F 75%);
+  background-size: 200% 100%;
 }
 
 /* Custom donut transition */
@@ -106,4 +203,97 @@ input:-webkit-autofill:focus {
   -webkit-box-shadow: 0 0 0px 1000px white inset !important;
   -webkit-text-fill-color: #0f172a !important;
   transition: background-color 5000s ease-in-out 0s;
+}
+
+.dark input:-webkit-autofill,
+.dark input:-webkit-autofill:hover,
+.dark input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px #131B2E inset !important;
+  -webkit-text-fill-color: #F8FAFC !important;
+}
+
+/* ==========================================================================
+   Global Dark Mode Override Rules for Explicit Light Tailwind Classes
+   ========================================================================== */
+
+.dark .bg-white {
+  background-color: var(--bg-surface) !important;
+}
+
+.dark .border-gray-200,
+.dark .border-slate-200,
+.dark .border-slate-100,
+.dark .border-gray-100 {
+  border-color: var(--border-custom) !important;
+}
+
+.dark .text-gray-900,
+.dark .text-slate-900 {
+  color: var(--txt-primary) !important;
+}
+
+.dark .text-gray-800,
+.dark .text-slate-800 {
+  color: var(--txt-primary) !important;
+}
+
+.dark .text-gray-700,
+.dark .text-slate-700,
+.dark .text-gray-600,
+.dark .text-slate-600 {
+  color: var(--txt-secondary) !important;
+}
+
+.dark .text-gray-500,
+.dark .text-slate-500 {
+  color: var(--txt-tertiary) !important;
+}
+
+.dark .bg-slate-50,
+.dark .bg-gray-50,
+.dark .bg-slate-100,
+.dark .bg-gray-100,
+.dark .bg-slate-200\/50,
+.dark .bg-gray-200\/50 {
+  background-color: var(--bg-page) !important;
+}
+
+.dark .hover\:bg-slate-50:hover,
+.dark .hover\:bg-gray-50:hover,
+.dark .hover\:bg-slate-100:hover,
+.dark .hover\:bg-gray-100:hover {
+  background-color: var(--bg-elevated) !important;
+}
+
+/* Inputs, Textareas, Selects overrides in Dark Mode */
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: var(--bg-surface) !important;
+  color: var(--txt-primary) !important;
+  border-color: var(--border-custom) !important;
+}
+
+.dark input:focus,
+.dark select:focus,
+.dark textarea:focus {
+  border-color: var(--brand-indigo) !important;
+  outline: none;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: var(--txt-tertiary) !important;
+}
+
+/* Dialogs, Modals, Popovers, Dropdowns, Drawers */
+.dark .shadow-lg,
+.dark .shadow-xl,
+.dark .shadow-2xl {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Fix specific UI elements that need adjustments in dark mode */
+.dark .prose, .dark .prose strong, .dark .prose h1, .dark .prose h2, .dark .prose h3 {
+  color: var(--txt-primary) !important;
 }
