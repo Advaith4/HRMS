@@ -40,7 +40,6 @@ class RAGChatService:
                 "collections_used": ["database"],
             }
 
-        retrieval = self.retrieval.retrieve(clean_query, collections=collections, filters=filters)
         context_parts = []
         sources = []
         collections_used = []
@@ -48,6 +47,25 @@ class RAGChatService:
             context_parts.append(route.database_context)
             sources.extend(route.database_sources)
             collections_used.append("database")
+
+        try:
+            retrieval = self.retrieval.retrieve(clean_query, collections=collections, filters=filters)
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("RAG retrieval failed; returning available fallback context. error=%s", exc)
+            if context_parts:
+                context = self._trim_context("\n\n".join(context_parts))
+                answer = self._generate_answer(clean_query, context)
+                return {
+                    "answer": answer,
+                    "sources": sources,
+                    "collections_used": list(dict.fromkeys(collections_used)),
+                }
+            return {
+                "answer": "Knowledge retrieval is temporarily unavailable. Please try again shortly.",
+                "sources": [],
+                "collections_used": [],
+            }
+
         context_parts.append(retrieval["context"])
         sources.extend(retrieval["sources"])
         collections_used.extend(retrieval["collections_used"])

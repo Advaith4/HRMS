@@ -30,6 +30,11 @@ from src.services.rag.retrieval_service import RetrievalService
 create_db_and_tables()
 
 
+class BrokenRetrieval:
+    def retrieve(self, *args, **kwargs):
+        raise RuntimeError("chroma unavailable")
+
+
 def _chat_stack(path):
     embedding = EmbeddingService(HashEmbeddingProvider(dimension=64))
     chroma = ChromaService(path)
@@ -222,3 +227,25 @@ def test_rag_endpoint_routes_database_question_with_authenticated_user():
         assert "Total applications" in payload["answer"]
     finally:
         app.dependency_overrides.pop(get_current_user, None)
+
+
+def test_hybrid_query_falls_back_to_database_when_chroma_is_unavailable():
+    hr, _candidate_one, _candidate_two = _seed_decision_records()
+    chat = RAGChatService(BrokenRetrieval(), QueryRouter())
+
+    result = chat.answer("Which candidates are strongest for the Backend Engineer role?", ["job_descriptions"], user=hr)
+
+    assert result["collections_used"] == ["database"]
+    assert result["sources"][0]["collection"] == "database"
+    assert "Hybrid hiring decision context" in result["answer"]
+
+
+def test_rag_only_query_fails_gracefully_when_chroma_is_unavailable():
+    hr, _candidate_one, _candidate_two = _seed_decision_records()
+    chat = RAGChatService(BrokenRetrieval(), QueryRouter())
+
+    result = chat.answer("What is the leave policy?", ["company_policies"], user=hr)
+
+    assert result["collections_used"] == []
+    assert result["sources"] == []
+    assert "temporarily unavailable" in result["answer"]
