@@ -19,3 +19,28 @@ script_errors.txt
 .agents/
 .opencode/
 .codex/
+
+# Python extras
+*.pyo
+
+# Node
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Runtime Data
+data/chroma/
+
+# Python environments
+.env.local
+.env.dev
+
+# Temporary development reports
+roadmap_cleanup_report.md
+sidebar_release_cleanup_report.md
