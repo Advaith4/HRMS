@@ -15,6 +15,7 @@ const InterviewPage = lazy(() => import('./pages/interview/InterviewPage').then(
 const MockInterviewPage = lazy(() => import('./pages/interview/MockInterviewPage').then(m => ({ default: m.default })))
 const InterviewReports = lazy(() => import('./pages/hr/InterviewReports').then(m => ({ default: m.InterviewReports })))
 const AssistantPage = lazy(() => import('./pages/assistant/AssistantPage').then(m => ({ default: m.AssistantPage })))
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard').then(m => ({ default: m.AdminDashboard })))
 
 // Minimal loading fallback shown while a chunk downloads
 const PageLoader = () => (
@@ -36,7 +37,10 @@ const RootRedirect = () => {
 
   // Redirect to role dashboard
   const normRole = (role || '').toLowerCase()
-  if (normRole === 'hr' || normRole === 'admin') {
+  if (normRole === 'admin') {
+    return <Navigate to="/dashboard/admin" replace />
+  }
+  if (normRole === 'hr') {
     return <Navigate to="/dashboard/hr" replace />
   }
   if (normRole === 'manager') {
@@ -58,7 +62,10 @@ const RoleGuard = ({ allowedRoles, children }) => {
   const normRole = (role || '').toLowerCase()
   if (!allowedRoles.includes(normRole)) {
     // Redirect to their default dashboard if not allowed
-    if (normRole === 'hr' || normRole === 'admin') {
+    if (normRole === 'admin') {
+      return <Navigate to="/dashboard/admin" replace />
+    }
+    if (normRole === 'hr') {
       return <Navigate to="/dashboard/hr" replace />
     }
     if (normRole === 'manager') {
@@ -111,6 +118,7 @@ export const App = () => {
           <Route element={<Layout />}>
             {/* Dashboards */}
             <Route path="/dashboard/hr" element={<RoleGuard allowedRoles={['hr', 'admin']}><HRDashboard /></RoleGuard>} />
+            <Route path="/dashboard/admin" element={<RoleGuard allowedRoles={['admin']}><AdminDashboard /></RoleGuard>} />
             <Route path="/dashboard/manager" element={<RoleGuard allowedRoles={['manager']}><ManagerDashboard /></RoleGuard>} />
             <Route path="/dashboard/candidate" element={<RoleGuard allowedRoles={['candidate']}><CandidateDashboard /></RoleGuard>} />
             <Route path="/dashboard/employee" element={<RoleGuard allowedRoles={['employee']}><EmployeeDashboard /></RoleGuard>} />

@@ -72,7 +72,7 @@ from src.core.exceptions import http_exception_handler, validation_exception_han
 from src.api.routes import (
     applications, auth, candidates, dashboard, employees, jobs, resume, interview, mock_interview,
     departments, designations, lifecycle, tickets, salary, promotions, notifications,
-    onboarding, training, profile, rag
+    onboarding, training, profile, rag, admin
 )
 
 # ── Logging ───────────────────────────────────────────────────────────────────
@@ -161,6 +161,7 @@ app.include_router(onboarding.router)
 app.include_router(training.router)
 app.include_router(profile.router)
 app.include_router(rag.router)
+app.include_router(admin.router)
 
 
 

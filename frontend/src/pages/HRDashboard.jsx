@@ -345,7 +345,7 @@ export const HRDashboard = ({ activeTab = 'overview' }) => {
         </div>
         
         {/* Quick actions */}
-        {(role === 'hr' || role === 'admin') && (
+        {(role === 'hr' || role === 'admin') && activeTab === 'jobs' && (
           <button
             onClick={() => { setJobToEdit(null); setIsJobModalOpen(true); }}
             className="h-9 bg-brand-indigo hover:bg-brand-indigo-hover text-white text-xs font-semibold px-4 rounded-lg flex items-center space-x-1.5 active:scale-98 transition-all cursor-pointer"

@@ -47,6 +47,8 @@ def create_db_and_tables() -> None:
     if _db_url.startswith("sqlite") or settings.AUTO_CREATE_DB_SCHEMA:
         SQLModel.metadata.create_all(engine)
     _ensure_user_role_column()
+    _ensure_user_active_column()
+    _ensure_default_admin()
     _ensure_application_ai_analysis_table()
     _ensure_resume_lab_columns()
     _ensure_interview_context_columns()
@@ -92,6 +94,71 @@ def _ensure_postgres_user_role_column() -> None:
         for statement in statements:
             session.exec(text(statement))
         session.commit()
+
+
+def _ensure_user_active_column() -> None:
+    """Lightweight migration for user active status."""
+    try:
+        if _db_url.startswith("sqlite"):
+            _ensure_sqlite_user_active_column()
+        else:
+            _ensure_postgres_user_active_column()
+    except Exception as exc:
+        logger.warning("User active column migration skipped: %s", exc)
+
+
+def _ensure_sqlite_user_active_column() -> None:
+    with Session(engine) as session:
+        existing = {row[1] for row in session.exec(text("PRAGMA table_info(users)")).all()}
+        if not existing:
+            return
+        if "is_active" not in existing:
+            session.exec(text("ALTER TABLE users ADD COLUMN is_active BOOLEAN DEFAULT 1"))
+        session.exec(text("UPDATE users SET is_active = 1 WHERE is_active IS NULL"))
+        session.commit()
+
+
+def _ensure_postgres_user_active_column() -> None:
+    statements = [
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE",
+        "UPDATE users SET is_active = TRUE WHERE is_active IS NULL",
+    ]
+    with Session(engine) as session:
+        for statement in statements:
+            session.exec(text(statement))
+        session.commit()
+
+
+def _ensure_default_admin() -> None:
+    """Bootstrap a default admin user if no admin user exists with username 'admin'."""
+    try:
+        from src.models import User
+        from src.core.security import hash_password
+        from sqlmodel import select
+
+        with Session(engine) as session:
+            existing_admin = session.exec(select(User).where(User.username == "admin")).first()
+            if existing_admin:
+                if existing_admin.role != "admin" or not getattr(existing_admin, "is_active", True):
+                    existing_admin.role = "admin"
+                    existing_admin.is_active = True
+                    existing_admin.hashed_password = hash_password("admin123")
+                    session.add(existing_admin)
+                    session.commit()
+                    logger.info("Updated existing 'admin' user to admin role and reset password to admin123.")
+            else:
+                new_admin = User(
+                    username="admin",
+                    hashed_password=hash_password("admin123"),
+                    role="admin",
+                    is_active=True
+                )
+                session.add(new_admin)
+                session.commit()
+                logger.info("Bootstrapped default admin user: admin/admin123")
+    except Exception as exc:
+        logger.warning("Default admin bootstrapping failed: %s", exc)
+
 
 
 def _ensure_application_ai_analysis_table() -> None:

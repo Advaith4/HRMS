@@ -164,6 +164,27 @@ const CANDIDATE_NAV = [
   { type: 'item', path: '/mock-interview',      label: 'Mock Interview',  icon: Brain         },
 ]
 
+const ADMIN_NAV = [
+  {
+    type: 'item',
+    path: '/dashboard/admin?tab=users',
+    label: 'User Management',
+    icon: Users,
+  },
+  {
+    type: 'item',
+    path: '/dashboard/admin?tab=policies',
+    label: 'Company Policies',
+    icon: FileText,
+  },
+  {
+    type: 'item',
+    path: '/dashboard/admin?tab=knowledge',
+    label: 'Employee Knowledge',
+    icon: BookOpen,
+  },
+]
+
 // ─── Helper: does any child in a group match the current path? ────────────────
 const groupIsActive = (group, pathname) =>
   group.children?.some(c => c.path && pathname === c.path)
@@ -352,7 +373,8 @@ export const Sidebar = () => {
   }
 
   const getNav = () => {
-    if (role === 'hr' || role === 'admin') return HR_NAV
+    if (role === 'admin') return ADMIN_NAV
+    if (role === 'hr') return HR_NAV
     if (role === 'manager') return MANAGER_NAV
     if (role === 'employee') return EMPLOYEE_NAV
     return CANDIDATE_NAV

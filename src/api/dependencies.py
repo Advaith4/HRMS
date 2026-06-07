@@ -34,6 +34,9 @@ def _resolve_current_user(
     if user is None:
         return None
 
+    if not getattr(user, "is_active", True):
+        return None
+
     token_role = str(payload.get("role") or "").lower()
     user_role = (user.role or "candidate").lower()
     if token_role not in USER_ROLES or user_role not in USER_ROLES or token_role != user_role:

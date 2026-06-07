@@ -17,15 +17,15 @@ export const Layout = () => {
   return (
     <div className="flex h-screen min-h-0 overflow-hidden bg-bg-page select-text">
       {/* Sidebar Navigation */}
-      <Sidebar />
+      {!isInterviewRoute && <Sidebar />}
 
       {/* Main Container */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-0 pb-16 md:pb-0">
+      <div className={`flex-1 flex flex-col min-w-0 min-h-0 ${isInterviewRoute ? 'pb-0' : 'pb-16 md:pb-0'}`}>
         {/* Top Header */}
-        <TopBar />
+        {!isInterviewRoute && <TopBar />}
 
         {/* Dynamic Content Frame */}
-        <main className={`flex-1 min-h-0 w-full ${isInterviewRoute ? 'overflow-hidden p-0 max-w-none' : 'overflow-y-auto p-6 md:p-8 max-w-7xl mx-auto'}`}>
+        <main className={`flex-1 min-h-0 w-full ${isInterviewRoute ? 'overflow-hidden p-0 max-w-none h-full' : 'overflow-y-auto p-6 md:p-8 max-w-7xl mx-auto'}`}>
           <AnimatePresence mode="wait">
             <motion.div
               className={isInterviewRoute ? 'h-full min-h-0' : undefined}

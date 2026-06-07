@@ -20,6 +20,7 @@ class User(SQLModel, table=True):
     target_role: Optional[str] = Field(default=None, max_length=100)
     location: Optional[str] = Field(default="India", max_length=100)
     experience: Optional[str] = Field(default="Entry-level", max_length=50)
+    is_active: bool = Field(default=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
