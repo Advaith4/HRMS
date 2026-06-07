@@ -1,1 +1,0 @@
-{"nodes": [{"id": "src_api_routes_jobs", "label": "src/api/routes/jobs.py", "file_type": "code", "source_file": "src/api/routes/jobs.py", "source_location": "src/api/routes/jobs.py", "source_url": null, "captured_at": null, "author": null, "contributor": null, "rationale": "Job CRUD routes: create, read, update, delete job postings"}], "edges": [], "hyperedges": []}

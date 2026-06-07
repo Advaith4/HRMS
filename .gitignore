@@ -2,11 +2,18 @@
 venv/
 .venv/
 __pycache__/
+**pycache**/
+.pytest_cache/
 *.pyc
 data/
 *.db
 scratch*.py
 *.log
+graphify-out/cache/
+graphify-out/.graphify_old.json
+audit_reports.zip
+phase2_reports.zip
+script_errors.txt
 
 .vercel
 .agents/

@@ -1,1 +1,0 @@
-{"nodes": [{"id": "src_api_routes_auth", "label": "src/api/routes/auth.py", "file_type": "code", "source_file": "src/api/routes/auth.py", "source_location": "src/api/routes/auth.py", "source_url": null, "captured_at": null, "author": null, "contributor": null, "rationale": "Auth routes: register, login, get current user"}], "edges": [], "hyperedges": []}

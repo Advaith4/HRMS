@@ -1,1 +1,0 @@
-{"nodes": [{"id": "env_vars", "label": "Environment Variables ( .env )", "file_type": "document", "source_file": ".env.example", "source_location": ".env.example", "source_url": null, "captured_at": null, "author": null, "contributor": null, "rationale": "Required env vars: DATABASE_URL, GROQ_API_KEY, SECRET_KEY, MODEL_NAME"}], "edges": [], "hyperedges": []}

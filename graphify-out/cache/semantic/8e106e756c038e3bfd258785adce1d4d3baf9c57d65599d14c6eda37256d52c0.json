@@ -1,1 +1,0 @@
-{"nodes": [{"id": "vercel_deployment", "label": "Vercel", "file_type": "code", "source_file": "vercel.json", "source_location": "vercel.json", "source_url": null, "captured_at": null, "author": null, "contributor": null, "rationale": "Static frontend hosting via Vercel (optional)"}], "edges": [], "hyperedges": []}

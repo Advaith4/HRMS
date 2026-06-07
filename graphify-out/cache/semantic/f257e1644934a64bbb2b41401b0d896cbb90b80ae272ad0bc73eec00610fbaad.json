@@ -1,1 +1,0 @@
-{"nodes": [{"id": "src_api_routes_resume", "label": "src/api/routes/resume.py", "file_type": "code", "source_file": "src/api/routes/resume.py", "source_location": "src/api/routes/resume.py", "source_url": null, "captured_at": null, "author": null, "contributor": null, "rationale": "Resume routes: upload, parse, analyze, fix, rewrite"}], "edges": [], "hyperedges": []}

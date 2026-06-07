@@ -1,1 +1,0 @@
-{"nodes": [{"id": "supabase_postgresql", "label": "Supabase PostgreSQL", "file_type": "document", "source_file": "docs/deployment.md", "source_location": "docs/deployment.md", "source_url": null, "captured_at": null, "author": null, "contributor": null, "rationale": "Primary production database - Supabase PostgreSQL via Session pooler"}], "edges": [], "hyperedges": []}
