@@ -1,201 +1,767 @@
 # TalentForge AI
 
-TalentForge AI is a full-cycle HRMS + recruitment intelligence platform for candidates, HR teams, managers, and employees. It combines a **FastAPI** backend, **SQLModel** persistence (SQLite/PostgreSQL), **CrewAI + Groq** AI orchestration, and a **React 19 + Vite SPA** frontend (with legacy static fallback).
+**An AI-powered talent lifecycle platform that connects hiring, interviews, employee growth, HR operations, and company knowledge into one working system.**
 
-## Features
+TalentForge is not a resume parser bolted onto an HR dashboard. It is a full-stack talent operating system where every stage of the workforce journey feeds the next one:
 
-### Recruitment
-- Candidate registration, login, resume upload (PDF), and job applications
-- JWT authentication with role-based access control (candidate, hr, manager, admin, employee)
-- HR job posting management (CRUD)
-- Manager/HR candidate and application review
-- AI recruitment analysis with deterministic fallback scoring
-- Fit scores, recommendations, strengths, weaknesses, missing skills, interview prep
-- Per-job candidate rankings
-- Resume Lab: AI-powered analysis, fix suggestions, and section rewriting
+```mermaid
+flowchart LR
+    Candidate[Candidate applies with resume]
+    Screening[AI screening + fit analysis]
+    Interview[Adaptive interview engine]
+    Intelligence[Hiring intelligence report]
+    Hire[Hire into employee record]
+    Lifecycle[Onboarding, training, salary, promotions]
+    Knowledge[RAG HR copilot]
 
-### AI Interview Engine
-- 5-agent CrewAI interview orchestration with Groq LLM
-- Adaptive difficulty, coaching memory, 4 training modes
-- Start interview from scratch or from uploaded resume
-- Audio transcription via Groq Whisper
-- Credibility reports (cross-reference resume claims vs interview answers)
-- Leaderboard, candidate comparison, top-candidate ranking
-- HR intelligence: advance/reject, follow-up questions, detailed reports
+    Candidate --> Screening --> Interview --> Intelligence --> Hire --> Lifecycle
+    Screening --> Knowledge
+    Interview --> Knowledge
+    Lifecycle --> Knowledge
+    Knowledge --> Screening
+    Knowledge --> Lifecycle
+```
 
-### Employee Lifecycle
-- Employee directory, profiles, and document management
-- Attendance tracking: check-in, check-out, records
-- Leave management: apply, approve/reject, history
-- Skill gap analysis with AI recommendations
-- Promotions and salary revision history
-- Employee lifecycle event tracking
-- Onboarding: templates, tasks, plans, required documents
+A candidate can upload a resume, apply to a job, receive AI-powered analysis, practice in a mock interview, complete a structured proctored interview, and become an employee. HR can post jobs, review ranked applicants, compare interview intelligence, verify documents, assign onboarding, manage training, answer policy questions through a RAG assistant, and track the employee journey after hiring.
 
-### HR Tools
-- Department and designation management
-- Employee ticket/grievance system (create, assign, track)
-- Notification center
+This repository contains the working product: FastAPI backend, React SPA, SQLModel data layer, CrewAI/Groq orchestration, Chroma-backed RAG, role-based dashboards, test coverage, Docker deployment, and production-oriented persistence.
+
+---
+
+## The Product In One Sentence
+
+**TalentForge turns HR from a set of disconnected forms into an AI-assisted decision system for recruiting, interviewing, onboarding, and growing people.**
+
+---
+
+## Product Preview
+
+### Login & Role Routing
+
+![Login page](static/Images/login%20page.png)
+
+### Candidate Portal
+
+![Candidate Portal](static/Images/Candidate%20Portal.png)
+
+### HR Dashboard
+
+![HR Dashboard](static/Images/HR%20Dashboard.png)
+
+### Mock Interview
+
+![Mock Interview](static/Images/Mock%20Interview.png)
+
+### Admin Operations Console
+
+![Admin Operations Console](static/Images/Admin%20Operations%20Console.png)
+
+---
+
+## What Makes TalentForge Different?
+
+Most HRMS projects stop at CRUD.
+
+TalentForge goes further: it connects hiring signals, interview behavior, resume evidence, role requirements, employee lifecycle data, and company knowledge into a single loop.
+
+| Traditional HRMS | TalentForge |
+| --- | --- |
+| Stores applications | Scores, explains, ranks, and prepares candidates |
+| Tracks interviews | Runs adaptive interviews with phase control and proctoring |
+| Has employee records | Converts hires into employees with onboarding and lifecycle history |
+| Has static policies | Indexes policies and HR knowledge into RAG collections |
+| Shows dashboards | Provides decision surfaces for HR, managers, candidates, employees, and admins |
+| AI as decoration | AI with deterministic fallback paths when LLMs are unavailable |
+
+---
+
+## Core Experience
+
+```mermaid
+journey
+    title TalentForge Candidate-To-Employee Journey
+    section Candidate
+      Register and login: 5: Candidate
+      Browse open jobs: 5: Candidate
+      Upload PDF resume: 4: Candidate
+      Apply to role: 5: Candidate
+      View AI feedback: 5: Candidate
+      Practice mock interview: 5: Candidate
+    section HR / Manager
+      Post and manage jobs: 5: HR
+      Review ranked applications: 5: HR, Manager
+      Inspect credibility reports: 5: HR, Manager
+      Compare candidates: 5: HR, Manager
+      Advance or reject: 4: HR
+    section Employee Lifecycle
+      Hire candidate into employee record: 5: HR
+      Assign onboarding: 5: HR
+      Verify documents: 4: HR
+      Track training and skill gaps: 5: Employee, HR
+      Manage salary and promotions: 4: HR
+```
+
+---
+
+## Platform Surfaces
+
+TalentForge ships multiple first-class portals, not a single dashboard pretending to serve everyone.
+
+### Candidate
+
+- Register and authenticate as a candidate
+- Browse open jobs
+- Apply with PDF resume upload
+- View application history
+- Use Resume Lab analysis
+- Start interviews from resume or application context
+- Use a career assistant scoped to candidate-accessible knowledge
+- Complete profile and upload documents
+
+![Career Assistant](static/Images/Carrer%20Assistant.png)
+
+### HR
+
+- Post, update, close, archive, and delete jobs
+- Review applicants and AI analysis
+- Rank candidates per job
+- Review hiring intelligence reports
+- Compare candidates
+- Advance or reject candidates
+- Manage departments and designations
+- Assign onboarding templates
+- Verify candidate and employee documents
+- Track leave, tickets, promotions, salary history, and training
+- Use HR Copilot for grounded answers across company and hiring knowledge
+
+![HR Jobs and Candidate](static/Images/HR-jobs%20and%20candidate.png)
+
+![HR Operational Review Queue](static/Images/HR%20OPERATIONAL%20REVIEW%20QUEUE.png)
+
+### Manager
+
+- Review candidate pipelines
+- View team training
+- Participate in evaluation workflows
+- Access manager-specific dashboard views
+
+![Manager Dashboard](static/Images/Manager%20Dashboard.png)
+
+### Employee
+
+- View employee dashboard
+- Check in and check out
+- Request leave
+- Track onboarding tasks
+- Upload required documents
+- View skill gap analysis
+- Track training assignments
+- Submit tickets
+- View career timeline, salary revisions, and promotions
+
+![Employee Dashboard](static/Images/Employee%20Dashboard.png)
+
+![Employee Profile](static/Images/Employee%20Profile.png)
+
+### Admin
+
+- Manage users
+- Edit company policies
+- Manage knowledge documents
+- Re-index policy and knowledge content into RAG collections
+
+![Admin Dashboard](static/Images/Admin%20Dashboard.png)
+
+![Admin Knowledge](static/Images/Admin%20-%20Employee%20Knowledge.png)
+
+---
+
+## AI Systems
+
+TalentForge uses AI where it changes the workflow, not where it merely adds sparkle.
+
+### 1. Resume Lab
+
+Implemented in `src/resume_lab.py`.
+
+Resume Lab parses PDF-derived text, repairs common extraction issues, identifies sections, validates LLM output, rejects unsupported invented claims, and falls back to grounded deterministic guidance when AI is unavailable.
+
+It supports:
+
+- Resume parsing
+- PDF text cleanup
+- Section detection
+- Resume scoring
+- Issue generation
+- Fix suggestions
+- Manual guidance when edits would invent facts
+- Safe application of fixes
+
+```mermaid
+flowchart TD
+    PDF[PDF Upload]
+    Extract[pypdf extraction]
+    Repair[Spacing + section repair]
+    Parse[Structured resume parse]
+    Analyze[LLM analysis attempt]
+    Validate[Grounding validator]
+    Fallback[Deterministic fallback]
+    Result[Resume Lab result]
+
+    PDF --> Extract --> Repair --> Parse --> Analyze --> Validate --> Result
+    Analyze -->|LLM unavailable or invalid| Fallback --> Result
+```
+
+### 2. Recruitment Intelligence
+
+Implemented in `src/services/recruitment_ai.py`, `agents/recruitment_analyst.py`, and `tasks/recruitment_task.py`.
+
+For each application, TalentForge can produce:
+
+- Fit score
+- Recommendation
+- Strengths
+- Weaknesses
+- Missing skills
+- Observations
+- Interview preparation questions
+- Per-job ranking
+
+If CrewAI or Groq fails, applications are still saved and scored through deterministic fallback logic.
+
+### 3. Adaptive Interview Engine
+
+Implemented across `src/api/routes/interview.py`, `src/services/interview_core.py`, `src/services/interview_status.py`, `src/services/hiring_intelligence.py`, `src/services/interview_consistency.py`, and `crew.py`.
+
+The interview system supports:
+
+- Start from resume
+- Start from application
+- Mock interview mode
+- Phase-aware interviews
+- Adaptive difficulty
+- Training modes
+- Interviewer personas
+- Proctoring violations
+- Auto-cancellation after violation threshold
+- Resume claim verification
+- Candidate-visible response sanitization
+- Hiring intelligence reports
+- Candidate comparison
+- Follow-up question generation
+- Leaderboards and top-candidate views
+
+The live interview flow combines deterministic state control with AI-generated evaluation.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Introduction
+    Introduction --> TechnicalDepth
+    TechnicalDepth --> BehavioralAssessment
+    BehavioralAssessment --> FinalEvaluation
+    FinalEvaluation --> Completed
+
+    Introduction: resume grounding
+    TechnicalDepth: domain-specific probing
+    BehavioralAssessment: communication and ownership
+    FinalEvaluation: summary and recommendation
+```
+
+### 4. Hiring Intelligence
+
+TalentForge does not treat an interview score as a black box. It produces decision context.
+
+The hiring intelligence layer calculates and stores:
+
+- Resume score
+- Interview score
+- Credibility score
+- Composite hiring score
+- Recommendation label
+- Competency breakdown
+- Communication metrics
+- Filler word counts
+- Timeline replay
+- Risks and follow-up topics
+- Candidate benchmarking
+
+The composite score is intentionally transparent:
+
+```text
+Hiring score = 35% resume + 40% interview + 25% credibility
+```
+
+### 5. RAG Copilot
+
+Implemented in `src/services/rag/**` and exposed through `/api/rag/chat`.
+
+TalentForge indexes and retrieves from separate knowledge collections:
+
+- `company_policies`
+- `job_descriptions`
+- `candidate_profiles`
+- `interview_reports`
+- `employee_knowledge`
+
+It supports:
+
+- Chroma vector storage
+- Hash embeddings by default
+- Optional OpenAI embeddings
+- Role-aware access control
+- Candidate-private retrieval filters
+- HR-wide hiring context
+- Employee policy and training knowledge
+- Hybrid database + RAG answers
+- Graceful fallback when vector retrieval is unavailable
+
+```mermaid
+flowchart TB
+    Jobs[Job postings]
+    Candidates[Candidate profiles]
+    Interviews[Interview reports]
+    Policies[Company policies]
+    EmployeeDocs[Employee knowledge]
+
+    Sync[RAG Sync Service]
+    Chroma[(Chroma Collections)]
+    Router[Query Router]
+    ACL[Role Access Control]
+    Chat[RAG Chat Service]
+    UI[HR Copilot / Career Assistant]
+
+    Jobs --> Sync
+    Candidates --> Sync
+    Interviews --> Sync
+    Policies --> Sync
+    EmployeeDocs --> Sync
+    Sync --> Chroma
+    UI --> ACL --> Router --> Chat --> Chroma
+```
+
+---
+
+## Architecture
+
+```mermaid
+flowchart LR
+    subgraph Frontend[React 19 + Vite SPA]
+        Login[Login]
+        Candidate[Candidate Dashboard]
+        HR[HR Dashboard]
+        Manager[Manager Dashboard]
+        Employee[Employee Dashboard]
+        Admin[Admin Console]
+        Assistant[Assistant Page]
+        InterviewUI[Interview Workspaces]
+    end
+
+    subgraph API[FastAPI Backend]
+        Main[src.main:app]
+        Auth[JWT + RBAC]
+        Routes[20 API Routers]
+        Static[SPA static fallback]
+    end
+
+    subgraph Services[Domain Services]
+        ResumeLab[Resume Lab]
+        RecruitmentAI[Recruitment AI]
+        InterviewCore[Interview Core]
+        HiringIntel[Hiring Intelligence]
+        RAG[RAG Services]
+        EmployeeAI[Employee AI]
+        Transcription[Groq Whisper]
+    end
+
+    subgraph Data[Persistence]
+        SQL[(SQLModel DB)]
+        Chroma[(Chroma Vector Store)]
+        Uploads[(Profile + Resume Documents)]
+        CrewStorage[(CrewAI Local Storage)]
+    end
+
+    Frontend --> API
+    Main --> Auth
+    Main --> Routes
+    Routes --> Services
+    Services --> SQL
+    RAG --> Chroma
+    Routes --> Uploads
+    Services --> CrewStorage
+    Main --> Static
+```
+
+---
+
+## Backend
+
+The backend is a FastAPI application at:
+
+```text
+src.main:app
+```
+
+It registers routers for:
+
+- Auth
+- Resume
+- Jobs
+- Applications
+- Candidates
+- Employees
+- Dashboard
+- Interview
+- Mock interview
+- Departments
+- Designations
+- Lifecycle
+- Tickets
+- Salary
+- Promotions
+- Notifications
+- Onboarding
+- Training
+- Profile
+- RAG
+- Admin
+
+The backend also serves the built frontend from `static/` with SPA fallback behavior.
+
+### Data Layer
+
+TalentForge uses SQLModel and supports SQLite for development and PostgreSQL for production.
+
+The schema includes models for:
+
+- Users and roles
+- Resumes
+- Job postings
+- Candidate applications
+- AI application analysis
+- Interview sessions
+- Mock interview sessions
+- Career coach memory
+- Candidate credibility reports
+- Interview intelligence reports
+- Employees
+- Attendance
+- Leave
+- Departments
+- Designations
+- Lifecycle events
+- Tickets
+- Salary history
+- Promotions
+- Notifications
+- Candidate and employee profiles
+- Candidate and employee documents
+- Onboarding templates and tasks
 - Training programs and assignments
-- Document verification queue
-- AI HR assistant chat
-- Dashboard: HR, manager, candidate, and employee views
+
+Database tables are created at startup, with idempotent migration helpers for evolving SQLite/PostgreSQL schemas.
+
+---
+
+## Frontend
+
+The frontend is a React 19 + Vite SPA in `frontend/`.
+
+It uses:
+
+- React Router 7 for role-based routing
+- Zustand for auth/layout state
+- Axios with request caching and auth handling
+- Framer Motion for motion
+- Recharts for dashboards
+- Lucide React for icons
+- TailwindCSS 4
+
+The frontend builds into:
+
+```text
+static/
+```
+
+FastAPI serves that build at `/`.
+
+---
+
+## Screenshots
+
+| Area | Preview |
+| --- | --- |
+| HR Copilot | ![HR Copilot](static/Images/HR%20Copilot.png) |
+| HR Documents | ![HR Documents](static/Images/HR-Doc%20Verification.png) |
+| HR Interview Intelligence | ![HR Interview Intelligence](static/Images/HR-Interview%20Intel.jpeg) |
+| HR Onboarding | ![HR Onboarding](static/Images/HR-OnBoarding.png) |
+| HR Promotions | ![HR Promotions](static/Images/HR-Promotion.png) |
+| Team Training | ![Team Training](static/Images/Team%20Training.png) |
+| Employee Training | ![Employee Training](static/Images/Employee%20-%20Tranning.png) |
+| Employee Chatbot | ![Employee Chatbot](static/Images/Employee%20-%20Chatbot.png) |
+| Career Timeline | ![Career Timeline](static/Images/Employee%20-%20Carrer%20Timeline.png) |
+
+---
 
 ## Tech Stack
 
-| Layer | Technology |
+| Layer | Implementation |
 | --- | --- |
-| Frontend (SPA) | React 19, Vite, TailwindCSS 4, Framer Motion, Zustand, Recharts, React Router 7, Axios, Lucide Icons |
-| Frontend (legacy) | HTML, CSS, JavaScript |
+| Frontend | React 19, Vite, React Router, Zustand, Axios, TailwindCSS, Framer Motion, Recharts, Lucide |
 | Backend | FastAPI, Uvicorn |
-| Database | SQLModel, SQLite (dev), PostgreSQL/Supabase (prod) |
-| AI orchestration | CrewAI |
-| LLM provider | Groq (llama-3.1-8b-instant) |
-| Audio transcription | Groq Whisper (whisper-large-v3) |
-| Authentication | JWT, bcrypt |
-| Resume parsing | pypdf |
-| Deployment | Docker, Render |
+| Database | SQLModel, SQLite, PostgreSQL |
+| Auth | JWT, bcrypt, role-based dependencies |
+| AI Orchestration | CrewAI |
+| LLM | Groq `llama-3.1-8b-instant` |
+| Transcription | Groq Whisper |
+| Resume Parsing | pypdf |
+| RAG | ChromaDB, hash embeddings by default, optional OpenAI embeddings |
+| Deployment | Docker, Render, Vercel static build support |
+| Tests | pytest, FastAPI TestClient, Playwright config for frontend e2e |
 
-## Quickstart
+---
 
-### Backend
+## Run Locally
 
-```bash
+### 1. Backend
+
+```powershell
+cd D:\GitHub\HRMS
+
 python -m venv .venv
-source .venv/bin/activate     # Linux/Mac
-# .\.venv\Scripts\activate    # Windows
+.\.venv\Scripts\activate
+
 pip install -r requirements.txt
-cp .env.example .env          # fill in GROQ_API_KEY at minimum
+
+copy .env.example .env
 uvicorn src.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-### React Frontend (optional)
+Backend:
 
-```bash
-cd frontend
+```text
+http://127.0.0.1:8000
+```
+
+API docs:
+
+```text
+http://127.0.0.1:8000/api/docs
+```
+
+Health check:
+
+```text
+http://127.0.0.1:8000/api/health
+```
+
+### 2. Frontend
+
+Open a second terminal:
+
+```powershell
+cd D:\GitHub\HRMS\frontend
+
 npm install
-npm run dev                   # starts Vite dev server on port 5173
+npm run dev
 ```
 
-### Access Points
+Frontend:
 
-| URL | Description |
-| --- | --- |
-| http://127.0.0.1:8000 | Legacy static frontend |
-| http://127.0.0.1:8000/api/docs | Swagger API docs |
-| http://127.0.0.1:5173 | React SPA (Vite dev server) |
-
-### Build React Frontend (deploy to `static/`)
-
-```bash
-cd frontend && npm run build
-# Output goes to ../static/ — served by FastAPI at /
+```text
+http://localhost:5173
 ```
 
-## Environment Variables
+The Vite dev server proxies API calls to the backend on port `8000`.
 
-Required:
+### 3. Create An Admin User
+
+```powershell
+cd D:\GitHub\HRMS
+.\.venv\Scripts\activate
+
+python -m scripts.bootstrap_user --username admin --password "CHANGE_ME" --role admin
+```
+
+Public registration creates candidate accounts. Use the bootstrap script for privileged roles.
+
+---
+
+## Environment
+
+Minimum local environment:
 
 ```env
-DATABASE_URL=sqlite:///./data/app.db         # SQLite (dev) or PostgreSQL (prod)
-GROQ_API_KEY=your_groq_api_key
+DATABASE_URL=sqlite:///./data/app.db
+GROQ_API_KEY=your_groq_key
 MODEL_NAME=llama-3.1-8b-instant
 SECRET_KEY=replace-with-a-random-32-plus-character-secret
 DEBUG=false
 ```
 
-PostgreSQL/Supabase:
+Optional RAG configuration:
 
 ```env
-DATABASE_URL=postgresql://postgres.YOUR_PROJECT_REF:YOUR_PASSWORD@aws-0-YOUR_REGION.pooler.supabase.com:5432/postgres?sslmode=require
+RAG_CHROMA_PATH=data/chroma
+RAG_EMBEDDING_PROVIDER=hash
+RAG_ANSWER_PROVIDER=llm
+RAG_ANSWER_MODEL=llama-3.1-8b-instant
+RAG_MAX_CONTEXT_CHARS=6000
+```
+
+Optional production/PostgreSQL configuration:
+
+```env
+DATABASE_URL=postgresql://...
 PGSSLMODE=require
 DATABASE_CONNECT_TIMEOUT=10
 AUTO_CREATE_DB_SCHEMA=true
 SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
 SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 ```
 
-Keep `.env` private. It is ignored by Git.
+Optional job API configuration:
 
-## Role-Based Access Control
-
-Public registration always creates a `candidate` account.
-
-| Role | Access |
-| --- | --- |
-| candidate | Browse jobs, apply with PDF resume, view own applications, interview, profile |
-| hr | Manage jobs, view candidates, review applications, rank applicants, manage departments/designations |
-| manager | View candidates, review applications, rank applicants |
-| admin | Bypasses role checks for all protected backend routes |
-| employee | View dashboard, attendance, leave, skill gap, tickets, training, onboarding, profile |
-
-Create privileged users:
-
-```bash
-python -m scripts.bootstrap_user --username admin --password "CHANGE_ME" --role admin
-python -m scripts.bootstrap_user --username hr_user --password "CHANGE_ME" --role hr
+```env
+JOOBLE_API_KEY=your_jooble_key
+RAPIDAPI_KEY=your_rapidapi_key
 ```
 
-After changing a user's role, log out and log back in so the frontend receives a new JWT and refreshes the stored user role.
+---
 
-## API Routes
+## Build The Frontend For FastAPI
 
-| Router | Prefix | Description |
-|--------|--------|-------------|
-| Auth | `/api/auth` | Register, Login |
-| Resume | `/api/resume` | Upload PDF, get parsed resume, lab analyze/fix/rewrite |
-| Jobs | `/api/jobs` | Job CRUD (HR creates, candidate reads) |
-| Applications | `/api/applications` | Apply, list, AI analyze, rank candidates |
-| Candidates | `/api/candidates` | List/get candidates |
-| Employees | `/api/employees` | List/get, dashboard, attendance, leave, skill gap, AI assistant |
-| Dashboard | `/api/dashboard` | HR, candidate, employee, manager aggregated data |
-| Interview | `/api/interview` | 18 endpoints: start, answer, sessions, coaching, leaderboard, credibility, compare |
-| Training | `/api/training` | Programs, assignments, progress tracking |
-| Profile | `/api/profile` | Candidate/employee profiles, document upload/review |
-| Onboarding | `/api/onboarding` | Templates, tasks, plans, required documents |
-| Lifecycle | `/api/lifecycle` | Employee lifecycle events |
-| Attendance | `/api/employees/attendance` | Check-in, check-out, records |
-| Leave | `/api/employees/leave` | Apply, approve/reject, list |
-| Notifications | `/api/notifications` | List, mark read |
-| Tickets | `/api/tickets` | Create, assign, track employee tickets |
-| Departments | `/api/departments` | CRUD departments |
-| Designations | `/api/designations` | CRUD designations |
-| Salary | `/api/salary` | Salary revisions, history |
-| Promotions | `/api/promotions` | Promotion history |
-
-## Data Migration
-
-To migrate legacy SQLite data into Supabase PostgreSQL:
-
-```bash
-python -m scripts.migrate_sqlite_to_postgres --source path/to/legacy.db
+```powershell
+cd frontend
+npm run build
 ```
 
-The destination database should be empty before migration.
+Vite outputs the production SPA to:
 
-## Testing
-
-```bash
-pytest tests/ -v
-pytest tests/test_api.py -v
+```text
+../static/
 ```
 
-## Deployment
+The backend then serves the application from:
 
-### Docker
+```text
+http://127.0.0.1:8000
+```
+
+---
+
+## Docker
+
+Build and run the app:
 
 ```bash
 docker build -t talentforge-ai .
 docker run --env-file .env -p 8000:8000 talentforge-ai
 ```
 
-### Render
+The Docker image runs:
 
-Render deployment is supported through `render.yaml`. Configure at least `DATABASE_URL`, `SECRET_KEY`, and `GROQ_API_KEY` in Render.
+```text
+uvicorn src.main:app --host 0.0.0.0 --port ${PORT:-8000}
+```
 
-See [docs/deployment.md](docs/deployment.md) for the full deployment guide.
+A PostgreSQL-only local service is available through Docker Compose:
 
-## AI Reliability
+```bash
+docker compose up postgres
+```
 
-If Groq or CrewAI is unavailable, applications are still saved. TalentForge falls back to deterministic scoring and still returns a recommendation, explainability summary, and interview preparation material.
+---
+
+## Render Deployment
+
+`render.yaml` defines a Docker web service with:
+
+- `/api/health` health check
+- generated `SECRET_KEY`
+- PostgreSQL SSL mode
+- configurable `DATABASE_URL`
+- configurable Supabase keys
+- configurable `GROQ_API_KEY`
+- `MODEL_NAME=llama-3.1-8b-instant`
+
+---
+
+## Vercel Static Deployment
+
+`vercel.json` serves the built `static/` directory as a static SPA.
+
+That mode is appropriate for frontend-only static hosting. The API still needs a backend deployment.
+
+---
+
+## Testing
+
+Run backend tests:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests -v
+```
+
+Targeted examples:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests/test_api.py -v
+.\.venv\Scripts\python.exe -m pytest tests/test_resume_lab.py -v
+.\.venv\Scripts\python.exe -m pytest tests/test_rag_query_router.py -v
+.\.venv\Scripts\python.exe -m pytest tests/test_proctoring.py -v
+```
+
+Frontend lint:
+
+```powershell
+cd frontend
+npm run lint
+```
+
+Frontend build:
+
+```powershell
+cd frontend
+npm run build
+```
+
+The test suite covers authentication, RBAC, application flow, resume analysis, interview state, proctoring, hiring intelligence, onboarding/training, job lifecycle rules, RAG sync, RAG access control, and RAG query routing.
+
+---
+
+## Repository Map
+
+```text
+src/
+  main.py                       FastAPI app, router registration, startup, static serving
+  config.py                     Settings and environment validation
+  resume_lab.py                 Resume parsing, repair, analysis validation, safe fixes
+  database/connection.py        SQLModel engine, startup schema creation, idempotent migrations
+  models/__init__.py            Core database models
+  api/routes/                   REST API routers
+  services/
+    recruitment_ai.py           Application analysis and ranking
+    interview_core.py           Interview state, phase, persona, training logic
+    interview_status.py         Interview phase/turn requirements
+    hiring_intelligence.py      Final interview intelligence reports
+    interview_consistency.py    Resume claim vs interview credibility analysis
+    employee_ai.py              Skill gap analysis and HR assistant behavior
+    rag/                        Chroma, embeddings, retrieval, sync, query routing
+agents/                         CrewAI agent definitions
+tasks/                          CrewAI task definitions
+utils/                          PDF parsing, job search, scoring helpers
+frontend/                       React 19 + Vite SPA
+static/                         Built frontend and screenshots
+scripts/                        Operational scripts
+tests/                          Backend test suite
+Dockerfile                      Production container
+render.yaml                     Render deployment
+vercel.json                     Static SPA deployment
+```
+
+---
+
+## License
+
+TalentForge AI is released under the Apache License 2.0. See [LICENSE](LICENSE.txt) for details.
