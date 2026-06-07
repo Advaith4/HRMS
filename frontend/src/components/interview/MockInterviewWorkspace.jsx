@@ -19,6 +19,7 @@ export default function MockInterviewWorkspace({ session, onEnd }) {
       onTranscribeAudio={transcribeAudio}
       onRecordProctoringViolation={handleRecordProctoringViolation}
       onCompleteSession={completeMockInterview}
+      isMock={true}
     />
   )
 }

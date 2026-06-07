@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { abandonSession, startInterviewForApplication } from '../../api/interview'
+import { useLayoutStore } from '../../store/layoutStore'
 import { getCandidateDashboardData } from '../../api'
 import InterviewWorkspace from '../../components/interview/InterviewWorkspace'
 import { Briefcase, AlertTriangle, Shield, CheckCircle, Clock, ArrowRight } from 'lucide-react'
@@ -11,6 +12,12 @@ export default function InterviewPage() {
   const [error, setError] = useState(null)
   const [applications, setApplications] = useState([])
   const [loadingApps, setLoadingApps] = useState(false)
+  const setFullscreen = useLayoutStore(state => state.setFullscreen)
+
+  useEffect(() => {
+    setFullscreen(!!session)
+    return () => setFullscreen(false)
+  }, [session, setFullscreen])
 
   const handleStartForApplication = async (appId) => {
     setIsLoading(true)

@@ -228,6 +228,7 @@ def start_mock_interview(
         "session_intro": session_intro,
         "phase": current_phase,
         "messages": [first_msg],
+        "total_questions": 10,
     }
 
 @router.post("/answer")
@@ -432,14 +433,23 @@ def submit_mock_answer(
         db.add(rec)
         db.commit()
 
+    total_questions = 10
+    answers_so_far = len(state["answers"])
+    interview_complete = answers_so_far >= total_questions
+
     return {
         **result,
         "evaluation": feedback_msg,
-        "next_question": next_q,
+        "next_question": next_q if not interview_complete else "",
+        "interview_complete": interview_complete,
+        "messages": state["messages"],
+        "session_turn": answers_so_far,
         "difficulty": state["difficulty"],
         "phase": current_phase,
+        "phase_goal": "",
         "focus_area": focus_area,
         "avg_score": rec.avg_score if rec and rec.avg_score is not None else score,
+        "total_questions": total_questions,
     }
 
 from src.services.mock_interview_summary import generate_mock_interview_summary
@@ -488,7 +498,19 @@ def complete_mock_interview(
     if session_id in _sessions:
         del _sessions[session_id]
         
-    return {"status": "completed", "avg_score": avg}
+    return {
+        "status": "completed",
+        "avg_score": avg,
+        "messages": msgs,
+        "role": rec.role,
+        "difficulty": rec.difficulty,
+        "training_mode": rec.training_mode,
+        "session_token": rec.session_token,
+        "db_id": rec.id,
+        "ai_summary": md_summary,
+        "summary_data": summary_data,
+        "total_questions": 10,
+    }
 
 @router.get("/sessions")
 def list_mock_sessions(db: Session = Depends(get_session), current_user: User = Depends(get_current_user)):

@@ -1,5 +1,6 @@
 import { Outlet, Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
+import { useLayoutStore } from '../../store/layoutStore'
 import { Sidebar } from './Sidebar'
 import { TopBar } from './TopBar'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -7,7 +8,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 export const Layout = () => {
   const { isAuthenticated } = useAuthStore()
   const location = useLocation()
-  const isInterviewRoute = location.pathname === '/interview' || location.pathname === '/mock-interview'
+  
+  const isFullscreen = useLayoutStore(state => state.isFullscreen)
+  const isInterviewRoute = isFullscreen
 
   // Protect routes - redirect to /login if not authenticated
   if (!isAuthenticated) {

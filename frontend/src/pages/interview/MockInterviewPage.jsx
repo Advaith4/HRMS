@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { startMockInterview } from '../../api/mock_interview'
+import { useLayoutStore } from '../../store/layoutStore'
 import MockInterviewWorkspace from '../../components/interview/MockInterviewWorkspace'
 import { MessageCircle, Settings, Play, Target, Shield, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -8,6 +9,13 @@ export default function MockInterviewPage() {
   const [session, setSession] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
+  
+  const setFullscreen = useLayoutStore(state => state.setFullscreen)
+
+  useEffect(() => {
+    setFullscreen(!!session)
+    return () => setFullscreen(false)
+  }, [session, setFullscreen])
   
   // Practice form state
   const [config, setConfig] = useState({
@@ -54,7 +62,7 @@ export default function MockInterviewPage() {
 
   if (session) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="h-full min-h-0 bg-gray-50">
         <MockInterviewWorkspace session={session} onEnd={handleEnd} />
       </div>
     )
