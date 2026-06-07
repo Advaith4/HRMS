@@ -18,6 +18,8 @@ import {
 } from '../api'
 import toast from 'react-hot-toast'
 
+const USER_ROLES = ['candidate', 'employee', 'hr', 'manager', 'admin']
+
 export const AdminDashboard = () => {
   const navigate = useNavigate()
   const location = useLocation()
