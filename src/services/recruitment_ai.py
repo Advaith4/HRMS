@@ -206,17 +206,28 @@ def _normalize_ai_payload(
         recommendation = _recommendation_for_score(score)
 
     prep = payload.get("interview_prep") if isinstance(payload.get("interview_prep"), dict) else {}
+    
+    # Check if AI explicitly returned lists (even if empty) to avoid incorrect fallback overrides
+    strengths = _string_list(payload.get("strengths")) if payload.get("strengths") is not None else fallback["strengths"]
+    weaknesses = _string_list(payload.get("weaknesses")) if payload.get("weaknesses") is not None else fallback["weaknesses"]
+    missing_skills = _string_list(payload.get("missing_skills")) if payload.get("missing_skills") is not None else fallback["missing_skills"]
+    observations = _string_list(payload.get("observations")) if payload.get("observations") is not None else fallback["observations"]
+    
+    tech_q = _string_list(prep.get("technical_questions")) if prep.get("technical_questions") is not None else fallback["technical_questions"]
+    behav_q = _string_list(prep.get("behavioral_questions")) if prep.get("behavioral_questions") is not None else fallback["behavioral_questions"]
+    prob_a = _string_list(prep.get("probing_areas")) if prep.get("probing_areas") is not None else fallback["probing_areas"]
+
     return {
         "fit_score": score,
         "recommendation": recommendation,
         "summary": str(payload.get("summary") or fallback["summary"]).strip()[:2000],
-        "strengths": _string_list(payload.get("strengths")) or fallback["strengths"],
-        "weaknesses": _string_list(payload.get("weaknesses")) or fallback["weaknesses"],
-        "missing_skills": _string_list(payload.get("missing_skills")) or fallback["missing_skills"],
-        "observations": _string_list(payload.get("observations")) or fallback["observations"],
-        "technical_questions": _string_list(prep.get("technical_questions")) or fallback["technical_questions"],
-        "behavioral_questions": _string_list(prep.get("behavioral_questions")) or fallback["behavioral_questions"],
-        "probing_areas": _string_list(prep.get("probing_areas")) or fallback["probing_areas"],
+        "strengths": strengths,
+        "weaknesses": weaknesses,
+        "missing_skills": missing_skills,
+        "observations": observations,
+        "technical_questions": tech_q,
+        "behavioral_questions": behav_q,
+        "probing_areas": prob_a,
         "status": "completed",
         "source": source,
         "error_message": None,
@@ -392,17 +403,34 @@ def _split_required_skills(value: str) -> list[str]:
     return _dedupe([part.strip(" .:-") for part in parts if part.strip(" .:-")])
 
 
+FILLER_WORDS = {
+    "experience", "with", "knowledge", "of", "strong", "understanding", "in",
+    "skills", "ability", "to", "demonstrated", "proven", "hands-on", "using",
+    "exposure", "familiarity", "practical"
+}
+
+
 def _skill_matches(skill: str, resume_terms: set[str]) -> bool:
     skill_terms = _term_set(skill)
-    return bool(skill_terms and skill_terms.issubset(resume_terms))
+    # Remove common filler words to focus on the actual skill name
+    core_terms = {term for term in skill_terms if term not in FILLER_WORDS}
+    if not core_terms:
+        core_terms = skill_terms
+    return bool(core_terms and core_terms.issubset(resume_terms))
 
 
 def _term_set(text: str) -> set[str]:
-    return {
-        word.lower()
-        for word in re.findall(r"[A-Za-z][A-Za-z0-9+.#-]{1,}", text or "")
-        if len(word) > 1
-    }
+    words = re.findall(r"[A-Za-z][A-Za-z0-9+.#-]{1,}", text or "")
+    terms = set()
+    for w in words:
+        w_low = w.lower().rstrip(".")
+        if not w_low:
+            continue
+        # Simple singularization to avoid singular/plural mismatches (e.g. apis -> api)
+        if w_low.endswith("s") and len(w_low) > 3 and not w_low.endswith("ss"):
+            w_low = w_low[:-1]
+        terms.add(w_low)
+    return terms
 
 
 def _extract_json(raw: str) -> dict[str, Any] | None:

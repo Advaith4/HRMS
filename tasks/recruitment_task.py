@@ -25,24 +25,24 @@ PARSED RESUME:
 Rules:
 - Score candidate fit from 0 to 100.
 - Recommendation must be exactly one of: Strongly Recommended, Recommended, Consider, Reject.
-- Missing skills must include important job requirements not clearly proven in the resume.
+- Missing skills must only include job requirements that are completely absent from the resume. If a skill is listed anywhere on the resume (e.g. in the skills section), do not flag it as missing; instead, list it as a weakness or probing area if it lacks supporting project or work experience evidence.
 - Strengths and weaknesses must be recruiter-friendly and evidence-based.
 - Generate practical interview questions that probe uncertainty and validate claims.
 - Do not invent employers, metrics, degrees, skills, or experience.
 
 STRICT JSON SHAPE:
 {{
-  "fit_score": 78,
-  "recommendation": "Recommended",
-  "summary": "Short recruiter-facing summary.",
-  "strengths": ["strength 1", "strength 2"],
-  "weaknesses": ["weakness 1", "weakness 2"],
-  "missing_skills": ["missing skill"],
-  "observations": ["observation 1", "observation 2"],
+  "fit_score": number,                   // 0-100 integer; calculated fit score based on candidate-job match
+  "recommendation": "Strongly Recommended" | "Recommended" | "Consider" | "Reject", // recommendation based on the calculated fit_score
+  "summary": "str",                      // short recruiter-facing summary
+  "strengths": ["str"],                  // key candidate strengths
+  "weaknesses": ["str"],                 // potential candidate weaknesses
+  "missing_skills": ["str"],             // skills from job description missing in the resume
+  "observations": ["str"],               // other relevant screening observations
   "interview_prep": {{
-    "technical_questions": ["question 1", "question 2", "question 3"],
-    "behavioral_questions": ["question 1", "question 2"],
-    "probing_areas": ["area 1", "area 2"]
+    "technical_questions": ["str"],      // tailored technical questions
+    "behavioral_questions": ["str"],     // tailored behavioral questions
+    "probing_areas": ["str"]             // topics needing deeper validation
   }}
 }}
 """.format(

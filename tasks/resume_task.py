@@ -54,12 +54,12 @@ Return ONLY JSON. Do not include any extra text.
 
 OUTPUT FORMAT (STRICT JSON ONLY):
 {{
-  "score": 82,
+  "score": number,                       // 0-100 integer; calculated overall resume score
   "breakdown": {{
-    "impact": 60,
-    "clarity": 75,
-    "structure": 85,
-    "ats": 80
+    "impact": number,                    // 0-100 integer; score for impact
+    "clarity": number,                   // 0-100 integer; score for clarity
+    "structure": number,                 // 0-100 integer; score for structure
+    "ats": number                        // 0-100 integer; score for ATS readiness
   }},
   "sections": [
     {{
