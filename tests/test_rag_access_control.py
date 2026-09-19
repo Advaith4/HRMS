@@ -9,12 +9,12 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
 from src.api.routes.rag import get_rag_chat_service
-from src.main import app
 from src.database.connection import create_db_and_tables, engine
+from src.main import app
 from src.models import CandidateApplication, JobPosting, User
 from src.services.rag.access_control import RAGAccessControl
-from src.services.rag.chroma_service import ChromaService
 from src.services.rag.chat_service import RAGChatService
+from src.services.rag.chroma_service import ChromaService
 from src.services.rag.embedding_service import EmbeddingService, HashEmbeddingProvider
 from src.services.rag.retrieval_service import RetrievalService
 from src.services.rag.sync_service import RAGSyncService

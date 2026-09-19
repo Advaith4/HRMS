@@ -1,17 +1,17 @@
 import os
 import uuid
-from datetime import date, datetime
+from datetime import date
 
 os.environ["AUTO_CREATE_DB_SCHEMA"] = "true"
 os.environ["SECRET_KEY"] = "test-secret-key-for-talentforge-phase2a"
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select, text
-import pytest
 
-from src.main import app
 from src.database.connection import create_db_and_tables, engine
-from src.models import Employee, User, OnboardingTemplate, OnboardingTask, EmployeeOnboarding, EmployeeOnboardingTask, TrainingProgram, TrainingAssignment
+from src.main import app
+from src.models import Employee, User
 
 create_db_and_tables()
 client = TestClient(app)

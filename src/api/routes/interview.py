@@ -5,23 +5,39 @@ POST /api/interview/answer        – submit answer, get eval + next question (p
 GET  /api/interview/sessions      – list all past sessions for current user
 GET  /api/interview/sessions/{id} – get full message history of a session
 """
-import uuid
+import hashlib
 import json
 import logging
 import os
 import time
-import hashlib
-from difflib import SequenceMatcher
+import uuid
 from datetime import datetime
-from typing import Any, Optional
+from difflib import SequenceMatcher
+from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks, Form
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    UploadFile,
+)
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
-from src.database.connection import get_session
-from src.models import CareerCoachMemory, CandidateApplication, InterviewSession, Resume, User, CandidateCredibilityReport, HRNotification, JobPosting, InterviewIntelligenceReport
 from src.api.dependencies import get_current_user
+from src.database.connection import get_session
+from src.models import (
+    CandidateApplication,
+    CandidateCredibilityReport,
+    InterviewIntelligenceReport,
+    InterviewSession,
+    JobPosting,
+    Resume,
+    User,
+)
 from src.resume_lab import analyze_resume, dumps_json, load_json_field, parse_resume
 from src.services.interview_status import (
     INTERVIEW_STATUS_ACTIVE,
@@ -40,43 +56,35 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/interview", tags=["interview"])
 
 from src.services.interview_core import (
-    _sessions,
-    _normalize_training_mode,
-    _normalize_persona,
-    _get_or_create_memory,
-    _latest_candidate_resume_text,
-    _build_personalization_context,
-    _memory_snapshot,
-    _phase_meta,
-    _normalize_focus_type,
-    _update_coach_memory,
     INTERVIEWER_PERSONAS,
+    PHASE_TURN_TARGETS,
     TRAINING_MODES,
-    _save_session_state,
-    _state_from_record,
+    _build_personalization_context,
+    _choose_focus_mode,
     _ensure_live_state,
-    _is_interview_complete_after_answer,
-    _phase_entry_question,
     _format_feedback_message,
     _generate_daily_plan,
-    _unique_strings,
-    _recurring_area_label,
-    _upsert_weak_area_counts,
-    _derive_section_scores,
-    _derive_weak_areas,
-    _build_resume_context,
-    _choose_focus_mode,
+    _get_or_create_memory,
+    _is_interview_complete_after_answer,
+    _latest_candidate_resume_text,
+    _memory_snapshot,
     _normalize_and_repair_evaluation,
+    _normalize_focus_type,
+    _normalize_persona,
+    _normalize_training_mode,
+    _notify_hr,
+    _phase_meta,
     _question_mix_for_mode,
     _safe_json_load,
-    INTERVIEW_PHASES,
-    PHASE_SEQUENCE,
-    PHASE_TURN_TARGETS,
-    _notify_hr
+    _save_session_state,
+    _sessions,
+    _state_from_record,
+    _update_coach_memory,
 )
 
+
 class StartForApplicationReq(BaseModel):
-    application_id: Optional[int] = None
+    application_id: int | None = None
     role: str = Field(default="", max_length=120)
     force_reanalyze: bool = False
     domain_focus: str = Field(default="", max_length=120)
@@ -91,7 +99,7 @@ class AnswerReq(BaseModel):
 class ViolationReq(BaseModel):
     violation_type: str
     detail: str
-    duration_ms: Optional[int] = None
+    duration_ms: int | None = None
     severity: str = Field(default="medium", max_length=20)
 
 class CompareReq(BaseModel):
@@ -1241,7 +1249,10 @@ def get_credibility_report(
     current_user: User = Depends(get_current_user),
 ):
     """Run credibility analysis comparing resume claims against interview evidence."""
-    from src.services.interview_consistency import analyze_credibility, credibility_payload
+    from src.services.interview_consistency import (
+        analyze_credibility,
+        credibility_payload,
+    )
 
     rec = db.get(InterviewSession, session_id)
     if not rec:
@@ -1283,7 +1294,7 @@ def intelligence_leaderboard(
     if current_user.role not in ("hr", "manager", "admin"):
         raise HTTPException(status_code=403, detail="HR/manager access required")
 
-    from src.models import CandidateApplication, ApplicationAIAnalysis, CandidateApplication as CA
+    from src.models import ApplicationAIAnalysis
 
     sessions = db.exec(
         select(InterviewSession).where(InterviewSession.status.in_(list(VISIBLE_INTERVIEW_STATUSES))).order_by(InterviewSession.created_at.desc())
@@ -1358,7 +1369,7 @@ def intelligence_candidate_report(
     if current_user.role not in ("hr", "manager", "admin"):
         raise HTTPException(status_code=403, detail="HR/manager access required")
 
-    from src.models import CandidateApplication, ApplicationAIAnalysis
+    from src.models import ApplicationAIAnalysis, CandidateApplication
 
     candidate = db.get(User, candidate_id)
     if not candidate:
@@ -1518,7 +1529,7 @@ def intelligence_compare(
             if not candidate:
                 continue
 
-            from src.models import CandidateApplication, ApplicationAIAnalysis
+            from src.models import ApplicationAIAnalysis, CandidateApplication
             app = db.exec(
                 select(CandidateApplication).where(CandidateApplication.candidate_user_id == cid).order_by(CandidateApplication.application_date.desc())
             ).first()
@@ -1625,7 +1636,7 @@ def intelligence_top_candidates(
     if current_user.role not in ("hr", "manager", "admin"):
         raise HTTPException(status_code=403, detail="HR/manager access required")
 
-    from src.models import CandidateApplication, ApplicationAIAnalysis
+    from src.models import ApplicationAIAnalysis, CandidateApplication
 
     sessions = db.exec(
         select(InterviewSession).where(InterviewSession.status.in_(list(SUCCESSFUL_INTERVIEW_STATUSES))).order_by(InterviewSession.created_at.desc())
@@ -1711,8 +1722,8 @@ def intelligence_followup_questions(
 @router.post("/transcribe")
 async def transcribe_audio(
     audio_file: UploadFile = File(...),
-    duration_seconds: Optional[float] = Form(default=None),
-    request_id: Optional[str] = Form(default=None),
+    duration_seconds: float | None = Form(default=None),
+    request_id: str | None = Form(default=None),
     current_user: User = Depends(get_current_user),
 ):
     """Transcribe an audio file using Groq Whisper."""

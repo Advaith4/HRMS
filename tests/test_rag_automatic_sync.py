@@ -9,8 +9,8 @@ os.environ["SECRET_KEY"] = "test-secret-key-for-talentforge"
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
-from src.main import app
 from src.database.connection import create_db_and_tables, engine
+from src.main import app
 from src.models import CandidateApplication, InterviewSession, JobPosting, User
 from src.services.hiring_intelligence import save_hiring_intelligence_results
 from src.services.rag.chroma_service import ChromaService

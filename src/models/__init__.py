@@ -1,5 +1,6 @@
-from typing import Optional
 from datetime import date, datetime
+from typing import Optional
+
 from sqlmodel import Field, SQLModel
 
 USER_ROLES = {"candidate", "employee", "hr", "manager", "admin"}
@@ -13,13 +14,13 @@ class User(SQLModel, table=True):
     """Registered user. Password stored as bcrypt hash."""
     __tablename__ = "users"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     username: str = Field(index=True, unique=True, max_length=50)
     hashed_password: str
     role: str = Field(default="candidate", max_length=20, index=True)
-    target_role: Optional[str] = Field(default=None, max_length=100)
-    location: Optional[str] = Field(default="India", max_length=100)
-    experience: Optional[str] = Field(default="Entry-level", max_length=50)
+    target_role: str | None = Field(default=None, max_length=100)
+    location: str | None = Field(default="India", max_length=100)
+    experience: str | None = Field(default="Entry-level", max_length=50)
     is_active: bool = Field(default=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -28,13 +29,13 @@ class Resume(SQLModel, table=True):
     """Latest resume text and interactive Resume Lab state for a user."""
     __tablename__ = "resumes"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="users.id", index=True)
     raw_text: str
-    original_text: Optional[str] = None
-    current_text: Optional[str] = None
-    parsed_resume: Optional[str] = None
-    last_analysis: Optional[str] = None
+    original_text: str | None = None
+    current_text: str | None = None
+    parsed_resume: str | None = None
+    last_analysis: str | None = None
     applied_fixes: str = Field(default="[]")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
@@ -44,13 +45,13 @@ class JobApplication(SQLModel, table=True):
     """Tracked job with AI-tailored resume bullets."""
     __tablename__ = "job_applications"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="users.id", index=True)
-    company_name: Optional[str] = Field(default=None, max_length=200)
+    company_name: str | None = Field(default=None, max_length=200)
     job_title: str = Field(max_length=200)
-    job_description_url: Optional[str] = Field(default=None, max_length=500)
+    job_description_url: str | None = Field(default=None, max_length=500)
     status: str = Field(default="Bookmarked", max_length=50)
-    tailored_resume_bullets: Optional[str] = None  # JSON array stored as text
+    tailored_resume_bullets: str | None = None  # JSON array stored as text
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
@@ -58,7 +59,7 @@ class InterviewSession(SQLModel, table=True):
     """Persisted mock interview session with full chat history."""
     __tablename__ = "interview_sessions"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="users.id", index=True)
     session_token: str = Field(index=True, unique=True)   # UUID hex — links to in-memory state
     role: str = Field(max_length=100)
@@ -67,21 +68,21 @@ class InterviewSession(SQLModel, table=True):
     interviewer_persona: str = Field(default="balanced", max_length=40)
     messages: str = Field(default="[]")  # JSON: [{role, content, score?, timestamp}]
     personalization_context: str = Field(default="{}")  # JSON: resume weaknesses, section scores, focus mix
-    avg_score: Optional[float] = None
-    application_id: Optional[int] = Field(default=None, foreign_key="candidate_applications.id", index=True)
+    avg_score: float | None = None
+    application_id: int | None = Field(default=None, foreign_key="candidate_applications.id", index=True)
     violations_count: int = Field(default=0)
     violations: str = Field(default="[]")  # JSON: [{type, detail, timestamp}]
-    cancellation_reason: Optional[str] = None
+    cancellation_reason: str | None = None
     status: str = Field(default="active", max_length=20)  # active | completed | cancelled
     
     # Phase 6 & 7 Hiring Intelligence JSON payloads (stored as text)
-    competency_scores: Optional[str] = Field(default=None)
-    job_fit_report: Optional[str] = Field(default=None)
-    communication_metrics: Optional[str] = Field(default=None)
-    behavioral_report: Optional[str] = Field(default=None)
-    hiring_risks: Optional[str] = Field(default=None)
-    timeline_replay: Optional[str] = Field(default=None)
-    benchmarking: Optional[str] = Field(default=None)
+    competency_scores: str | None = Field(default=None)
+    job_fit_report: str | None = Field(default=None)
+    communication_metrics: str | None = Field(default=None)
+    behavioral_report: str | None = Field(default=None)
+    hiring_risks: str | None = Field(default=None)
+    timeline_replay: str | None = Field(default=None)
+    benchmarking: str | None = Field(default=None)
 
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
@@ -91,7 +92,7 @@ class MockInterviewSession(SQLModel, table=True):
     """Independent mock interview practice session for candidates."""
     __tablename__ = "mock_interview_sessions"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="users.id", index=True)
     session_token: str = Field(index=True, unique=True)
     role: str = Field(max_length=100)
@@ -102,11 +103,11 @@ class MockInterviewSession(SQLModel, table=True):
     resume_source: str = Field(default="none", max_length=50)    # existing, uploaded, none
     messages: str = Field(default="[]")
     personalization_context: str = Field(default="{}")
-    avg_score: Optional[float] = None
+    avg_score: float | None = None
     status: str = Field(default="active", max_length=20)
     
     # Mock specific completions
-    ai_summary: Optional[str] = None
+    ai_summary: str | None = None
     strengths: str = Field(default="[]")
     weaknesses: str = Field(default="[]")
     improvement_recommendations: str = Field(default="[]")
@@ -119,16 +120,16 @@ class CareerCoachMemory(SQLModel, table=True):
     """Long-term coaching memory synthesized from resume analysis and interview sessions."""
     __tablename__ = "career_coach_memory"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="users.id", index=True, unique=True)
     recurring_weak_areas: str = Field(default="[]")  # JSON: [{area, count, last_seen}]
     score_trend: str = Field(default="[]")  # JSON: recent answer scores and focus areas
     session_history: str = Field(default="[]")  # JSON: compact session summaries
-    daily_plan: Optional[str] = None  # JSON: latest generated coaching plan
+    daily_plan: str | None = None  # JSON: latest generated coaching plan
     preferred_persona: str = Field(default="balanced", max_length=40)
     preferred_training_mode: str = Field(default="adaptive", max_length=40)
     session_count: int = Field(default=0)
-    avg_answer_score: Optional[float] = None
+    avg_answer_score: float | None = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -137,7 +138,7 @@ class JobPosting(SQLModel, table=True):
     """Internal HR-created job opening for TalentForge AI."""
     __tablename__ = "job_postings"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     title: str = Field(max_length=200)
     description: str
     required_skills: str = Field(default="")
@@ -153,7 +154,7 @@ class CandidateApplication(SQLModel, table=True):
     """Candidate application with parsed resume text."""
     __tablename__ = "candidate_applications"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     candidate_user_id: int = Field(foreign_key="users.id", index=True)
     job_id: int = Field(foreign_key="job_postings.id", index=True)
     resume_text: str
@@ -165,7 +166,7 @@ class ApplicationAIAnalysis(SQLModel, table=True):
     """AI recruitment intelligence output for a candidate application."""
     __tablename__ = "application_ai_analyses"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     application_id: int = Field(foreign_key="candidate_applications.id", index=True, unique=True)
     fit_score: int = Field(default=0)
     recommendation: str = Field(default="Consider", max_length=40, index=True)
@@ -178,7 +179,7 @@ class ApplicationAIAnalysis(SQLModel, table=True):
     behavioral_questions: str = Field(default="[]")
     probing_areas: str = Field(default="[]")
     status: str = Field(default="pending", max_length=30, index=True)
-    error_message: Optional[str] = None
+    error_message: str | None = None
     source: str = Field(default="fallback", max_length=40)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
@@ -188,27 +189,27 @@ class Employee(SQLModel, table=True):
     """Employee profile created after a candidate is hired."""
     __tablename__ = "employees"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="users.id", index=True, unique=True)
     employee_code: str = Field(index=True, unique=True, max_length=40)
     department: str = Field(default="", max_length=120)
     designation: str = Field(default="", max_length=120)
-    salary: Optional[float] = None
-    joining_date: Optional[date] = None
+    salary: float | None = None
+    joining_date: date | None = None
     skills: str = Field(default="")
-    full_name: Optional[str] = Field(default=None, max_length=200)
-    email: Optional[str] = Field(default=None, max_length=200)
-    phone: Optional[str] = Field(default=None, max_length=30)
-    address: Optional[str] = Field(default=None, max_length=500)
-    date_of_birth: Optional[date] = None
-    emergency_contact: Optional[str] = Field(default=None, max_length=200)
+    full_name: str | None = Field(default=None, max_length=200)
+    email: str | None = Field(default=None, max_length=200)
+    phone: str | None = Field(default=None, max_length=30)
+    address: str | None = Field(default=None, max_length=500)
+    date_of_birth: date | None = None
+    emergency_contact: str | None = Field(default=None, max_length=200)
     status: str = Field(default="Active", max_length=30)
-    work_location: Optional[str] = Field(default=None, max_length=100)
-    manager_id: Optional[int] = Field(default=None, foreign_key="users.id")
-    department_id: Optional[int] = Field(default=None, foreign_key="departments.id")
-    designation_id: Optional[int] = Field(default=None, foreign_key="designations.id")
+    work_location: str | None = Field(default=None, max_length=100)
+    manager_id: int | None = Field(default=None, foreign_key="users.id")
+    department_id: int | None = Field(default=None, foreign_key="departments.id")
+    designation_id: int | None = Field(default=None, foreign_key="designations.id")
     certifications: str = Field(default="", max_length=1000)
-    years_of_experience: Optional[float] = None
+    years_of_experience: float | None = None
 
 
 
@@ -216,12 +217,12 @@ class AttendanceRecord(SQLModel, table=True):
     """Daily employee attendance check-in/check-out record."""
     __tablename__ = "attendance_records"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     employee_id: int = Field(foreign_key="employees.id", index=True)
     user_id: int = Field(foreign_key="users.id", index=True)
     work_date: date = Field(default_factory=date.today, index=True)
     check_in: datetime = Field(default_factory=datetime.utcnow)
-    check_out: Optional[datetime] = None
+    check_out: datetime | None = None
     status: str = Field(default="Checked In", max_length=30, index=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
@@ -231,7 +232,7 @@ class LeaveRequest(SQLModel, table=True):
     """Employee leave request with HR/manager decision state."""
     __tablename__ = "leave_requests"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     employee_id: int = Field(foreign_key="employees.id", index=True)
     user_id: int = Field(foreign_key="users.id", index=True)
     leave_type: str = Field(default="General", max_length=60)
@@ -239,8 +240,8 @@ class LeaveRequest(SQLModel, table=True):
     end_date: date = Field(index=True)
     reason: str = Field(default="")
     status: str = Field(default="Pending", max_length=30, index=True)
-    manager_note: Optional[str] = None
-    decided_by: Optional[int] = Field(default=None, foreign_key="users.id")
+    manager_note: str | None = None
+    decided_by: int | None = Field(default=None, foreign_key="users.id")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -249,7 +250,7 @@ class SkillGapAnalysis(SQLModel, table=True):
     """Latest employee skill gap analysis against role expectations."""
     __tablename__ = "skill_gap_analyses"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     employee_id: int = Field(foreign_key="employees.id", index=True)
     user_id: int = Field(foreign_key="users.id", index=True)
     role_expectations: str = Field(default="")
@@ -258,17 +259,17 @@ class SkillGapAnalysis(SQLModel, table=True):
     learning_suggestions: str = Field(default="[]")
     summary: str = Field(default="")
     source: str = Field(default="fallback", max_length=40)
-    error_message: Optional[str] = None
+    error_message: str | None = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 class Department(SQLModel, table=True):
     __tablename__ = "departments"
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     name: str = Field(max_length=120, unique=True)
     description: str = Field(default="", max_length=500)
-    head_user_id: Optional[int] = Field(default=None, foreign_key="users.id")
+    head_user_id: int | None = Field(default=None, foreign_key="users.id")
     is_active: bool = Field(default=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
@@ -276,9 +277,9 @@ class Department(SQLModel, table=True):
 
 class Designation(SQLModel, table=True):
     __tablename__ = "designations"
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     name: str = Field(max_length=120)
-    department_id: Optional[int] = Field(default=None, foreign_key="departments.id")
+    department_id: int | None = Field(default=None, foreign_key="departments.id")
     level: int = Field(default=1)
     description: str = Field(default="", max_length=500)
     is_active: bool = Field(default=True)
@@ -288,7 +289,7 @@ class Designation(SQLModel, table=True):
 
 class EmployeeLifecycleEvent(SQLModel, table=True):
     __tablename__ = "employee_lifecycle_events"
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     employee_id: int = Field(foreign_key="employees.id", index=True)
     event_type: str = Field(max_length=60)
     event_date: date = Field(default_factory=date.today)
@@ -299,7 +300,7 @@ class EmployeeLifecycleEvent(SQLModel, table=True):
 
 class EmployeeTicket(SQLModel, table=True):
     __tablename__ = "employee_tickets"
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     employee_id: int = Field(foreign_key="employees.id", index=True)
     user_id: int = Field(foreign_key="users.id", index=True)
     title: str = Field(max_length=200)
@@ -307,19 +308,19 @@ class EmployeeTicket(SQLModel, table=True):
     category: str = Field(max_length=60)
     priority: str = Field(default="Medium", max_length=20)
     status: str = Field(default="Open", max_length=30)
-    assigned_to: Optional[int] = Field(default=None, foreign_key="users.id")
-    resolution_note: Optional[str] = Field(default=None, max_length=2000)
+    assigned_to: int | None = Field(default=None, foreign_key="users.id")
+    resolution_note: str | None = Field(default=None, max_length=2000)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 class SalaryHistory(SQLModel, table=True):
     __tablename__ = "salary_history"
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     employee_id: int = Field(foreign_key="employees.id", index=True)
-    previous_salary: Optional[float] = None
+    previous_salary: float | None = None
     new_salary: float
-    increment_percent: Optional[float] = None
+    increment_percent: float | None = None
     reason: str = Field(default="", max_length=500)
     approved_by: int = Field(foreign_key="users.id")
     effective_date: date = Field(default_factory=date.today)
@@ -328,7 +329,7 @@ class SalaryHistory(SQLModel, table=True):
 
 class PromotionHistory(SQLModel, table=True):
     __tablename__ = "promotion_history"
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     employee_id: int = Field(foreign_key="employees.id", index=True)
     old_designation: str = Field(max_length=120)
     new_designation: str = Field(max_length=120)
@@ -340,7 +341,7 @@ class PromotionHistory(SQLModel, table=True):
 
 class IncrementHistory(SQLModel, table=True):
     __tablename__ = "increment_history"
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     employee_id: int = Field(foreign_key="employees.id", index=True)
     previous_salary: float
     new_salary: float
@@ -353,23 +354,23 @@ class IncrementHistory(SQLModel, table=True):
 
 class HRNotification(SQLModel, table=True):
     __tablename__ = "hr_notifications"
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="users.id", index=True)
     title: str = Field(max_length=200)
     message: str = Field(max_length=1000)
     event_type: str = Field(max_length=60)
-    related_id: Optional[int] = None
+    related_id: int | None = None
     is_read: bool = Field(default=False)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 class CandidateProfile(SQLModel, table=True):
     __tablename__ = "candidate_profiles"
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="users.id", index=True, unique=True)
     full_name: str = Field(default="", max_length=200)
     phone: str = Field(default="", max_length=30)
-    date_of_birth: Optional[date] = None
+    date_of_birth: date | None = None
     gender: str = Field(default="", max_length=40)
     location: str = Field(default="", max_length=100)
     address: str = Field(default="", max_length=500)
@@ -378,7 +379,7 @@ class CandidateProfile(SQLModel, table=True):
     current_status: str = Field(default="", max_length=60)
     current_company: str = Field(default="", max_length=200)
     current_role: str = Field(default="", max_length=200)
-    years_of_experience: Optional[float] = None
+    years_of_experience: float | None = None
     expected_salary: str = Field(default="", max_length=100)
     notice_period: str = Field(default="", max_length=100)
     degree: str = Field(default="", max_length=200)
@@ -396,9 +397,9 @@ class CandidateProfile(SQLModel, table=True):
 
 class EmployeeProfile(SQLModel, table=True):
     __tablename__ = "employee_profiles"
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="users.id", index=True, unique=True)
-    employee_id: Optional[int] = Field(default=None, foreign_key="employees.id", index=True)
+    employee_id: int | None = Field(default=None, foreign_key="employees.id", index=True)
     phone: str = Field(default="", max_length=30)
     address: str = Field(default="", max_length=500)
     emergency_contact: str = Field(default="", max_length=200)
@@ -419,7 +420,7 @@ class EmployeeProfile(SQLModel, table=True):
 
 class CandidateDocument(SQLModel, table=True):
     __tablename__ = "candidate_documents"
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="users.id", index=True)
     document_type: str = Field(max_length=80)
     original_filename: str = Field(max_length=255)
@@ -427,29 +428,29 @@ class CandidateDocument(SQLModel, table=True):
     verification_status: str = Field(default="Pending Review", max_length=40)
     rejection_comment: str = Field(default="", max_length=1000)
     uploaded_at: datetime = Field(default_factory=datetime.utcnow)
-    reviewed_at: Optional[datetime] = None
-    reviewed_by: Optional[int] = Field(default=None, foreign_key="users.id")
+    reviewed_at: datetime | None = None
+    reviewed_by: int | None = Field(default=None, foreign_key="users.id")
 
 
 class EmployeeDocument(SQLModel, table=True):
     __tablename__ = "employee_documents"
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="users.id", index=True)
-    employee_id: Optional[int] = Field(default=None, foreign_key="employees.id", index=True)
+    employee_id: int | None = Field(default=None, foreign_key="employees.id", index=True)
     document_type: str = Field(max_length=80)
     original_filename: str = Field(max_length=255)
     stored_path: str = Field(max_length=700)
     verification_status: str = Field(default="Pending Review", max_length=40)
     rejection_comment: str = Field(default="", max_length=1000)
     uploaded_at: datetime = Field(default_factory=datetime.utcnow)
-    reviewed_at: Optional[datetime] = None
-    reviewed_by: Optional[int] = Field(default=None, foreign_key="users.id")
+    reviewed_at: datetime | None = None
+    reviewed_by: int | None = Field(default=None, foreign_key="users.id")
 
 
 class OnboardingTemplate(SQLModel, table=True):
     """HR-created onboarding template with a set of tasks."""
     __tablename__ = "onboarding_templates"
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     name: str = Field(max_length=200)
     description: str = Field(default="", max_length=1000)
     is_active: bool = Field(default=True)
@@ -461,7 +462,7 @@ class OnboardingTemplate(SQLModel, table=True):
 class OnboardingTask(SQLModel, table=True):
     """A task within an onboarding template."""
     __tablename__ = "onboarding_tasks"
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     template_id: int = Field(foreign_key="onboarding_templates.id", index=True)
     title: str = Field(max_length=200)
     description: str = Field(default="", max_length=1000)
@@ -473,14 +474,14 @@ class OnboardingTask(SQLModel, table=True):
 class EmployeeOnboarding(SQLModel, table=True):
     """An onboarding plan instance assigned to one employee."""
     __tablename__ = "employee_onboarding"
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     employee_id: int = Field(foreign_key="employees.id", index=True)
     template_id: int = Field(foreign_key="onboarding_templates.id")
     assigned_by: int = Field(foreign_key="users.id")
     status: str = Field(default="Active", max_length=30)  # Active, Completed, Overdue
-    due_date: Optional[date] = None
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
+    due_date: date | None = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -488,14 +489,14 @@ class EmployeeOnboarding(SQLModel, table=True):
 class EmployeeOnboardingTask(SQLModel, table=True):
     """Per-employee clone of a template task with completion state."""
     __tablename__ = "employee_onboarding_tasks"
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     employee_onboarding_id: int = Field(foreign_key="employee_onboarding.id", index=True)
     task_title: str = Field(max_length=200)
     task_description: str = Field(default="", max_length=1000)
     order_index: int = Field(default=0)
     is_required: bool = Field(default=True)
     status: str = Field(default="Pending", max_length=30)  # Pending, In Progress, Completed
-    completed_at: Optional[datetime] = None
+    completed_at: datetime | None = None
     notes: str = Field(default="", max_length=500)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
@@ -504,7 +505,7 @@ class EmployeeOnboardingTask(SQLModel, table=True):
 class TrainingProgram(SQLModel, table=True):
     """An HR-created training program that can be assigned to employees."""
     __tablename__ = "training_programs"
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     title: str = Field(max_length=200)
     description: str = Field(default="", max_length=2000)
     category: str = Field(default="General", max_length=100)
@@ -521,7 +522,7 @@ class CandidateCredibilityReport(SQLModel, table=True):
     """AI analysis comparing resume claims against interview evidence."""
     __tablename__ = "candidate_credibility_reports"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     candidate_id: int = Field(foreign_key="users.id", index=True)
     session_id: int = Field(foreign_key="interview_sessions.id", index=True, unique=True)
     credibility_score: int = Field(default=0)
@@ -530,10 +531,10 @@ class CandidateCredibilityReport(SQLModel, table=True):
     missing_evidence: str = Field(default="[]")
     followup_topics: str = Field(default="[]")
     resume_score: int = Field(default=0)
-    interview_avg_score: Optional[float] = None
+    interview_avg_score: float | None = None
     recommendation: str = Field(default="Insufficient Evidence", max_length=40)
     status: str = Field(default="pending", max_length=30, index=True)
-    error_message: Optional[str] = None
+    error_message: str | None = None
     source: str = Field(default="fallback", max_length=40)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
@@ -543,7 +544,7 @@ class InterviewIntelligenceReport(SQLModel, table=True):
     """Persisted HR-facing interview intelligence summary for one official interview."""
     __tablename__ = "interview_intelligence_reports"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     application_id: int = Field(foreign_key="candidate_applications.id", index=True, unique=True)
     candidate_id: int = Field(foreign_key="users.id", index=True)
     session_id: int = Field(foreign_key="interview_sessions.id", index=True, unique=True)
@@ -568,22 +569,22 @@ class InterviewIntelligenceReport(SQLModel, table=True):
 class TrainingAssignment(SQLModel, table=True):
     """Assignment of a training program to one employee."""
     __tablename__ = "training_assignments"
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     program_id: int = Field(foreign_key="training_programs.id", index=True)
     employee_id: int = Field(foreign_key="employees.id", index=True)
     assigned_by: int = Field(foreign_key="users.id")
     status: str = Field(default="Not Started", max_length=30)  # Not Started, In Progress, Completed
     progress_percent: int = Field(default=0)
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
-    due_date: Optional[date] = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    due_date: date | None = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 class OnboardingRequiredDocument(SQLModel, table=True):
     __tablename__ = "onboarding_required_documents"
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     template_id: int = Field(foreign_key="onboarding_templates.id", index=True)
     document_type: str = Field(max_length=80)
     created_at: datetime = Field(default_factory=datetime.utcnow)

@@ -3,7 +3,13 @@ import logging
 from datetime import datetime
 from typing import Any
 
-from src.models import ApplicationAIAnalysis, CandidateApplication, InterviewIntelligenceReport, InterviewSession, JobPosting
+from src.models import (
+    ApplicationAIAnalysis,
+    CandidateApplication,
+    InterviewIntelligenceReport,
+    InterviewSession,
+    JobPosting,
+)
 from src.services.rag.chroma_service import ChromaService
 from src.services.rag.embedding_service import EmbeddingService
 

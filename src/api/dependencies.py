@@ -3,11 +3,11 @@ src/api/dependencies.py
 FastAPI dependency injectors — DB session and JWT-authenticated current user.
 """
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlmodel import Session, select
 
-from src.database.connection import get_session
 from src.core.security import decode_token
+from src.database.connection import get_session
 from src.models import USER_ROLES, User
 
 _bearer = HTTPBearer(auto_error=False)

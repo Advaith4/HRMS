@@ -4,7 +4,7 @@ from pathlib import Path
 
 from src.services.rag.chroma_service import ChromaService
 from src.services.rag.embedding_service import EmbeddingService
-from src.services.rag.ingestion_service import IngestionService, IngestionResult
+from src.services.rag.ingestion_service import IngestionResult, IngestionService
 
 logger = logging.getLogger(__name__)
 

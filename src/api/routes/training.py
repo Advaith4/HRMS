@@ -1,5 +1,4 @@
 from datetime import date, datetime
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -7,8 +6,14 @@ from sqlmodel import Session, select
 
 from src.api.dependencies import get_current_user, require_roles
 from src.database.connection import get_session
-from src.models import Employee, HRNotification, TrainingAssignment, TrainingProgram, User, EmployeeLifecycleEvent
-
+from src.models import (
+    Employee,
+    EmployeeLifecycleEvent,
+    HRNotification,
+    TrainingAssignment,
+    TrainingProgram,
+    User,
+)
 
 router = APIRouter(prefix="/api/training", tags=["training"])
 
@@ -24,24 +29,24 @@ class TrainingProgramCreate(BaseModel):
 
 
 class TrainingProgramUpdate(BaseModel):
-    title: Optional[str] = Field(default=None, max_length=200)
-    description: Optional[str] = Field(default=None, max_length=2000)
-    category: Optional[str] = Field(default=None, max_length=100)
-    skills_covered: Optional[str] = Field(default=None, max_length=500)
-    duration_hours: Optional[int] = Field(default=None, ge=1)
-    difficulty: Optional[str] = Field(default=None, pattern="^(Beginner|Intermediate|Advanced)$")
-    status: Optional[str] = Field(default=None, pattern="^(Draft|Active|Archived)$")
+    title: str | None = Field(default=None, max_length=200)
+    description: str | None = Field(default=None, max_length=2000)
+    category: str | None = Field(default=None, max_length=100)
+    skills_covered: str | None = Field(default=None, max_length=500)
+    duration_hours: int | None = Field(default=None, ge=1)
+    difficulty: str | None = Field(default=None, pattern="^(Beginner|Intermediate|Advanced)$")
+    status: str | None = Field(default=None, pattern="^(Draft|Active|Archived)$")
 
 
 class TrainingAssignReq(BaseModel):
     employee_id: int
     program_id: int
-    due_date: Optional[date] = None
+    due_date: date | None = None
 
 
 class TrainingProgressReq(BaseModel):
     progress_percent: int = Field(ge=0, le=100)
-    status: Optional[str] = Field(default=None, pattern="^(Not Started|In Progress|Completed)$")
+    status: str | None = Field(default=None, pattern="^(Not Started|In Progress|Completed)$")
 
 
 def _notify(session: Session, user_id: int, title: str, message: str, event_type: str, related_id: int | None = None) -> None:

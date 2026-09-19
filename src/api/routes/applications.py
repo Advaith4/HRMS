@@ -3,9 +3,17 @@ import os
 import shutil
 import uuid
 from datetime import date, datetime
-from typing import Any, Optional
+from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    UploadFile,
+)
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
@@ -14,29 +22,29 @@ from src.database.connection import get_session
 from src.models import (
     ApplicationAIAnalysis,
     CandidateApplication,
-    Employee,
-    InterviewSession,
-    JobPosting,
-    User,
-    CandidateProfile,
     CandidateDocument,
-    EmployeeProfile,
+    CandidateProfile,
+    Employee,
     EmployeeDocument,
+    EmployeeLifecycleEvent,
     EmployeeOnboarding,
     EmployeeOnboardingTask,
-    OnboardingTemplate,
-    OnboardingTask,
+    EmployeeProfile,
     HRNotification,
-    EmployeeLifecycleEvent,
+    InterviewSession,
+    JobPosting,
+    OnboardingTask,
+    OnboardingTemplate,
+    User,
 )
 from src.resume_lab import parse_resume
+from src.services.interview_status import SUCCESSFUL_INTERVIEW_STATUSES
 from src.services.recruitment_ai import (
     analysis_payload,
     analyze_application,
     application_payload,
     rank_applications_for_job,
 )
-from src.services.interview_status import SUCCESSFUL_INTERVIEW_STATUSES
 from utils.resume_parser import extract_text_from_pdf
 
 logger = logging.getLogger(__name__)
@@ -51,7 +59,7 @@ class HireApplicationReq(BaseModel):
     salary: float | None = None
     joining_date: date | None = None
     employee_code: str | None = Field(default=None, max_length=40)
-    onboarding_template_id: Optional[int] = None
+    onboarding_template_id: int | None = None
 
 
 @router.post("/apply", status_code=201)
@@ -442,7 +450,10 @@ def get_application_credibility(
     if not application:
         raise HTTPException(status_code=404, detail="Application not found")
 
-    from src.services.interview_consistency import analyze_credibility, credibility_payload
+    from src.services.interview_consistency import (
+        analyze_credibility,
+        credibility_payload,
+    )
 
     interview_session = session.exec(
         select(InterviewSession).where(

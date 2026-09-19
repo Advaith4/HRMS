@@ -1,14 +1,14 @@
 import logging
 import re
 from pathlib import Path
-from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, status
+
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
 from src.api.dependencies import require_roles
 from src.database.connection import get_session
-from src.models import User, USER_ROLES
+from src.models import USER_ROLES, User
 from src.services.rag.chroma_service import ChromaService
 from src.services.rag.embedding_service import EmbeddingService
 from src.services.rag.ingestion_service import IngestionService
@@ -25,12 +25,12 @@ class UserOut(BaseModel):
     username: str
     role: str
     is_active: bool
-    location: Optional[str] = None
-    experience: Optional[str] = None
+    location: str | None = None
+    experience: str | None = None
 
 class UserUpdate(BaseModel):
-    role: Optional[str] = None
-    is_active: Optional[bool] = None
+    role: str | None = None
+    is_active: bool | None = None
 
 class PolicyOut(BaseModel):
     filename: str
@@ -60,7 +60,7 @@ def _safe_filename(title: str) -> str:
     return f"{cleaned}.txt"
 
 # --- User Routes ---
-@router.get("/users", response_model=List[UserOut])
+@router.get("/users", response_model=list[UserOut])
 def list_users(
     session: Session = Depends(get_session),
     _current_user: User = Depends(admin_required)
@@ -114,7 +114,7 @@ def update_user(
 # --- Policy Routes ---
 POLICIES_DIR = Path("data/company_docs/policies")
 
-@router.get("/policies", response_model=List[PolicyOut])
+@router.get("/policies", response_model=list[PolicyOut])
 def list_policies(_current_user: User = Depends(admin_required)):
     POLICIES_DIR.mkdir(parents=True, exist_ok=True)
     policies = []
@@ -221,12 +221,12 @@ def reindex_policy(filename: str, _current_user: User = Depends(admin_required))
             replace_existing=True,
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Chroma RAG re-index failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Chroma RAG re-index failed: {e!s}")
 
     return {"message": "Policy re-indexed successfully"}
 
 # --- Employee Knowledge Routes ---
-@router.get("/knowledge", response_model=List[KnowledgeOut])
+@router.get("/knowledge", response_model=list[KnowledgeOut])
 def list_knowledge(_current_user: User = Depends(admin_required)):
     articles = []
     for category in ("onboarding", "training"):
@@ -348,6 +348,6 @@ def reindex_knowledge(category: str, filename: str, _current_user: User = Depend
             replace_existing=True,
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Chroma RAG re-index failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Chroma RAG re-index failed: {e!s}")
 
     return {"message": "Knowledge article re-indexed successfully"}

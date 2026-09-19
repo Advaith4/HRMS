@@ -1,6 +1,7 @@
 import logging
 
-from sqlmodel import SQLModel, create_engine, Session, text
+from sqlmodel import Session, SQLModel, create_engine, text
+
 from src.config import settings
 
 logger = logging.getLogger(__name__)
@@ -132,9 +133,10 @@ def _ensure_postgres_user_active_column() -> None:
 def _ensure_default_admin() -> None:
     """Bootstrap a default admin user if no admin user exists with username 'admin'."""
     try:
-        from src.models import User
-        from src.core.security import hash_password
         from sqlmodel import select
+
+        from src.core.security import hash_password
+        from src.models import User
 
         with Session(engine) as session:
             existing_admin = session.exec(select(User).where(User.username == "admin")).first()

@@ -1,40 +1,34 @@
-import uuid
 import json
 import logging
+import uuid
 from datetime import datetime
-from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
-from src.database.connection import get_session
-from src.models import User, Resume, MockInterviewSession
+from crew import run_interview_answer, run_interview_start
 from src.api.dependencies import get_current_user
+from src.database.connection import get_session
+from src.models import MockInterviewSession, Resume, User
+from src.resume_lab import analyze_resume, dumps_json, load_json_field, parse_resume
 from src.services.interview_core import (
-    _sessions,
-    _normalize_training_mode,
-    _normalize_persona,
+    INTERVIEWER_PERSONAS,
+    PHASE_SEQUENCE,
+    _build_personalization_context,
+    _ensure_intro_question,
+    _format_feedback_message,
     _get_or_create_memory,
     _latest_candidate_resume_text,
-    _build_personalization_context,
     _memory_snapshot,
-    _phase_meta,
-    _ensure_intro_question,
     _normalize_focus_type,
-    _update_coach_memory,
-    INTERVIEWER_PERSONAS,
-    TRAINING_MODES,
-    _save_session_state,
-    _state_from_record,
-    _should_end_interview_early,
-    _pick_next_phase,
-    _format_feedback_message,
+    _normalize_persona,
+    _normalize_training_mode,
     _phase_index,
-    PHASE_SEQUENCE
+    _phase_meta,
+    _sessions,
+    _update_coach_memory,
 )
-from src.resume_lab import analyze_resume, dumps_json, load_json_field, parse_resume
-from crew import run_interview_start, run_interview_answer
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/mock-interview", tags=["mock-interview"])
@@ -394,8 +388,7 @@ def submit_mock_answer(
     max_similarity = 0.0
     for old_q in state.get("questions", []):
         sim = SequenceMatcher(None, next_q.lower(), old_q.lower()).ratio()
-        if sim > max_similarity:
-            max_similarity = sim
+        max_similarity = max(max_similarity, sim)
         if sim > 0.85:
             is_duplicate = True
             break
@@ -453,6 +446,7 @@ def submit_mock_answer(
     }
 
 from src.services.mock_interview_summary import generate_mock_interview_summary
+
 
 @router.post("/{session_id}/complete")
 def complete_mock_interview(

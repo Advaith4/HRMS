@@ -1,8 +1,8 @@
+import json
 import os
 import sys
 import types
 import uuid
-import json
 
 os.environ["AUTO_CREATE_DB_SCHEMA"] = "true"
 os.environ["SECRET_KEY"] = "test-secret-key-for-talentforge"
@@ -10,11 +10,11 @@ os.environ["SECRET_KEY"] = "test-secret-key-for-talentforge"
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
-from src.main import app
 import src.api.routes.applications as applications_route
 import src.api.routes.interview as interview_route
 from src.database.connection import create_db_and_tables, engine
-from src.models import User, CandidateApplication, InterviewSession, JobPosting, HRNotification
+from src.main import app
+from src.models import HRNotification, InterviewSession, User
 
 create_db_and_tables()
 client = TestClient(app)

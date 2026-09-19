@@ -6,7 +6,8 @@ from pathlib import Path
 from sqlalchemy import MetaData, Table, create_engine, func, inspect, select, text
 from sqlmodel import SQLModel
 
-from src.database.connection import create_db_and_tables, engine as target_engine
+from src.database.connection import create_db_and_tables
+from src.database.connection import engine as target_engine
 
 
 def parse_args():

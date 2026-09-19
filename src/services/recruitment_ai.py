@@ -5,7 +5,14 @@ from datetime import datetime
 from typing import Any
 
 from sqlmodel import Session, select
-from src.models import ApplicationAIAnalysis, CandidateApplication, JobPosting, User, InterviewSession
+
+from src.models import (
+    ApplicationAIAnalysis,
+    CandidateApplication,
+    InterviewSession,
+    JobPosting,
+    User,
+)
 from src.resume_lab import parse_resume
 
 logger = logging.getLogger(__name__)
@@ -163,6 +170,7 @@ def analysis_payload(analysis: ApplicationAIAnalysis | None) -> dict[str, Any] |
 
 def _run_crewai_analysis(resume_text: str, job: JobPosting) -> dict[str, Any]:
     from crewai import Crew
+
     from agents.recruitment_analyst import create_recruitment_analyst
     from tasks.recruitment_task import create_application_analysis_task
 

@@ -10,20 +10,20 @@ from sqlmodel import Session, select
 from src.database.connection import engine
 from src.models import (
     ApplicationAIAnalysis,
+    AttendanceRecord,
     CandidateApplication,
+    Department,
+    Designation,
     Employee,
+    EmployeeProfile,
+    EmployeeTicket,
     InterviewIntelligenceReport,
     InterviewSession,
     JobPosting,
-    User,
-    AttendanceRecord,
     LeaveRequest,
     TrainingAssignment,
     TrainingProgram,
-    EmployeeTicket,
-    EmployeeProfile,
-    Department,
-    Designation,
+    User,
 )
 from src.services.rag.access_control import HR_ROLES
 
@@ -365,7 +365,7 @@ class QueryRouter:
                 f"Leave Balance (Casual): Allocation=7, Used={used['Casual']}, Remaining={remaining['Casual']}",
                 f"Assigned Trainings: {', '.join(assigned_trainings) if assigned_trainings else 'None'}",
                 f"Open Tickets: {', '.join(ticket_summaries) if ticket_summaries else 'None'}",
-                f"All leave types available: Annual (15 days/year), Sick (12 days/year), Casual (7 days/year)."
+                "All leave types available: Annual (15 days/year), Sick (12 days/year), Casual (7 days/year)."
             ]
             return "\n".join(lines)
 

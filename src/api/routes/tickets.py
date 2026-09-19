@@ -1,11 +1,12 @@
 from datetime import datetime
-from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
+
 from src.api.dependencies import get_current_user, require_roles
 from src.database.connection import get_session
-from src.models import EmployeeTicket, Employee, User, HRNotification
+from src.models import Employee, EmployeeTicket, HRNotification, User
 
 router = APIRouter(prefix="/api/tickets", tags=["tickets"])
 
@@ -20,9 +21,9 @@ class TicketAssign(BaseModel):
 
 class TicketStatusUpdate(BaseModel):
     status: str = Field(max_length=30)
-    resolution_note: Optional[str] = Field(default=None, max_length=2000)
+    resolution_note: str | None = Field(default=None, max_length=2000)
 
-def _notify_hr(session: Session, title: str, message: str, event_type: str, related_id: Optional[int] = None):
+def _notify_hr(session: Session, title: str, message: str, event_type: str, related_id: int | None = None):
     hr_users = session.exec(select(User).where(User.role.in_(["hr", "admin"]))).all()
     for u in hr_users:
         notif = HRNotification(

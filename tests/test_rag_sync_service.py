@@ -1,6 +1,12 @@
 from datetime import datetime
 
-from src.models import ApplicationAIAnalysis, CandidateApplication, InterviewIntelligenceReport, InterviewSession, JobPosting
+from src.models import (
+    ApplicationAIAnalysis,
+    CandidateApplication,
+    InterviewIntelligenceReport,
+    InterviewSession,
+    JobPosting,
+)
 from src.services.rag.chroma_service import ChromaService
 from src.services.rag.embedding_service import EmbeddingService, HashEmbeddingProvider
 from src.services.rag.retrieval_service import RetrievalService

@@ -60,20 +60,38 @@ _disable_broken_local_proxies()
 
 import appdirs
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from src.config import settings
-from src.database.connection import create_db_and_tables
-from src.core.exceptions import http_exception_handler, validation_exception_handler
 from src.api.routes import (
-    applications, auth, candidates, dashboard, employees, jobs, resume, interview, mock_interview,
-    departments, designations, lifecycle, tickets, salary, promotions, notifications,
-    onboarding, training, profile, rag, admin
+    admin,
+    applications,
+    auth,
+    candidates,
+    dashboard,
+    departments,
+    designations,
+    employees,
+    interview,
+    jobs,
+    lifecycle,
+    mock_interview,
+    notifications,
+    onboarding,
+    profile,
+    promotions,
+    rag,
+    resume,
+    salary,
+    tickets,
+    training,
 )
+from src.config import settings
+from src.core.exceptions import http_exception_handler, validation_exception_handler
+from src.database.connection import create_db_and_tables
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 logging.basicConfig(

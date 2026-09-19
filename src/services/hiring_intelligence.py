@@ -1,22 +1,21 @@
 import json
 import logging
-import re
 import os
+import re
 import time
-import src.services.llm_router
 from datetime import datetime
-from typing import Any, Optional
-from sqlmodel import Session, select
+from typing import Any
+
 import litellm
+from sqlmodel import Session, select
 
 from src.models import (
-    InterviewSession,
     CandidateApplication,
-    JobPosting,
-    Resume,
-    User,
     CandidateCredibilityReport,
     InterviewIntelligenceReport,
+    InterviewSession,
+    JobPosting,
+    Resume,
 )
 from src.services.interview_consistency import analyze_credibility
 from src.services.interview_status import (
@@ -88,6 +87,7 @@ def compile_hiring_intelligence(session_id: int):
     # Since background tasks run outside request scope, create local DB engine/session if needed,
     # or resolve it from get_session. We will import get_session locally or import Session from sqlmodel.
     from sqlmodel import Session
+
     from src.database.connection import engine
     db = Session(engine)
     
@@ -367,7 +367,7 @@ def generate_interview_summary(
 def run_fallback_generation(
     messages: list[dict[str, Any]],
     filler_counts: dict[str, int],
-    cred_report: Optional[CandidateCredibilityReport],
+    cred_report: CandidateCredibilityReport | None,
     resume_score: float,
     interview_score: float,
     cred_score: float
@@ -496,7 +496,7 @@ def run_fallback_generation(
 def calculate_benchmarking(
     session_db: Session,
     interview_session: InterviewSession,
-    app: Optional[CandidateApplication],
+    app: CandidateApplication | None,
     current_score: float
 ) -> dict[str, Any]:
     if not app:

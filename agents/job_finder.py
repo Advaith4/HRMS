@@ -1,6 +1,6 @@
-import os
-from dotenv import load_dotenv
 from crewai import Agent
+from dotenv import load_dotenv
+
 from src.services.llm_router import get_llm
 
 load_dotenv()

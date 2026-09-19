@@ -20,23 +20,22 @@ import json
 import os
 import sys
 import uuid
-from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from sqlmodel import Session, select
 
-from src.database.connection import engine
 from src.core.security import hash_password
+from src.database.connection import engine
 from src.models import (
-    User,
-    Resume,
-    JobPosting,
-    CandidateApplication,
     ApplicationAIAnalysis,
-    InterviewSession,
+    CandidateApplication,
     CandidateCredibilityReport,
     InterviewIntelligenceReport,
+    InterviewSession,
+    JobPosting,
+    Resume,
+    User,
 )
 
 # ── Candidate data ────────────────────────────────────────────────────────────
@@ -394,7 +393,7 @@ def seed():
                     "and engineering leadership. His answers were consistently specific, metrics-driven, "
                     "and production-aware. Resume claims are 8/10 strongly supported by interview evidence. "
                     "He is an immediate hire recommendation for the Senior Full-Stack Engineer role. "
-                    "Hiring score: {:.1f}/100.".format(hiring_score)
+                    f"Hiring score: {hiring_score:.1f}/100."
                 ),
                 strengths=json.dumps([
                     "Expert distributed systems design (Kafka, Redis, Kubernetes)",

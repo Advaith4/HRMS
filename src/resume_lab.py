@@ -2,8 +2,8 @@ import hashlib
 import json
 import logging
 import re
-from functools import lru_cache
 from datetime import datetime
+from functools import cache, lru_cache
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, ValidationError
@@ -242,7 +242,7 @@ def _segment_alpha_run(token: str) -> str:
 def _fully_segment_alpha_run(lowered: str) -> tuple[str, ...] | None:
     n = len(lowered)
 
-    @lru_cache(maxsize=None)
+    @cache
     def solve(index: int) -> tuple[int, tuple[str, ...]] | None:
         if index == n:
             return (0, ())
@@ -336,9 +336,7 @@ def parse_resume(resume_text: str) -> dict[str, Any]:
 
         if current in {"experience", "projects"}:
             bullet = _strip_bullet(line)
-            if _is_resume_bullet(line, current):
-                sections[current].append(bullet)
-            elif len(bullet) > 18:
+            if _is_resume_bullet(line, current) or len(bullet) > 18:
                 sections[current].append(bullet)
             continue
 
@@ -1237,5 +1235,5 @@ def _clamp_int(value: Any, default: int = 0) -> int:
 
 
 def _issue_id(section: str, original: str, improved: str) -> str:
-    digest = hashlib.sha1(f"{section}|{original}|{improved}".encode("utf-8")).hexdigest()
+    digest = hashlib.sha1(f"{section}|{original}|{improved}".encode()).hexdigest()
     return digest[:12]

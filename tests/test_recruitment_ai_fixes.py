@@ -1,6 +1,6 @@
-import pytest
-from src.services.recruitment_ai import _skill_matches, _term_set, _normalize_ai_payload
 from src.models import JobPosting
+from src.services.recruitment_ai import _normalize_ai_payload, _skill_matches, _term_set
+
 
 def test_skill_matches_filler_words():
     # Candidates possessing 'python' should match 'Experience with Python'

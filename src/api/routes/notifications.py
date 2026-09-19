@@ -1,6 +1,6 @@
-from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
+
 from src.api.dependencies import get_current_user
 from src.database.connection import get_session
 from src.models import HRNotification, User

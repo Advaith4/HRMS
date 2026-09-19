@@ -20,8 +20,8 @@ from src.models import (
     JobPosting,
     User,
 )
-from src.services.rag.chroma_service import ChromaService
 from src.services.rag.chat_service import RAGChatService
+from src.services.rag.chroma_service import ChromaService
 from src.services.rag.embedding_service import EmbeddingService, HashEmbeddingProvider
 from src.services.rag.ingestion_service import IngestionService
 from src.services.rag.query_router import QueryRouter

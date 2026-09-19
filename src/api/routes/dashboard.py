@@ -14,27 +14,27 @@ from src.database.connection import get_session
 from src.models import (
     ApplicationAIAnalysis,
     CandidateApplication,
-    JobPosting,
-    Resume,
-    User,
-    EmployeeProfile,
+    CandidateDocument,
     CandidateProfile,
     Employee,
     EmployeeDocument,
-    CandidateDocument,
     EmployeeOnboarding,
+    EmployeeProfile,
+    InterviewIntelligenceReport,
+    InterviewSession,
+    JobPosting,
+    Resume,
     TrainingAssignment,
     TrainingProgram,
-    InterviewSession,
-    InterviewIntelligenceReport,
+    User,
 )
-from src.services.recruitment_ai import analysis_payload
 from src.services.interview_status import (
     INTERVIEW_STATUS_ACTIVE,
     INTERVIEW_STATUS_ANALYZED,
     INTERVIEW_STATUS_ANALYZING,
     INTERVIEW_STATUS_COMPLETED,
 )
+from src.services.recruitment_ai import analysis_payload
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 

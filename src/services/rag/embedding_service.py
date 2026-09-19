@@ -4,7 +4,7 @@ import math
 import os
 import re
 from abc import ABC, abstractmethod
-from typing import Iterable
+from collections.abc import Iterable
 
 logger = logging.getLogger(__name__)
 

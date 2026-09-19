@@ -1,9 +1,7 @@
 import os
-import shutil
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
@@ -17,12 +15,11 @@ from src.models import (
     CandidateProfile,
     Employee,
     EmployeeDocument,
+    EmployeeLifecycleEvent,
     EmployeeProfile,
     HRNotification,
     User,
-    EmployeeLifecycleEvent,
 )
-
 
 router = APIRouter(prefix="/api/profile", tags=["profile"])
 UPLOAD_ROOT = Path("data") / "profile_documents"
@@ -33,7 +30,7 @@ MAX_UPLOAD_BYTES = 8 * 1024 * 1024
 class CandidateProfileReq(BaseModel):
     full_name: str = Field(default="", max_length=200)
     phone: str = Field(default="", max_length=30)
-    date_of_birth: Optional[str] = None
+    date_of_birth: str | None = None
     gender: str = Field(default="", max_length=40)
     location: str = Field(default="", max_length=100)
     address: str = Field(default="", max_length=500)
@@ -42,7 +39,7 @@ class CandidateProfileReq(BaseModel):
     current_status: str = Field(default="", max_length=60)
     current_company: str = Field(default="", max_length=200)
     current_role: str = Field(default="", max_length=200)
-    years_of_experience: Optional[float] = None
+    years_of_experience: float | None = None
     expected_salary: str = Field(default="", max_length=100)
     notice_period: str = Field(default="", max_length=100)
     degree: str = Field(default="", max_length=200)

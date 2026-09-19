@@ -1,26 +1,27 @@
 from datetime import datetime
-from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
+
 from src.api.dependencies import get_current_user, require_roles
 from src.database.connection import get_session
-from src.models import Designation, Department, User
+from src.models import Department, Designation, User
 
 router = APIRouter(prefix="/api/designations", tags=["designations"])
 
 class DesignationCreate(BaseModel):
     name: str = Field(max_length=120)
-    department_id: Optional[int] = None
+    department_id: int | None = None
     level: int = Field(default=1)
     description: str = Field(default="", max_length=500)
 
 class DesignationUpdate(BaseModel):
-    name: Optional[str] = Field(default=None, max_length=120)
-    department_id: Optional[int] = None
-    level: Optional[int] = None
-    description: Optional[str] = Field(default=None, max_length=500)
-    is_active: Optional[bool] = None
+    name: str | None = Field(default=None, max_length=120)
+    department_id: int | None = None
+    level: int | None = None
+    description: str | None = Field(default=None, max_length=500)
+    is_active: bool | None = None
 
 def _desig_payload(desig: Designation, session: Session) -> dict:
     dept_name = ""
@@ -40,7 +41,7 @@ def _desig_payload(desig: Designation, session: Session) -> dict:
 
 @router.get("")
 def list_designations(
-    department_id: Optional[int] = None,
+    department_id: int | None = None,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user)
 ):

@@ -1,19 +1,21 @@
 import os
 import sys
-import uuid
 import time
+import uuid
+
 from fastapi.testclient import TestClient
 
 # Add project root to sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.main import app
 from sqlmodel import Session, select
-from src.database.connection import get_session, engine
-from src.models import User, JobPosting, CandidateApplication
 
 # Monkeypatch extract_text_from_pdf to avoid needing a real PDF file
 import src.api.routes.applications as applications_route
+from src.database.connection import engine
+from src.main import app
+from src.models import User
+
 applications_route.extract_text_from_pdf = lambda path: "Summary\nBackend engineer focused on FastAPI and React.\nSkills\nPython, FastAPI, SQLModel, React"
 
 client = TestClient(app)

@@ -1,12 +1,13 @@
 from crewai import Task
 
+
 # Legacy implementation for /api/analyze UI
 def create_resume_task(agent, resume_content):
-    description = """
+    description = f"""
 You are a Resume Optimizer.
 Analyze the following resume:
 ---------------------
-{resume}
+{resume_content}
 ---------------------
 Provide EXACTLY 4 actionable improvement points to make this resume better.
 
@@ -16,7 +17,7 @@ OUTPUT FORMAT (STRICT JSON ONLY):
 {{
   "improvements": ["improvement 1", "improvement 2", "improvement 3", "improvement 4"]
 }}
-""".format(resume=resume_content)
+"""
     return Task(
         description=description,
         expected_output="Valid JSON containing exactly 4 resume improvements.",
@@ -25,14 +26,14 @@ OUTPUT FORMAT (STRICT JSON ONLY):
 
 def create_resume_analysis_task(agent, resume_content, target_role=""):
     role_ctx = f"Target Role: {target_role}\n" if target_role else "Target Role: General Software Engineering\n"
-    description = """
+    description = f"""
 You are Jobify Resume Lab: a Senior Technical Recruiter and ATS Specialist.
 Analyze the resume deeply and return ONLY strict JSON. Provide practical, real-world insights that actually attract recruiters.
 
 ---------------------
 {role_ctx}
 RESUME:
-{resume}
+{resume_content}
 ---------------------
 
 CRITICAL RULES:
@@ -85,7 +86,7 @@ OUTPUT FORMAT (STRICT JSON ONLY):
     "priority_fixes": ["Quantify the scale of your last two projects", "Move tech stack keywords higher up"]
   }}
 }}
-""".format(role_ctx=role_ctx, resume=resume_content)
+"""
 
     return Task(
         description=description,
@@ -95,13 +96,13 @@ OUTPUT FORMAT (STRICT JSON ONLY):
 
 
 def create_bullet_rewriting_task(agent, resume_content):
-    description = """
+    description = f"""
 You are a Resume Rewriter.
 Read the following resume content and identify 3 to 5 weak, passive, or non-quantified bullet points.
 
 ---------------------
 RESUME:
-{resume}
+{resume_content}
 ---------------------
 
 Rewrite them to be highly impactful, action-oriented, and ATS-friendly. 
@@ -122,7 +123,7 @@ OUTPUT FORMAT (STRICT JSON ONLY):
     }}
   ]
 }}
-""".format(resume=resume_content)
+"""
 
     return Task(
         description=description,

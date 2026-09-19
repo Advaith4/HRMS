@@ -1,23 +1,31 @@
 import json
 import logging
 from datetime import date, datetime
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
-from src.api.dependencies import require_roles, get_current_user
+from src.api.dependencies import get_current_user, require_roles
 from src.database.connection import get_session
 from src.models import (
-    AttendanceRecord, Employee, LeaveRequest, SkillGapAnalysis, User,
-    Department, Designation, EmployeeLifecycleEvent, HRNotification,
-    TrainingAssignment, EmployeeTicket, EmployeeProfile
+    AttendanceRecord,
+    Department,
+    Designation,
+    Employee,
+    EmployeeLifecycleEvent,
+    EmployeeProfile,
+    EmployeeTicket,
+    HRNotification,
+    LeaveRequest,
+    SkillGapAnalysis,
+    TrainingAssignment,
+    User,
 )
 from src.services.employee_ai import analyze_skill_gap, answer_hr_question
 from src.services.rag.access_control import RAGAccessControl
 from src.services.rag.chat_service import RAGChatService
-
 
 router = APIRouter(prefix="/api/employees", tags=["employees"])
 logger = logging.getLogger(__name__)
@@ -498,17 +506,17 @@ def hr_assistant(
     try:
         plan = access_control.build_plan(current_user, ["company_policies", "employee_knowledge"])
         return service.answer(req.question, plan.collections, filters=plan.filters, user=current_user)
-    except Exception as exc:
+    except Exception:
         logger.exception("Employee RAG assistant failed; falling back to static HR policy answer")
         return answer_hr_question(req.question)
 
 
 @router.get("/directory")
 def get_employee_directory(
-    search: Optional[str] = None,
-    department: Optional[str] = None,
-    status: Optional[str] = None,
-    sort: Optional[str] = None,
+    search: str | None = None,
+    department: str | None = None,
+    status: str | None = None,
+    sort: str | None = None,
     session: Session = Depends(get_session),
     current_user: User = Depends(require_roles("hr", "manager"))
 ):
@@ -709,23 +717,23 @@ def _load_json(value: str | None) -> list[str]:
 # Phase 1 HR Operations Foundation Endpoints
 
 class EmployeeProfileUpdate(BaseModel):
-    full_name: Optional[str] = None
-    email: Optional[str] = None
-    phone: Optional[str] = None
-    address: Optional[str] = None
-    date_of_birth: Optional[date] = None
-    emergency_contact: Optional[str] = None
-    status: Optional[str] = None
-    work_location: Optional[str] = None
-    manager_id: Optional[int] = None
-    department_id: Optional[int] = None
-    designation_id: Optional[int] = None
-    certifications: Optional[str] = None
-    years_of_experience: Optional[float] = None
-    skills: Optional[str] = None
+    full_name: str | None = None
+    email: str | None = None
+    phone: str | None = None
+    address: str | None = None
+    date_of_birth: date | None = None
+    emergency_contact: str | None = None
+    status: str | None = None
+    work_location: str | None = None
+    manager_id: int | None = None
+    department_id: int | None = None
+    designation_id: int | None = None
+    certifications: str | None = None
+    years_of_experience: float | None = None
+    skills: str | None = None
 
 
-def _notify_hr_static(session: Session, title: str, message: str, event_type: str, related_id: Optional[int] = None):
+def _notify_hr_static(session: Session, title: str, message: str, event_type: str, related_id: int | None = None):
     hr_users = session.exec(select(User).where(User.role.in_(["hr", "admin"]))).all()
     for u in hr_users:
         notif = HRNotification(

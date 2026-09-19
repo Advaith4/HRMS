@@ -9,12 +9,12 @@ os.environ["SECRET_KEY"] = "test-secret-key-for-talentforge"
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
-from src.main import app
 import src.api.routes.applications as applications_route
 import src.api.routes.interview as interview_route
-import src.services.recruitment_ai as recruitment_ai
 from src.database.connection import create_db_and_tables, engine
+from src.main import app
 from src.models import Employee, User
+from src.services import recruitment_ai
 
 create_db_and_tables()
 client = TestClient(app)

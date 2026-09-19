@@ -19,7 +19,6 @@ from src.models import (
     InterviewSession,
     JobPosting,
     Resume,
-    User,
 )
 
 logger = logging.getLogger(__name__)
@@ -105,8 +104,8 @@ def _run_ai_credibility(
     messages: list[dict[str, Any]],
     job: JobPosting | None,
 ) -> dict[str, Any]:
-    from crewai import Crew
     from crewai import Agent as CrewAgent
+    from crewai import Crew
     from crewai import Task as CrewTask
 
     claims = _extract_claims(resume_text)

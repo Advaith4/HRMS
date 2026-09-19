@@ -1,9 +1,10 @@
+import logging
 import os
 import time
-import logging
 from threading import Lock
-from crewai import LLM
+
 import litellm
+from crewai import LLM
 
 logger = logging.getLogger(__name__)
 

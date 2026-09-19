@@ -5,22 +5,29 @@ POST /api/interview/answer        – submit answer, get eval + next question (p
 GET  /api/interview/sessions      – list all past sessions for current user
 GET  /api/interview/sessions/{id} – get full message history of a session
 """
-import uuid
 import json
 import logging
-import os
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks
+from fastapi import APIRouter
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
-from src.database.connection import get_session
-from src.models import CareerCoachMemory, CandidateApplication, InterviewSession, Resume, User, CandidateCredibilityReport, HRNotification, JobPosting
-from src.api.dependencies import get_current_user
-from src.resume_lab import analyze_resume, dumps_json, load_json_field, parse_resume
-from src.services.interview_status import INTERVIEW_PHASES_V2, PHASE_SEQUENCE_V2, PHASE_TURN_TARGETS_V2
+from src.models import (
+    CandidateApplication,
+    CareerCoachMemory,
+    HRNotification,
+    InterviewSession,
+    Resume,
+    User,
+)
+from src.resume_lab import parse_resume
+from src.services.interview_status import (
+    INTERVIEW_PHASES_V2,
+    PHASE_SEQUENCE_V2,
+    PHASE_TURN_TARGETS_V2,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/interview", tags=["interview"])
@@ -321,7 +328,7 @@ def _recurring_area_label(area: str) -> str:
     return text[:120] or "General interview depth"
 
 
-def _notify_hr(session: Session, title: str, message: str, event_type: str, related_id: Optional[int] = None):
+def _notify_hr(session: Session, title: str, message: str, event_type: str, related_id: int | None = None):
     hr_users = session.exec(select(User).where(User.role.in_(["hr", "admin"]))).all()
     for u in hr_users:
         notif = HRNotification(

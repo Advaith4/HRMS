@@ -1,21 +1,29 @@
+import json
 import os
 import sys
 import uuid
-import json
 
 os.environ["AUTO_CREATE_DB_SCHEMA"] = "true"
 os.environ["SECRET_KEY"] = "test-secret-key-for-talentforge"
 
+import litellm
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
-import litellm
-import pytest
 
-from src.main import app
 from src.database.connection import create_db_and_tables, engine
-from src.models import User, InterviewSession, CandidateApplication, JobPosting, Resume, InterviewIntelligenceReport
-from src.services.hiring_intelligence import compile_hiring_intelligence, calculate_benchmarking
-import src.api.routes.interview as interview_route
+from src.main import app
+from src.models import (
+    CandidateApplication,
+    InterviewIntelligenceReport,
+    InterviewSession,
+    JobPosting,
+    Resume,
+    User,
+)
+from src.services.hiring_intelligence import (
+    calculate_benchmarking,
+    compile_hiring_intelligence,
+)
 
 create_db_and_tables()
 client = TestClient(app)

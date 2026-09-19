@@ -1,8 +1,9 @@
 from datetime import datetime
-from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
+
 from src.api.dependencies import get_current_user, require_roles
 from src.database.connection import get_session
 from src.models import Department, User
@@ -12,13 +13,13 @@ router = APIRouter(prefix="/api/departments", tags=["departments"])
 class DepartmentCreate(BaseModel):
     name: str = Field(max_length=120)
     description: str = Field(default="", max_length=500)
-    head_user_id: Optional[int] = None
+    head_user_id: int | None = None
 
 class DepartmentUpdate(BaseModel):
-    name: Optional[str] = Field(default=None, max_length=120)
-    description: Optional[str] = Field(default=None, max_length=500)
-    head_user_id: Optional[int] = None
-    is_active: Optional[bool] = None
+    name: str | None = Field(default=None, max_length=120)
+    description: str | None = Field(default=None, max_length=500)
+    head_user_id: int | None = None
+    is_active: bool | None = None
 
 def _dept_payload(dept: Department, session: Session) -> dict:
     head_name = ""

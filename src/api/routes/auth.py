@@ -7,9 +7,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, ConfigDict, Field
 from sqlmodel import Session, select
 
+from src.core.security import create_access_token, hash_password, verify_password
 from src.database.connection import get_session
 from src.models import User
-from src.core.security import hash_password, verify_password, create_access_token
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -65,8 +65,9 @@ def login(req: LoginReq, session: Session = Depends(get_session)):
     if not password_valid:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect username or password")
 
-    from src.models import Resume
     from sqlmodel import select as sel
+
+    from src.models import Resume
     has_resume = session.exec(sel(Resume).where(Resume.user_id == user.id)).first() is not None
 
     token = create_access_token(user.id, user.username, user.role)

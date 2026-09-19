@@ -50,7 +50,7 @@ class RAGChatService:
 
         try:
             retrieval = self.retrieval.retrieve(clean_query, collections=collections, filters=filters)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.exception("RAG retrieval failed; returning available fallback context. error=%s", exc)
             if context_parts:
                 context = self._trim_context("\n\n".join(context_parts))
@@ -92,8 +92,9 @@ class RAGChatService:
         if not os.getenv("GROQ_API_KEY"):
             return None
         try:
-            import src.services.llm_router  # noqa: F401 - installs project LiteLLM routing
             import litellm
+
+            import src.services.llm_router  # noqa: F401 - installs project LiteLLM routing
 
             model = os.getenv("RAG_ANSWER_MODEL", os.getenv("MODEL_NAME", "llama-3.1-8b-instant"))
             if not model.startswith("groq/"):

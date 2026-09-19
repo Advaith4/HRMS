@@ -1,5 +1,4 @@
 from datetime import date, datetime
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -9,17 +8,16 @@ from src.api.dependencies import get_current_user, require_roles
 from src.database.connection import get_session
 from src.models import (
     Employee,
+    EmployeeDocument,
+    EmployeeLifecycleEvent,
     EmployeeOnboarding,
     EmployeeOnboardingTask,
     HRNotification,
+    OnboardingRequiredDocument,
     OnboardingTask,
     OnboardingTemplate,
     User,
-    OnboardingRequiredDocument,
-    EmployeeDocument,
-    EmployeeLifecycleEvent,
 )
-
 
 router = APIRouter(prefix="/api/onboarding", tags=["onboarding"])
 
@@ -32,10 +30,10 @@ class OnboardingTaskCreate(BaseModel):
 
 
 class OnboardingTaskUpdate(BaseModel):
-    title: Optional[str] = Field(default=None, max_length=200)
-    description: Optional[str] = Field(default=None, max_length=1000)
-    required: Optional[bool] = None
-    display_order: Optional[int] = None
+    title: str | None = Field(default=None, max_length=200)
+    description: str | None = Field(default=None, max_length=1000)
+    required: bool | None = None
+    display_order: int | None = None
 
 
 class OnboardingTemplateCreate(BaseModel):
@@ -46,16 +44,16 @@ class OnboardingTemplateCreate(BaseModel):
 
 
 class OnboardingTemplateUpdate(BaseModel):
-    name: Optional[str] = Field(default=None, max_length=200)
-    description: Optional[str] = Field(default=None, max_length=1000)
-    is_active: Optional[bool] = None
-    required_documents: Optional[list[str]] = None
+    name: str | None = Field(default=None, max_length=200)
+    description: str | None = Field(default=None, max_length=1000)
+    is_active: bool | None = None
+    required_documents: list[str] | None = None
 
 
 class OnboardingAssignReq(BaseModel):
     employee_id: int
     template_id: int
-    due_date: Optional[date] = None
+    due_date: date | None = None
 
 
 class OnboardingTaskStatusReq(BaseModel):

@@ -1,8 +1,9 @@
 import json
 import logging
+
 import litellm
+
 # Ensure the router is imported so the monkey-patch is active
-import src.services.llm_router 
 
 logger = logging.getLogger(__name__)
 

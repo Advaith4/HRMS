@@ -3,12 +3,11 @@ src/core/security.py
 Handles password hashing (bcrypt) and JWT creation/verification.
 """
 from datetime import datetime, timedelta
-from typing import Optional
 
 import bcrypt
 from jose import JWTError, jwt
-from src.config import settings
 
+from src.config import settings
 
 # ── Password helpers ──────────────────────────────────────────────────────────
 
@@ -33,7 +32,7 @@ def create_access_token(user_id: int, username: str, role: str = "candidate") ->
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
-def decode_token(token: str) -> Optional[dict]:
+def decode_token(token: str) -> dict | None:
     """Returns the decoded payload or None if invalid/expired."""
     try:
         return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])

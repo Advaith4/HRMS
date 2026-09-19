@@ -1,4 +1,9 @@
-from src.resume_lab import apply_fix, parse_resume, repair_resume_text_spacing, validate_resume_analysis
+from src.resume_lab import (
+    apply_fix,
+    parse_resume,
+    repair_resume_text_spacing,
+    validate_resume_analysis,
+)
 
 
 def test_parse_resume_extracts_core_sections():

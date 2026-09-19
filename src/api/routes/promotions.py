@@ -1,11 +1,18 @@
-from datetime import date, datetime
-from typing import Optional
+from datetime import date
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
+
 from src.api.dependencies import require_roles
 from src.database.connection import get_session
-from src.models import PromotionHistory, Employee, User, HRNotification, EmployeeLifecycleEvent
+from src.models import (
+    Employee,
+    EmployeeLifecycleEvent,
+    HRNotification,
+    PromotionHistory,
+    User,
+)
 
 router = APIRouter(prefix="/api/promotions", tags=["promotions"])
 
@@ -14,7 +21,7 @@ class PromotionCreate(BaseModel):
     promotion_date: date = Field(default_factory=date.today)
     reason: str = Field(default="", max_length=500)
 
-def _notify_hr(session: Session, title: str, message: str, event_type: str, related_id: Optional[int] = None):
+def _notify_hr(session: Session, title: str, message: str, event_type: str, related_id: int | None = None):
     hr_users = session.exec(select(User).where(User.role.in_(["hr", "admin"]))).all()
     for u in hr_users:
         notif = HRNotification(

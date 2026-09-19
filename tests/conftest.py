@@ -5,14 +5,25 @@ import pytest
 
 os.environ["DATABASE_URL"] = "postgresql://talentforge:talentforge123@localhost:5432/talentforge_test"
 os.environ["PGSSLMODE"] = "disable"
+pg_test_url = os.getenv("TEST_DATABASE_URL") or os.getenv("POSTGRES_TEST_URL")
+if pg_test_url:
+    os.environ["DATABASE_URL"] = pg_test_url
+    os.environ["PGSSLMODE"] = os.getenv("PGSSLMODE", "disable")
+else:
+    # Default to isolated SQLite DB for testing if PostgreSQL is not configured
+    os.environ["DATABASE_URL"] = "sqlite:///data/test.db"
+    os.environ["PGSSLMODE"] = "disable"
 
 
 def pytest_sessionstart(session):
     session.config._pg_available = False
+    if not pg_test_url:
+        return
     try:
         conn = psycopg2.connect(
             "postgresql://talentforge:talentforge123@localhost:5432/talentforge_test"
         )
+        conn = psycopg2.connect(pg_test_url)
         conn.set_session(autocommit=True)
         cur = conn.cursor()
         cur.execute("DROP SCHEMA public CASCADE")
@@ -21,6 +32,7 @@ def pytest_sessionstart(session):
         conn.close()
         session.config._pg_available = True
         print("[conftest] PostgreSQL test database reset: talentforge_test")
+        print(f"[conftest] PostgreSQL test database reset: {pg_test_url}")
     except Exception as e:
         print(
             "[conftest] PostgreSQL test database unavailable; skipping schema reset. "

@@ -4,23 +4,23 @@ from __future__ import annotations
 
 import pytest
 
-from src.services.interview_status import (
-    PHASE_SEQUENCE_V2,
-    PHASE_TURN_TARGETS_V2,
-    TOTAL_INTERVIEW_TURNS_V2,
-    has_completed_required_turns,
-    next_phase_for_completed_turn,
+from src.api.routes.interview import (
+    _candidate_visible_messages,
+    _phase_aware_question,
+    _question_matches_phase,
+    _sanitize_candidate_response,
 )
 from src.services.interview_core import (
     _ensure_live_state,
     _is_interview_complete_after_answer,
     _state_from_record,
 )
-from src.api.routes.interview import (
-    _candidate_visible_messages,
-    _phase_aware_question,
-    _question_matches_phase,
-    _sanitize_candidate_response,
+from src.services.interview_status import (
+    PHASE_SEQUENCE_V2,
+    PHASE_TURN_TARGETS_V2,
+    TOTAL_INTERVIEW_TURNS_V2,
+    has_completed_required_turns,
+    next_phase_for_completed_turn,
 )
 
 
