@@ -9,6 +9,7 @@ from sqlmodel import Session, select
 from src.api.dependencies import require_roles
 from src.database.connection import get_session
 from src.models import USER_ROLES, User
+from src.models import USER_ROLES, CompanyDocument, User
 from src.services.rag.chroma_service import ChromaService
 from src.services.rag.embedding_service import EmbeddingService
 from src.services.rag.ingestion_service import IngestionService
@@ -115,36 +116,33 @@ def update_user(
 POLICIES_DIR = Path("data/company_docs/policies")
 
 @router.get("/policies", response_model=list[PolicyOut])
-def list_policies(_current_user: User = Depends(admin_required)):
-    POLICIES_DIR.mkdir(parents=True, exist_ok=True)
-    policies = []
-    for p in sorted(POLICIES_DIR.iterdir()):
-        if p.is_file() and p.suffix.lower() in {".txt", ".md"}:
-            try:
-                content = p.read_text(encoding="utf-8")
-                title = p.stem.replace("_", " ").title()
-                policies.append(PolicyOut(filename=p.name, title=title, content=content))
-            except Exception as e:
-                logger.error("Failed to read policy file %s: %s", p, e)
-    return policies
+def list_policies(session: Session = Depends(get_session), _current_user: User = Depends(admin_required)):
+    docs = session.exec(select(CompanyDocument).where(CompanyDocument.category == "policies")).all()
+    return [PolicyOut(filename=doc.filename, title=doc.title, content=doc.content) for doc in docs]
 
 @router.post("/policies", response_model=PolicyOut, status_code=201)
-def create_policy(req: PolicyCreate, _current_user: User = Depends(admin_required)):
-    POLICIES_DIR.mkdir(parents=True, exist_ok=True)
+def create_policy(req: PolicyCreate, session: Session = Depends(get_session), _current_user: User = Depends(admin_required)):
     filename = _safe_filename(req.title)
-    filepath = POLICIES_DIR / filename
-    if filepath.exists():
+    existing = session.exec(select(CompanyDocument).where(CompanyDocument.category == "policies", CompanyDocument.filename == filename)).first()
+    if existing:
         raise HTTPException(status_code=409, detail="A policy with a similar title/filename already exists")
 
-    filepath.write_text(req.content, encoding="utf-8")
+    doc = CompanyDocument(
+        category="policies",
+        title=req.title,
+        filename=filename,
+        content=req.content
+    )
+    session.add(doc)
+    session.commit()
 
     # Sync to Chroma
     try:
         ingestion = IngestionService(ChromaService(), EmbeddingService())
-        ingestion.ingest_file(
-            filepath,
+        ingestion.ingest_text(
+            text=req.content,
             collection="company_policies",
-            source_id=f"company_docs:policies:{filepath.stem}",
+            source_id=f"company_docs:policies:{filename}",
             metadata={
                 "doc_section": "policies",
                 "doc_type": "company_document",
@@ -153,25 +151,27 @@ def create_policy(req: PolicyCreate, _current_user: User = Depends(admin_require
             replace_existing=True,
         )
     except Exception as e:
-        logger.error("Chroma RAG ingestion failed for policy %s: %s", filepath, e)
+        logger.error("Chroma RAG update failed for policy %s: %s", filename, e)
 
     return PolicyOut(filename=filename, title=req.title, content=req.content)
 
 @router.put("/policies/{filename}", response_model=PolicyOut)
-def update_policy(filename: str, req: PolicyCreate, _current_user: User = Depends(admin_required)):
-    filepath = POLICIES_DIR / filename
-    if not filepath.exists():
+def update_policy(filename: str, req: PolicyCreate, session: Session = Depends(get_session), _current_user: User = Depends(admin_required)):
+    doc = session.exec(select(CompanyDocument).where(CompanyDocument.category == "policies", CompanyDocument.filename == filename)).first()
+    if not doc:
         raise HTTPException(status_code=404, detail="Policy file not found")
 
-    filepath.write_text(req.content, encoding="utf-8")
+    doc.content = req.content
+    session.add(doc)
+    session.commit()
 
     # Sync to Chroma
     try:
         ingestion = IngestionService(ChromaService(), EmbeddingService())
-        ingestion.ingest_file(
-            filepath,
+        ingestion.ingest_text(
+            text=req.content,
             collection="company_policies",
-            source_id=f"company_docs:policies:{filepath.stem}",
+            source_id=f"company_docs:policies:{filename}",
             metadata={
                 "doc_section": "policies",
                 "doc_type": "company_document",
@@ -180,39 +180,40 @@ def update_policy(filename: str, req: PolicyCreate, _current_user: User = Depend
             replace_existing=True,
         )
     except Exception as e:
-        logger.error("Chroma RAG update failed for policy %s: %s", filepath, e)
+        logger.error("Chroma RAG update failed for policy %s: %s", filename, e)
 
     return PolicyOut(filename=filename, title=req.title, content=req.content)
 
 @router.delete("/policies/{filename}")
-def delete_policy(filename: str, _current_user: User = Depends(admin_required)):
-    filepath = POLICIES_DIR / filename
-    if not filepath.exists():
+def delete_policy(filename: str, session: Session = Depends(get_session), _current_user: User = Depends(admin_required)):
+    doc = session.exec(select(CompanyDocument).where(CompanyDocument.category == "policies", CompanyDocument.filename == filename)).first()
+    if not doc:
         raise HTTPException(status_code=404, detail="Policy file not found")
 
-    filepath.unlink()
+    session.delete(doc)
+    session.commit()
 
     # Clear from Chroma
     try:
         chroma = ChromaService()
-        chroma.delete_where("company_policies", {"source_id": f"company_docs:policies:{filepath.stem}"})
+        chroma.delete_where("company_policies", {"source_id": f"company_docs:policies:{filename}"})
     except Exception as e:
-        logger.error("Chroma RAG delete failed for policy %s: %s", filepath.stem, e)
+        logger.error("Chroma RAG delete failed for policy %s: %s", filename, e)
 
     return {"message": "Policy deleted successfully"}
 
 @router.post("/policies/{filename}/reindex")
-def reindex_policy(filename: str, _current_user: User = Depends(admin_required)):
-    filepath = POLICIES_DIR / filename
-    if not filepath.exists():
+def reindex_policy(filename: str, session: Session = Depends(get_session), _current_user: User = Depends(admin_required)):
+    doc = session.exec(select(CompanyDocument).where(CompanyDocument.category == "policies", CompanyDocument.filename == filename)).first()
+    if not doc:
         raise HTTPException(status_code=404, detail="Policy file not found")
 
     try:
         ingestion = IngestionService(ChromaService(), EmbeddingService())
-        ingestion.ingest_file(
-            filepath,
+        ingestion.ingest_text(
+            text=doc.content,
             collection="company_policies",
-            source_id=f"company_docs:policies:{filepath.stem}",
+            source_id=f"company_docs:policies:{filename}",
             metadata={
                 "doc_section": "policies",
                 "doc_type": "company_document",
@@ -227,42 +228,36 @@ def reindex_policy(filename: str, _current_user: User = Depends(admin_required))
 
 # --- Employee Knowledge Routes ---
 @router.get("/knowledge", response_model=list[KnowledgeOut])
-def list_knowledge(_current_user: User = Depends(admin_required)):
-    articles = []
-    for category in ("onboarding", "training"):
-        dir_path = Path("data/company_docs") / category
-        dir_path.mkdir(parents=True, exist_ok=True)
-        for p in sorted(dir_path.iterdir()):
-            if p.is_file() and p.suffix.lower() in {".txt", ".md"}:
-                try:
-                    content = p.read_text(encoding="utf-8")
-                    title = p.stem.replace("_", " ").title()
-                    articles.append(KnowledgeOut(filename=p.name, category=category, title=title, content=content))
-                except Exception as e:
-                    logger.error("Failed to read knowledge file %s: %s", p, e)
-    return articles
+def list_knowledge(session: Session = Depends(get_session), _current_user: User = Depends(admin_required)):
+    docs = session.exec(select(CompanyDocument).where(CompanyDocument.category.in_(["onboarding", "training"]))).all()
+    return [KnowledgeOut(filename=doc.filename, category=doc.category, title=doc.title, content=doc.content) for doc in docs]
 
 @router.post("/knowledge", response_model=KnowledgeOut, status_code=201)
-def create_knowledge(req: KnowledgeCreate, _current_user: User = Depends(admin_required)):
+def create_knowledge(req: KnowledgeCreate, session: Session = Depends(get_session), _current_user: User = Depends(admin_required)):
     if req.category not in ("onboarding", "training"):
         raise HTTPException(status_code=400, detail="Category must be 'onboarding' or 'training'")
 
-    dir_path = Path("data/company_docs") / req.category
-    dir_path.mkdir(parents=True, exist_ok=True)
     filename = _safe_filename(req.title)
-    filepath = dir_path / filename
-    if filepath.exists():
+    existing = session.exec(select(CompanyDocument).where(CompanyDocument.category == req.category, CompanyDocument.filename == filename)).first()
+    if existing:
         raise HTTPException(status_code=409, detail="A knowledge article with a similar title already exists")
 
-    filepath.write_text(req.content, encoding="utf-8")
+    doc = CompanyDocument(
+        category=req.category,
+        title=req.title,
+        filename=filename,
+        content=req.content
+    )
+    session.add(doc)
+    session.commit()
 
     # Sync to Chroma
     try:
         ingestion = IngestionService(ChromaService(), EmbeddingService())
-        ingestion.ingest_file(
-            filepath,
+        ingestion.ingest_text(
+            text=req.content,
             collection="employee_knowledge",
-            source_id=f"company_docs:{req.category}:{filepath.stem}",
+            source_id=f"company_docs:{req.category}:{filename}",
             metadata={
                 "doc_section": req.category,
                 "doc_type": "company_document",
@@ -271,28 +266,30 @@ def create_knowledge(req: KnowledgeCreate, _current_user: User = Depends(admin_r
             replace_existing=True,
         )
     except Exception as e:
-        logger.error("Chroma RAG ingestion failed for article %s: %s", filepath, e)
+        logger.error("Chroma RAG ingestion failed for article %s: %s", filename, e)
 
     return KnowledgeOut(filename=filename, category=req.category, title=req.title, content=req.content)
 
 @router.put("/knowledge/{category}/{filename}", response_model=KnowledgeOut)
-def update_knowledge(category: str, filename: str, req: PolicyCreate, _current_user: User = Depends(admin_required)):
+def update_knowledge(category: str, filename: str, req: PolicyCreate, session: Session = Depends(get_session), _current_user: User = Depends(admin_required)):
     if category not in ("onboarding", "training"):
         raise HTTPException(status_code=400, detail="Category must be 'onboarding' or 'training'")
 
-    filepath = Path("data/company_docs") / category / filename
-    if not filepath.exists():
+    doc = session.exec(select(CompanyDocument).where(CompanyDocument.category == category, CompanyDocument.filename == filename)).first()
+    if not doc:
         raise HTTPException(status_code=404, detail="Knowledge article not found")
 
-    filepath.write_text(req.content, encoding="utf-8")
+    doc.content = req.content
+    session.add(doc)
+    session.commit()
 
     # Sync to Chroma
     try:
         ingestion = IngestionService(ChromaService(), EmbeddingService())
-        ingestion.ingest_file(
-            filepath,
+        ingestion.ingest_text(
+            text=req.content,
             collection="employee_knowledge",
-            source_id=f"company_docs:{category}:{filepath.stem}",
+            source_id=f"company_docs:{category}:{filename}",
             metadata={
                 "doc_section": category,
                 "doc_type": "company_document",
@@ -301,45 +298,46 @@ def update_knowledge(category: str, filename: str, req: PolicyCreate, _current_u
             replace_existing=True,
         )
     except Exception as e:
-        logger.error("Chroma RAG update failed for article %s: %s", filepath, e)
+        logger.error("Chroma RAG update failed for article %s: %s", filename, e)
 
-    return KnowledgeOut(filename=filename, category=category, title=req.title, content=req.content)
+    return KnowledgeOut(filename=filename, category=category, title=doc.title, content=req.content)
 
 @router.delete("/knowledge/{category}/{filename}")
-def delete_knowledge(category: str, filename: str, _current_user: User = Depends(admin_required)):
+def delete_knowledge(category: str, filename: str, session: Session = Depends(get_session), _current_user: User = Depends(admin_required)):
     if category not in ("onboarding", "training"):
         raise HTTPException(status_code=400, detail="Category must be 'onboarding' or 'training'")
 
-    filepath = Path("data/company_docs") / category / filename
-    if not filepath.exists():
+    doc = session.exec(select(CompanyDocument).where(CompanyDocument.category == category, CompanyDocument.filename == filename)).first()
+    if not doc:
         raise HTTPException(status_code=404, detail="Knowledge article not found")
 
-    filepath.unlink()
+    session.delete(doc)
+    session.commit()
 
     # Clear from Chroma
     try:
         chroma = ChromaService()
-        chroma.delete_where("employee_knowledge", {"source_id": f"company_docs:{category}:{filepath.stem}"})
+        chroma.delete_where("employee_knowledge", {"source_id": f"company_docs:{category}:{filename}"})
     except Exception as e:
-        logger.error("Chroma RAG delete failed for article %s: %s", filepath.stem, e)
+        logger.error("Chroma RAG delete failed for article %s: %s", filename, e)
 
     return {"message": "Knowledge article deleted successfully"}
 
 @router.post("/knowledge/{category}/{filename}/reindex")
-def reindex_knowledge(category: str, filename: str, _current_user: User = Depends(admin_required)):
+def reindex_knowledge(category: str, filename: str, session: Session = Depends(get_session), _current_user: User = Depends(admin_required)):
     if category not in ("onboarding", "training"):
         raise HTTPException(status_code=400, detail="Category must be 'onboarding' or 'training'")
 
-    filepath = Path("data/company_docs") / category / filename
-    if not filepath.exists():
+    doc = session.exec(select(CompanyDocument).where(CompanyDocument.category == category, CompanyDocument.filename == filename)).first()
+    if not doc:
         raise HTTPException(status_code=404, detail="Knowledge article not found")
 
     try:
         ingestion = IngestionService(ChromaService(), EmbeddingService())
-        ingestion.ingest_file(
-            filepath,
+        ingestion.ingest_text(
+            text=doc.content,
             collection="employee_knowledge",
-            source_id=f"company_docs:{category}:{filepath.stem}",
+            source_id=f"company_docs:{category}:{filename}",
             metadata={
                 "doc_section": category,
                 "doc_type": "company_document",

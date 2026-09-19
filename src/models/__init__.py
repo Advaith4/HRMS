@@ -425,6 +425,9 @@ class CandidateDocument(SQLModel, table=True):
     document_type: str = Field(max_length=80)
     original_filename: str = Field(max_length=255)
     stored_path: str = Field(max_length=700)
+    stored_path: str | None = Field(default=None, max_length=700)
+    file_data: bytes = Field(default=b"")
+    mime_type: str = Field(max_length=100, default="application/pdf")
     verification_status: str = Field(default="Pending Review", max_length=40)
     rejection_comment: str = Field(default="", max_length=1000)
     uploaded_at: datetime = Field(default_factory=datetime.utcnow)
@@ -440,11 +443,25 @@ class EmployeeDocument(SQLModel, table=True):
     document_type: str = Field(max_length=80)
     original_filename: str = Field(max_length=255)
     stored_path: str = Field(max_length=700)
+    stored_path: str | None = Field(default=None, max_length=700)
+    file_data: bytes = Field(default=b"")
+    mime_type: str = Field(max_length=100, default="application/pdf")
     verification_status: str = Field(default="Pending Review", max_length=40)
     rejection_comment: str = Field(default="", max_length=1000)
     uploaded_at: datetime = Field(default_factory=datetime.utcnow)
     reviewed_at: datetime | None = None
     reviewed_by: int | None = Field(default=None, foreign_key="users.id")
+
+
+class CompanyDocument(SQLModel, table=True):
+    __tablename__ = "company_documents"
+    id: int | None = Field(default=None, primary_key=True)
+    category: str = Field(max_length=50)  # "policies", "onboarding", "training"
+    title: str = Field(max_length=255)
+    filename: str = Field(max_length=255, index=True)
+    content: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 class OnboardingTemplate(SQLModel, table=True):

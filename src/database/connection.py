@@ -62,6 +62,8 @@ def create_db_and_tables() -> None:
     _ensure_profile_completion_tables()
     _ensure_profile_prepopulated_column()
     _ensure_job_status_column()
+    _ensure_profile_documents_file_data_columns()
+    _ensure_company_documents_table()
 
 
 def _ensure_user_role_column() -> None:
@@ -750,3 +752,47 @@ def _ensure_job_status_column() -> None:
                 session.commit()
     except Exception as exc:
         logger.warning("Job status column migration skipped: %s", exc)
+def _ensure_profile_documents_file_data_columns() -> None:
+    try:
+        if _db_url.startswith("sqlite"):
+            with Session(engine) as session:
+                for table in ["candidate_documents", "employee_documents"]:
+                    existing = {row[1] for row in session.exec(text(f"PRAGMA table_info({table})")).all()}
+                    if "file_data" not in existing:
+                        session.exec(text(f"ALTER TABLE {table} ADD COLUMN file_data BLOB DEFAULT ''"))
+                    if "mime_type" not in existing:
+                        session.exec(text(f"ALTER TABLE {table} ADD COLUMN mime_type VARCHAR(100) DEFAULT 'application/pdf'"))
+                session.commit()
+        else:
+            statements = [
+                "ALTER TABLE candidate_documents ADD COLUMN IF NOT EXISTS file_data BYTEA DEFAULT ''",
+                "ALTER TABLE candidate_documents ADD COLUMN IF NOT EXISTS mime_type VARCHAR(100) DEFAULT 'application/pdf'",
+                "ALTER TABLE employee_documents ADD COLUMN IF NOT EXISTS file_data BYTEA DEFAULT ''",
+                "ALTER TABLE employee_documents ADD COLUMN IF NOT EXISTS mime_type VARCHAR(100) DEFAULT 'application/pdf'"
+            ]
+            with engine.begin() as conn:
+                for stmt in statements:
+                    conn.execute(text(stmt))
+    except Exception as exc:
+        logger.warning(f"Could not verify profile documents file_data columns: {exc}")
+
+def _ensure_company_documents_table() -> None:
+    try:
+        if _db_url.startswith("sqlite") or settings.AUTO_CREATE_DB_SCHEMA:
+            SQLModel.metadata.create_all(engine)
+        else:
+            statement = """
+            CREATE TABLE IF NOT EXISTS company_documents (
+                id SERIAL PRIMARY KEY,
+                category VARCHAR(50) NOT NULL,
+                title VARCHAR(255) NOT NULL,
+                filename VARCHAR(255) NOT NULL,
+                content TEXT NOT NULL,
+                created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+            with engine.begin() as conn:
+                conn.execute(text(statement))
+    except Exception as exc:
+        logger.warning(f"Could not verify company_documents table: {exc}")

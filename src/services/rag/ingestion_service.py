@@ -69,6 +69,33 @@ class IngestionService:
         logger.info("Ingested %s into %s with %s chunk(s)", path, collection, len(chunks))
         return IngestionResult(collection=collection, source=str(path), chunks_stored=len(chunks))
 
+    def ingest_text(
+        self,
+        text: str,
+        collection: str,
+        source_id: str,
+        metadata: dict | None = None,
+        replace_existing: bool = True,
+    ) -> IngestionResult:
+        chunks = self.chunk_text(text)
+        embeddings = self.embeddings.embed_texts(chunks)
+        base_metadata = {
+            "source": f"db:{source_id}",
+            "filename": source_id,
+            "source_id": source_id,
+        }
+        if metadata:
+            base_metadata.update(metadata)
+        content_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        base_metadata["content_hash"] = content_hash
+        ids = [f"{collection}:{base_metadata['source_id']}:chunk:{index}" for index in range(len(chunks))]
+        metadatas = [{**base_metadata, "chunk_index": index} for index in range(len(chunks))]
+        if replace_existing:
+            self.chroma.delete_where(collection, {"source_id": str(base_metadata["source_id"])})
+        self.chroma.upsert_documents(collection, ids, chunks, embeddings, metadatas)
+        logger.info("Ingested text source_id=%s into %s with %s chunk(s)", source_id, collection, len(chunks))
+        return IngestionResult(collection=collection, source=source_id, chunks_stored=len(chunks))
+
     def extract_text(self, path: Path) -> str:
         suffix = path.suffix.lower()
         if suffix not in SUPPORTED_EXTENSIONS:

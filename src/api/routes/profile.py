@@ -5,6 +5,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
@@ -279,12 +280,30 @@ def upload_document(
     with stored_path.open("wb") as dest:
         dest.write(content)
 
+    mime_type = file.content_type or "application/octet-stream"
+    original_name = file.filename or f"document{suffix}"
+
     from datetime import date
     if current_user.role == "candidate":
         doc = CandidateDocument(user_id=current_user.id, document_type=document_type, original_filename=file.filename or stored_name, stored_path=str(stored_path))
+        doc = CandidateDocument(
+            user_id=current_user.id,
+            document_type=document_type,
+            original_filename=original_name,
+            file_data=content,
+            mime_type=mime_type
+        )
     else:
         employee = _employee_for_user(session, current_user.id)
         doc = EmployeeDocument(user_id=current_user.id, employee_id=employee.id if employee else None, document_type=document_type, original_filename=file.filename or stored_name, stored_path=str(stored_path))
+        doc = EmployeeDocument(
+            user_id=current_user.id,
+            employee_id=employee.id if employee else None,
+            document_type=document_type,
+            original_filename=original_name,
+            file_data=content,
+            mime_type=mime_type
+        )
         if employee:
             session.add(EmployeeLifecycleEvent(
                 employee_id=employee.id,
@@ -329,6 +348,16 @@ def download_document(kind: str, document_id: int, session: Session = Depends(ge
     if not os.path.exists(doc.stored_path):
         raise HTTPException(status_code=404, detail="Stored file is missing.")
     return FileResponse(doc.stored_path, filename=doc.original_filename)
+    
+    # Fallback for old documents stored on disk before the migration
+    if not doc.file_data and doc.stored_path and os.path.exists(doc.stored_path):
+        return FileResponse(doc.stored_path, filename=doc.original_filename)
+        
+    if not doc.file_data:
+        raise HTTPException(status_code=404, detail="Document file data is missing.")
+        
+    headers = {"Content-Disposition": f'attachment; filename="{doc.original_filename}"'}
+    return Response(content=doc.file_data, media_type=doc.mime_type, headers=headers)
 
 
 @router.get("/documents/review")

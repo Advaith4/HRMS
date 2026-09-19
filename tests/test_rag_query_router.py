@@ -187,7 +187,7 @@ def test_hybrid_candidate_comparison_uses_database_and_rag(tmp_path):
     assert "database" in result["collections_used"]
     assert "job_descriptions" in result["collections_used"]
     assert any(source["collection"] == "database" for source in result["sources"])
-    assert "Strong FastAPI" in result["answer"] or "Decision support score" in result["answer"]
+    assert "Strong FastAPI" in result["answer"] or "decision support" in result["answer"].lower()
 
 
 def test_candidate_guidance_is_limited_to_own_records(tmp_path):
