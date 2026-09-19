@@ -1,777 +1,884 @@
 {
   "agents/interview_coach.py": {
     "mtime": 1780674111.7031682,
+    "seen": 1789838816.5061362,
     "ast_hash": "eb6da1b1538e6c0e6b684cd695c371ca",
     "semantic_hash": ""
   },
   "agents/job_finder.py": {
     "mtime": 1780674080.8102267,
+    "seen": 1789838816.5061362,
     "ast_hash": "9fbbd07613ff953c7052d4373c6d96b8",
     "semantic_hash": ""
   },
   "agents/recruitment_analyst.py": {
     "mtime": 1780674095.7031302,
+    "seen": 1789838816.5061362,
     "ast_hash": "d8f4ec9bd3a4a50c717cf8de6edc7e04",
     "semantic_hash": ""
   },
   "agents/resume_optimizer.py": {
     "mtime": 1780674094.8054354,
+    "seen": 1789838816.5061362,
     "ast_hash": "cbcd70f28cad16c2880682c629e0a0bf",
     "semantic_hash": ""
   },
   "agents/skill_matcher.py": {
     "mtime": 1780392348.8723447,
+    "seen": 1789838816.5061362,
     "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
     "semantic_hash": ""
   },
   "app.py": {
     "mtime": 1780631075.8870828,
+    "seen": 1789838816.5061362,
     "ast_hash": "4b5256f8aee09b6d7ec917a9059ddb8d",
     "semantic_hash": ""
   },
-  "check_ids.js": {
-    "mtime": 1780631075.8947055,
-    "ast_hash": "aa204d9de923bbbc6361849ef29fb099",
-    "semantic_hash": ""
-  },
   "crew.py": {
-    "mtime": 1780732395.2827117,
-    "ast_hash": "43c8afb188ccf1a5bb01b981039ffa69",
+    "mtime": 1780808502.7113154,
+    "seen": 1789838816.5061362,
+    "ast_hash": "c54b6dae2ff478df839b6a589fd0f5a9",
     "semantic_hash": ""
   },
   "frontend/eslint.config.js": {
     "mtime": 1780631076.0481112,
+    "seen": 1789838816.5061362,
     "ast_hash": "3aa4b57d7f08181d86bde52a4dcb7f22",
     "semantic_hash": ""
   },
   "frontend/package.json": {
-    "mtime": 1780631076.0926287,
-    "ast_hash": "8d9659b67dd9b593c1adbedceb6b7a75",
+    "mtime": 1780808502.7143154,
+    "seen": 1789838816.5061362,
+    "ast_hash": "afa49f4464319662005fb90e32db6850",
     "semantic_hash": ""
   },
   "frontend/src/App.jsx": {
-    "mtime": 1780676387.015987,
-    "ast_hash": "df8523dffb9be831d59e9fc183cdc25d",
+    "mtime": 1780821299.70452,
+    "seen": 1789838816.5061362,
+    "ast_hash": "732c88083953cf48b3d762b581c0f22a",
     "semantic_hash": ""
   },
   "frontend/src/api/applications.js": {
     "mtime": 1780631076.192145,
+    "seen": 1789838816.5061362,
     "ast_hash": "ffebbfb4344fe253a1743be6c1932d80",
     "semantic_hash": ""
   },
   "frontend/src/api/auth.js": {
     "mtime": 1780631076.2102077,
+    "seen": 1789838816.5061362,
     "ast_hash": "2d87cb407af33564cc8c7d6b78f2a8af",
     "semantic_hash": ""
   },
   "frontend/src/api/axios.js": {
-    "mtime": 1780751087.1715727,
-    "ast_hash": "359fd204a32e258fc73f28785d9ea33c",
+    "mtime": 1780808502.7163138,
+    "seen": 1789838816.5061362,
+    "ast_hash": "6a5cb1645c8f44dc921d81f93bb56a59",
     "semantic_hash": ""
   },
   "frontend/src/api/candidates.js": {
     "mtime": 1780631076.2417812,
+    "seen": 1789838816.5061362,
     "ast_hash": "7061786cf5b0807566ce56360c019c0b",
     "semantic_hash": ""
   },
   "frontend/src/api/dashboard.js": {
     "mtime": 1780631076.2650359,
+    "seen": 1789838816.5061362,
     "ast_hash": "87cda23b662dd91c04114e6aa1fcd1ef",
     "semantic_hash": ""
   },
   "frontend/src/api/departments.js": {
     "mtime": 1780631076.28475,
+    "seen": 1789838816.5061362,
     "ast_hash": "0b3f71defc3561ba0eea522c95011c72",
     "semantic_hash": ""
   },
   "frontend/src/api/designations.js": {
     "mtime": 1780631076.3050203,
+    "seen": 1789838816.5061362,
     "ast_hash": "3358d371e7629a41be03d6bef4a4920b",
     "semantic_hash": ""
   },
   "frontend/src/api/employees.js": {
     "mtime": 1780631076.3296509,
+    "seen": 1789838816.5061362,
     "ast_hash": "f4781590aeeeb38fe201f9b07eb11edc",
     "semantic_hash": ""
   },
   "frontend/src/api/index.js": {
-    "mtime": 1780631076.3785977,
-    "ast_hash": "8c5754fa7a068996e7ed633082de58cf",
+    "mtime": 1780815455.2516942,
+    "seen": 1789838816.5061362,
+    "ast_hash": "a7aadf80aea94f4f6b166c1ef451f14f",
     "semantic_hash": ""
   },
   "frontend/src/api/interview.js": {
-    "mtime": 1780751100.797218,
-    "ast_hash": "32e8b8be1179e4257cdd7c36bc6f887e",
+    "mtime": 1780808502.7189322,
+    "seen": 1789838816.5061362,
+    "ast_hash": "5bbdd468a64606693ed7f72abcbca26c",
     "semantic_hash": ""
   },
   "frontend/src/api/jobs.js": {
-    "mtime": 1780631076.4252315,
-    "ast_hash": "dae1783ec8882b8fe381d47a958f242f",
+    "mtime": 1780808502.7197387,
+    "seen": 1789838816.5061362,
+    "ast_hash": "4f66ec6094fc8cfca80e41d79507353d",
     "semantic_hash": ""
   },
   "frontend/src/api/lifecycle.js": {
     "mtime": 1780631076.4425044,
+    "seen": 1789838816.5061362,
     "ast_hash": "d74623f82adfba3a3625615cc3c211ff",
     "semantic_hash": ""
   },
   "frontend/src/api/notifications.js": {
     "mtime": 1780631076.466726,
+    "seen": 1789838816.5061362,
     "ast_hash": "5c1b3cd8c8260e159fab3f905c736dca",
     "semantic_hash": ""
   },
   "frontend/src/api/onboarding.js": {
     "mtime": 1780631076.5113306,
+    "seen": 1789838816.5061362,
     "ast_hash": "02992629462c9207ea064be48a11dc01",
     "semantic_hash": ""
   },
   "frontend/src/api/profile.js": {
     "mtime": 1780631076.5543013,
+    "seen": 1789838816.5061362,
     "ast_hash": "c5a46c35d4673da1c2abbf391bbb9448",
     "semantic_hash": ""
   },
   "frontend/src/api/promotions.js": {
     "mtime": 1780631076.5780857,
+    "seen": 1789838816.5061362,
     "ast_hash": "b2e6f27d32760a73d5f23c80b06992f3",
     "semantic_hash": ""
   },
   "frontend/src/api/resume.js": {
     "mtime": 1780631076.6022305,
+    "seen": 1789838816.5061362,
     "ast_hash": "9763d142bbf2baae37afcd63877cd29e",
     "semantic_hash": ""
   },
   "frontend/src/api/salary.js": {
     "mtime": 1780631076.6740112,
+    "seen": 1789838816.5061362,
     "ast_hash": "fa4eb27ce72e024a0a9cfb8da5ff58cc",
     "semantic_hash": ""
   },
   "frontend/src/api/tickets.js": {
-    "mtime": 1780631076.754615,
-    "ast_hash": "5738b36aed39ee238efc6a4cd35e5fca",
+    "mtime": 1781668327.323688,
+    "seen": 1789838816.5061362,
+    "ast_hash": "d2b6923e6c175f8c9dc158f4f5ece985",
     "semantic_hash": ""
   },
   "frontend/src/api/training.js": {
     "mtime": 1780631076.8050733,
+    "seen": 1789838816.5061362,
     "ast_hash": "d0ab4684419f59973d54a48369898bab",
     "semantic_hash": ""
   },
   "frontend/src/components/DocumentViewerModal.jsx": {
     "mtime": 1780631076.8899608,
+    "seen": 1789838816.5061362,
     "ast_hash": "e12dea7a495e382294e052fee2e0e595",
     "semantic_hash": ""
   },
   "frontend/src/components/EmployeeOnboardingSection.jsx": {
     "mtime": 1780631076.940325,
+    "seen": 1789838816.5061362,
     "ast_hash": "819300e0ff6c254a349130506c7a7c90",
     "semantic_hash": ""
   },
   "frontend/src/components/EmployeeProfileSection.jsx": {
     "mtime": 1780631076.9932787,
+    "seen": 1789838816.5061362,
     "ast_hash": "f6d5da131583a11d0f26b04084aa14da",
     "semantic_hash": ""
   },
   "frontend/src/components/EmployeeTrainingSection.jsx": {
-    "mtime": 1780631077.038618,
-    "ast_hash": "4b054f7c36b6bb0726aba32ff78203e1",
+    "mtime": 1780808502.7214286,
+    "seen": 1789838816.5061362,
+    "ast_hash": "a24b9d66a8b6fcad51ac3a7ed209a304",
     "semantic_hash": ""
   },
   "frontend/src/components/HRMetricsPanel.jsx": {
     "mtime": 1780631077.0854974,
+    "seen": 1789838816.5061362,
     "ast_hash": "0367de2103753841cddebe22f79c8f84",
     "semantic_hash": ""
   },
   "frontend/src/components/HRReviewQueue.jsx": {
     "mtime": 1780631077.1358583,
+    "seen": 1789838816.5061362,
     "ast_hash": "5d325eb3cda0e2ef2b57d37c4a2a66fd",
     "semantic_hash": ""
   },
   "frontend/src/components/PendingActionsWidget.jsx": {
     "mtime": 1780631077.1912234,
+    "seen": 1789838816.5061362,
     "ast_hash": "a8609c4e644ec4a9123b29e9b5df318b",
     "semantic_hash": ""
   },
   "frontend/src/components/ProfileCompletionWidget.jsx": {
     "mtime": 1780631077.2396765,
+    "seen": 1789838816.5061362,
     "ast_hash": "9505bff4cb76d3c7a472ed5a67c382c8",
     "semantic_hash": ""
   },
   "frontend/src/components/ProfileSetupWizard.jsx": {
     "mtime": 1780631077.2902534,
+    "seen": 1789838816.5061362,
     "ast_hash": "1453e427d6b90a130f0a732b38dfea8d",
     "semantic_hash": ""
   },
   "frontend/src/components/charts/ApplicationTrend.jsx": {
     "mtime": 1780631077.3529756,
+    "seen": 1789838816.5061362,
     "ast_hash": "6df2a7b6a4f08dfa72688a6231360859",
     "semantic_hash": ""
   },
   "frontend/src/components/charts/ScoreDistribution.jsx": {
     "mtime": 1780631077.3946228,
+    "seen": 1789838816.5061362,
     "ast_hash": "e8ed562c0eb76ccbc71c4402b8f92f7a",
     "semantic_hash": ""
   },
   "frontend/src/components/charts/SkillGapRadial.jsx": {
     "mtime": 1780631077.4355025,
+    "seen": 1789838816.5061362,
     "ast_hash": "901ac8e7a66f79b3f67e146742895876",
     "semantic_hash": ""
   },
   "frontend/src/components/drawers/AnalysisDrawer.jsx": {
     "mtime": 1780746033.235476,
+    "seen": 1789838816.5061362,
     "ast_hash": "34dab24306a7b90bc472de83e549fe71",
     "semantic_hash": ""
   },
   "frontend/src/components/drawers/EmployeeProfileDrawer.jsx": {
-    "mtime": 1780631077.6966488,
-    "ast_hash": "728ccbaa1ef2f89834fc61502fbbf192",
+    "mtime": 1780821299.7186725,
+    "seen": 1789838816.5061362,
+    "ast_hash": "1f40932ae9069bb021544a61c1d09225",
     "semantic_hash": ""
   },
   "frontend/src/components/drawers/JobDetailDrawer.jsx": {
-    "mtime": 1780649651.5767205,
-    "ast_hash": "f00d4c7312720dddab537e52ecaeb3fb",
+    "mtime": 1780808502.7234483,
+    "seen": 1789838816.5061362,
+    "ast_hash": "e4904edfc0507c36bdfa53c372593710",
     "semantic_hash": ""
   },
   "frontend/src/components/drawers/NotificationDrawer.jsx": {
     "mtime": 1780631077.9451332,
+    "seen": 1789838816.5061362,
     "ast_hash": "3480f44de05bd28fa5abba537b9ec6ae",
     "semantic_hash": ""
   },
   "frontend/src/components/interview/CandidateCredibilityCard.jsx": {
     "mtime": 1780570625.3762295,
+    "seen": 1789838816.5061362,
     "ast_hash": "9d6cd82cfbdf72a29d81559ebfea3fc8",
     "semantic_hash": ""
   },
   "frontend/src/components/interview/InterviewStatusCard.jsx": {
     "mtime": 1780569477.577736,
+    "seen": 1789838816.5061362,
     "ast_hash": "8bbca747e132d479cc3050f56866bf17",
     "semantic_hash": ""
   },
   "frontend/src/components/interview/InterviewSummary.jsx": {
-    "mtime": 1780751474.9115877,
-    "ast_hash": "8f6e829a230ab56a51285c1c30282ec1",
+    "mtime": 1780808502.7264485,
+    "seen": 1789838816.5061362,
+    "ast_hash": "c531a52153c11e52a968e76614f3f4a7",
     "semantic_hash": ""
   },
   "frontend/src/components/interview/InterviewWorkspace.jsx": {
     "mtime": 1780728703.9379096,
+    "seen": 1789838816.5061362,
     "ast_hash": "d39100f2d2ca8ba06dbe0c9be6f563cd",
     "semantic_hash": ""
   },
   "frontend/src/components/layout/Layout.jsx": {
-    "mtime": 1780631078.1447506,
-    "ast_hash": "8555185bc88be773fa51298100b9a55a",
+    "mtime": 1780821299.7692902,
+    "seen": 1789838816.5061362,
+    "ast_hash": "d3a20abc30593e1b4a40bd9158e8163f",
     "semantic_hash": ""
   },
   "frontend/src/components/layout/Sidebar.jsx": {
-    "mtime": 1780718732.0830815,
-    "ast_hash": "ab53f88dbc8667be534c9128d394f9ed",
+    "mtime": 1780821299.7833774,
+    "seen": 1789838816.5061362,
+    "ast_hash": "4601e182d2c186c65e6dde861f74a148",
     "semantic_hash": ""
   },
   "frontend/src/components/layout/TopBar.jsx": {
-    "mtime": 1780631078.7511501,
-    "ast_hash": "bbfaa0d2dbc992c4b9ef11aef26c4acb",
+    "mtime": 1780821299.793463,
+    "seen": 1789838816.5061362,
+    "ast_hash": "e1a3a150ce7b3380d2f58a65d7f11bd6",
     "semantic_hash": ""
   },
   "frontend/src/components/modals/AddPromotionModal.jsx": {
     "mtime": 1780631079.0134277,
+    "seen": 1789838816.5061362,
     "ast_hash": "ba5f50442014f7289ee83d9ed64c1e36",
     "semantic_hash": ""
   },
   "frontend/src/components/modals/AddSalaryModal.jsx": {
     "mtime": 1780631079.1436155,
+    "seen": 1789838816.5061362,
     "ast_hash": "f09b994f7dfe5021195f7aafda6792e4",
     "semantic_hash": ""
   },
   "frontend/src/components/modals/CreateTicketModal.jsx": {
     "mtime": 1780631079.226957,
+    "seen": 1789838816.5061362,
     "ast_hash": "df12d558608f0f13c7d93967273e9b03",
     "semantic_hash": ""
   },
   "frontend/src/components/modals/DepartmentModal.jsx": {
     "mtime": 1780631079.3314233,
+    "seen": 1789838816.5061362,
     "ast_hash": "a5e1826ad75686697f48a802c9043567",
     "semantic_hash": ""
   },
   "frontend/src/components/modals/DesignationModal.jsx": {
     "mtime": 1780631079.432183,
+    "seen": 1789838816.5061362,
     "ast_hash": "27cb6101a7d0f7fed7b1d8c9d7e25999",
     "semantic_hash": ""
   },
   "frontend/src/components/modals/DocumentDecisionModal.jsx": {
     "mtime": 1780631079.568155,
+    "seen": 1789838816.5061362,
     "ast_hash": "ac2421cd2b17f990b0dcc74a30db4d01",
     "semantic_hash": ""
   },
   "frontend/src/components/modals/PostJobModal.jsx": {
     "mtime": 1780631079.6863813,
+    "seen": 1789838816.5061362,
     "ast_hash": "5f4d7bd22dd3b7f8f4726b96f8289d8e",
     "semantic_hash": ""
   },
   "frontend/src/components/ui/AIScoreDonut.jsx": {
     "mtime": 1780631079.7796354,
+    "seen": 1789838816.5061362,
     "ast_hash": "d8db74fb4629fa3f3b0d5fd95c904abb",
     "semantic_hash": ""
   },
   "frontend/src/components/ui/EmptyState.jsx": {
     "mtime": 1780631079.8701813,
+    "seen": 1789838816.5061362,
     "ast_hash": "f87e52b6be82bd607b307c55b5576302",
     "semantic_hash": ""
   },
   "frontend/src/components/ui/MetricCard.jsx": {
     "mtime": 1780631080.0098782,
+    "seen": 1789838816.5061362,
     "ast_hash": "8a4c880eacb956f90b67019507280ac5",
     "semantic_hash": ""
   },
   "frontend/src/components/ui/SkeletonCard.jsx": {
     "mtime": 1780631080.083483,
+    "seen": 1789838816.5061362,
     "ast_hash": "e4978d9443dbd23056ef699c0379e236",
     "semantic_hash": ""
   },
   "frontend/src/components/ui/StatusPill.jsx": {
     "mtime": 1780631080.1655445,
+    "seen": 1789838816.5061362,
     "ast_hash": "209965be855cb3418ab3be749c36d236",
     "semantic_hash": ""
   },
   "frontend/src/hooks/useInterviewMedia.js": {
-    "mtime": 1780668076.5699873,
-    "ast_hash": "e2fd71bf4e27e8b8657af5066d4e6956",
+    "mtime": 1780808502.7334442,
+    "seen": 1789838816.5061362,
+    "ast_hash": "1964a85238fb81d5800b1f0743870ef4",
     "semantic_hash": ""
   },
   "frontend/src/hooks/useRecorder.js": {
-    "mtime": 1780568970.6670191,
-    "ast_hash": "a4037a5ad3d75a1e8b9cac2fa7a67537",
+    "mtime": 1780808502.7334442,
+    "seen": 1789838816.5061362,
+    "ast_hash": "e4b6edd5bfe612ebaf06bef274580223",
     "semantic_hash": ""
   },
   "frontend/src/main.jsx": {
     "mtime": 1780631080.3494384,
+    "seen": 1789838816.5061362,
     "ast_hash": "e13723e2574429d9a6d849727e3ff695",
     "semantic_hash": ""
   },
   "frontend/src/pages/CandidateDashboard.jsx": {
-    "mtime": 1780751520.907443,
-    "ast_hash": "895c3c23f9226a27868c252cfed9a7db",
+    "mtime": 1780821299.8239973,
+    "seen": 1789838816.5061362,
+    "ast_hash": "27015804f6d448c042a75d7d3a6815a4",
     "semantic_hash": ""
   },
   "frontend/src/pages/EmployeeDashboard.jsx": {
-    "mtime": 1780636895.1791215,
-    "ast_hash": "a41d255140d9b9c1bda038f3070d0f4c",
+    "mtime": 1780821299.8340206,
+    "seen": 1789838816.5061362,
+    "ast_hash": "3c9acebafcdb26552b30e59f5ec0597f",
     "semantic_hash": ""
   },
   "frontend/src/pages/HRDashboard.jsx": {
-    "mtime": 1780668911.96692,
-    "ast_hash": "878ba423c764648b8537e63b85941c28",
+    "mtime": 1780815455.2577238,
+    "seen": 1789838816.5061362,
+    "ast_hash": "34030a2a2cbcf083137f1dacb223fe42",
     "semantic_hash": ""
   },
   "frontend/src/pages/LoginPage.jsx": {
-    "mtime": 1780631080.8120217,
-    "ast_hash": "fdd8049d93b35d4321edad747478cc83",
+    "mtime": 1780821299.844951,
+    "seen": 1789838816.5061362,
+    "ast_hash": "b9cd251829ab2ba36f1c89f0bb3e6cbf",
     "semantic_hash": ""
   },
   "frontend/src/pages/ManagerDashboard.jsx": {
     "mtime": 1780631081.037979,
+    "seen": 1789838816.5061362,
     "ast_hash": "3d97e029e450df54bd377cb0f10ef4d3",
     "semantic_hash": ""
   },
   "frontend/src/pages/hr/DepartmentManagement.jsx": {
     "mtime": 1780631081.2828882,
+    "seen": 1789838816.5061362,
     "ast_hash": "7ac10f8e36ccb1ab3a70c0648ffc79b5",
     "semantic_hash": ""
   },
   "frontend/src/pages/hr/DesignationManagement.jsx": {
     "mtime": 1780631081.4242034,
+    "seen": 1789838816.5061362,
     "ast_hash": "b63d6888d30f9a8d0551f31c689d6a60",
     "semantic_hash": ""
   },
   "frontend/src/pages/hr/DocumentVerification.jsx": {
     "mtime": 1780631081.6053386,
+    "seen": 1789838816.5061362,
     "ast_hash": "32c0ae12cae15ba73288eefd431e5480",
     "semantic_hash": ""
   },
   "frontend/src/pages/hr/EmployeeDirectory.jsx": {
-    "mtime": 1780631081.6958857,
-    "ast_hash": "b6e565311b5872f2dca2854596517ddd",
+    "mtime": 1780821299.8656752,
+    "seen": 1789838816.5061362,
+    "ast_hash": "9c8430bb986fab6b3dbf71a9758e7918",
     "semantic_hash": ""
   },
   "frontend/src/pages/hr/GrievanceDashboard.jsx": {
-    "mtime": 1780631081.8612669,
-    "ast_hash": "964b17f694dcdb3b0f1aedc96a583cfc",
+    "mtime": 1781668327.3256848,
+    "seen": 1789838816.5061362,
+    "ast_hash": "13862154bbd4a52de884c936fbe8e5e4",
     "semantic_hash": ""
   },
   "frontend/src/pages/hr/InterviewReports.jsx": {
     "mtime": 1780751087.0555656,
+    "seen": 1789838816.5061362,
     "ast_hash": "eed9d284881dc533507658e8360d314e",
     "semantic_hash": ""
   },
   "frontend/src/pages/hr/ManagerTrainingView.jsx": {
     "mtime": 1780631081.950334,
+    "seen": 1789838816.5061362,
     "ast_hash": "68c1550674a57ac52e30e3c05ddf2e59",
     "semantic_hash": ""
   },
   "frontend/src/pages/hr/OnboardingHub.jsx": {
     "mtime": 1780631082.0044322,
+    "seen": 1789838816.5061362,
     "ast_hash": "50da0ab24513c76b5168cc52da9666be",
     "semantic_hash": ""
   },
   "frontend/src/pages/hr/PromotionDashboard.jsx": {
     "mtime": 1780631082.0448549,
+    "seen": 1789838816.5061362,
     "ast_hash": "c0832602a04a7b826cf06641e5af5dc3",
     "semantic_hash": ""
   },
   "frontend/src/pages/hr/TrainingHub.jsx": {
     "mtime": 1780631082.1040833,
+    "seen": 1789838816.5061362,
     "ast_hash": "569e686c7cb5d4887a9ee27ce9b2bfd6",
     "semantic_hash": ""
   },
   "frontend/src/pages/interview/InterviewPage.jsx": {
-    "mtime": 1780751531.117335,
-    "ast_hash": "a5a55b7039090ea94982e87bac57a7ec",
+    "mtime": 1780821299.8858733,
+    "seen": 1789838816.5061362,
+    "ast_hash": "cce6fc3d29bc5019f9eb058732534b3c",
     "semantic_hash": ""
   },
   "frontend/src/store/authStore.js": {
     "mtime": 1780631082.1493566,
+    "seen": 1789838816.5061362,
     "ast_hash": "71e4866323eabb3e95723f95d3d7229e",
     "semantic_hash": ""
   },
   "frontend/src/utils/jwt.js": {
     "mtime": 1780631082.201816,
+    "seen": 1789838816.5061362,
     "ast_hash": "9b93f8b26b9ce0b12cbf33e9994f3a55",
     "semantic_hash": ""
   },
   "frontend/vite.config.js": {
     "mtime": 1780631082.2270977,
+    "seen": 1789838816.5061362,
     "ast_hash": "e65286d706027efcfd7829834608fc60",
     "semantic_hash": ""
   },
   "scripts/__init__.py": {
     "mtime": 1780631083.7602515,
+    "seen": 1789838816.5061362,
     "ast_hash": "6a6741463e00aa82b521e1b9a2bdfed7",
     "semantic_hash": ""
   },
   "scripts/bootstrap_user.py": {
     "mtime": 1780631083.8230605,
+    "seen": 1789838816.5061362,
     "ast_hash": "1fa4a9c16e8c82d634ea5e4c29687b1d",
     "semantic_hash": ""
   },
   "scripts/init_database.py": {
     "mtime": 1780631083.8828793,
+    "seen": 1789838816.5061362,
     "ast_hash": "5c1d0779aad8f9d9706b7e92b38e76e2",
     "semantic_hash": ""
   },
   "scripts/migrate_sqlite_to_postgres.py": {
     "mtime": 1780631083.9233267,
+    "seen": 1789838816.5061362,
     "ast_hash": "6eaf829d3ba6e217c8075fecf049acf4",
     "semantic_hash": ""
   },
   "src/__init__.py": {
     "mtime": 1780392348.9089484,
+    "seen": 1789838816.5061362,
     "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
     "semantic_hash": ""
   },
   "src/api/__init__.py": {
     "mtime": 1780392348.910012,
+    "seen": 1789838816.5061362,
     "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
     "semantic_hash": ""
   },
   "src/api/dependencies.py": {
-    "mtime": 1780631083.9783597,
-    "ast_hash": "98cc7b1302f2a159a7f801d6e39ae30d",
+    "mtime": 1780815455.2587118,
+    "seen": 1789838816.5061362,
+    "ast_hash": "26bd7b6fe82d596015237db93ad8eccb",
     "semantic_hash": ""
   },
   "src/api/routes/__init__.py": {
     "mtime": 1780392348.910012,
+    "seen": 1789838816.5061362,
     "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
     "semantic_hash": ""
   },
   "src/api/routes/applications.py": {
-    "mtime": 1780750992.519682,
-    "ast_hash": "066a8b5d2ec8227444cfba0da81f959d",
+    "mtime": 1780808502.8060126,
+    "seen": 1789838816.5061362,
+    "ast_hash": "cef6125b96e5bf6c866d0ffc871783e2",
     "semantic_hash": ""
   },
   "src/api/routes/auth.py": {
     "mtime": 1780631084.1683183,
+    "seen": 1789838816.5061362,
     "ast_hash": "ee38cbec012a20083f0f13178a6d92a3",
     "semantic_hash": ""
   },
   "src/api/routes/candidates.py": {
     "mtime": 1780631084.2177966,
+    "seen": 1789838816.5061362,
     "ast_hash": "149fe889e923d17bd300e3726500f860",
     "semantic_hash": ""
   },
   "src/api/routes/dashboard.py": {
-    "mtime": 1780751569.2508416,
-    "ast_hash": "06c05fe502fae4e85f739fc9a2a9ef1d",
+    "mtime": 1780808502.8072448,
+    "seen": 1789838816.5061362,
+    "ast_hash": "70e07d703c7331ec68ce346fdba36e16",
     "semantic_hash": ""
   },
   "src/api/routes/departments.py": {
     "mtime": 1780631084.399335,
+    "seen": 1789838816.5061362,
     "ast_hash": "5c2c9c33774cd02800e15320e02ecc6a",
     "semantic_hash": ""
   },
   "src/api/routes/designations.py": {
     "mtime": 1780631084.4663632,
+    "seen": 1789838816.5061362,
     "ast_hash": "8f0a89ecfc05ac1fcae443daa3bad134",
     "semantic_hash": ""
   },
   "src/api/routes/employees.py": {
-    "mtime": 1780631084.5764618,
-    "ast_hash": "3ac48d65b40ff3e50bf5e877644ac9cc",
+    "mtime": 1780808502.8072448,
+    "seen": 1789838816.5061362,
+    "ast_hash": "ac2df58af580cd7eac0fe9d2c32fde61",
     "semantic_hash": ""
   },
   "src/api/routes/interview.py": {
-    "mtime": 1780751868.2271087,
-    "ast_hash": "eaedb70a6d3a822b96e0b78ff1051a6d",
+    "mtime": 1780808502.809375,
+    "seen": 1789838816.5061362,
+    "ast_hash": "f616b06896f71a9796ad7287a5a7948d",
     "semantic_hash": ""
   },
   "src/api/routes/jobs.py": {
-    "mtime": 1780631084.7332797,
-    "ast_hash": "35626183bd2ad1affe60bbea5aa88a67",
+    "mtime": 1780808502.809375,
+    "seen": 1789838816.5061362,
+    "ast_hash": "e75c6126a48648503b90c3e8fe22a2ea",
     "semantic_hash": ""
   },
   "src/api/routes/lifecycle.py": {
     "mtime": 1780631084.7913494,
+    "seen": 1789838816.5061362,
     "ast_hash": "9dee4b0d31f8ea78ed4187d3df782919",
     "semantic_hash": ""
   },
   "src/api/routes/notifications.py": {
     "mtime": 1780631084.833407,
+    "seen": 1789838816.5061362,
     "ast_hash": "edcd582c570ed64047ce06994fc1c0e5",
     "semantic_hash": ""
   },
   "src/api/routes/onboarding.py": {
     "mtime": 1780631084.8949325,
+    "seen": 1789838816.5061362,
     "ast_hash": "9e1a4608b36d8f50c75242cf1afcdbbf",
     "semantic_hash": ""
   },
   "src/api/routes/profile.py": {
     "mtime": 1780631084.959342,
+    "seen": 1789838816.5061362,
     "ast_hash": "c85de8867ffdca8ab625e23179bbb7eb",
     "semantic_hash": ""
   },
   "src/api/routes/promotions.py": {
     "mtime": 1780631084.998461,
+    "seen": 1789838816.5061362,
     "ast_hash": "51f5db2bb9a9cd8bd3c54f1cc5da8d4b",
     "semantic_hash": ""
   },
   "src/api/routes/resume.py": {
     "mtime": 1780631085.0420015,
+    "seen": 1789838816.5061362,
     "ast_hash": "ea64ff47ede922fadb44c6b3ed39aacc",
     "semantic_hash": ""
   },
   "src/api/routes/salary.py": {
     "mtime": 1780631085.093176,
+    "seen": 1789838816.5061362,
     "ast_hash": "d8000134cc9830a329cc892f07cbd412",
     "semantic_hash": ""
   },
   "src/api/routes/tickets.py": {
-    "mtime": 1780631085.1343665,
-    "ast_hash": "b78832ac97019fb6d3e461fc8ba59545",
+    "mtime": 1781668327.327688,
+    "seen": 1789838816.5061362,
+    "ast_hash": "29057115ede5cd54cad6e6f9305fa28b",
     "semantic_hash": ""
   },
   "src/api/routes/training.py": {
     "mtime": 1780631085.1900935,
+    "seen": 1789838816.5061362,
     "ast_hash": "97cfdc3cedb32fcaefb8e79b11bcc34c",
     "semantic_hash": ""
   },
   "src/config.py": {
-    "mtime": 1780751051.3745348,
-    "ast_hash": "46c940ea967bb4b8bd90debbb1e09108",
+    "mtime": 1780808502.8104637,
+    "seen": 1789838816.5061362,
+    "ast_hash": "b00ef7d7187f1b2f768f25e7d39553d8",
     "semantic_hash": ""
   },
   "src/core/__init__.py": {
     "mtime": 1780392348.914276,
+    "seen": 1789838816.5061362,
     "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
     "semantic_hash": ""
   },
   "src/core/exceptions.py": {
     "mtime": 1780631085.2913647,
+    "seen": 1789838816.5061362,
     "ast_hash": "1ba294d849ad1c5a44955d87cd0cb748",
     "semantic_hash": ""
   },
   "src/core/security.py": {
     "mtime": 1780631085.3281786,
+    "seen": 1789838816.5061362,
     "ast_hash": "745bb2e60008b85f021a5b01b6380307",
     "semantic_hash": ""
   },
   "src/database/__init__.py": {
     "mtime": 1780392348.915335,
+    "seen": 1789838816.5061362,
     "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
     "semantic_hash": ""
   },
   "src/database/connection.py": {
-    "mtime": 1780750710.2837157,
-    "ast_hash": "e42bad11c823794b61cd24e711ba993e",
+    "mtime": 1780815455.260708,
+    "seen": 1789838816.5061362,
+    "ast_hash": "32de4f9869a8f833f6b1733a87e6cd8e",
     "semantic_hash": ""
   },
   "src/main.py": {
-    "mtime": 1780676108.7570517,
-    "ast_hash": "9903a03b8715182b0d9a686bfa573417",
+    "mtime": 1780815455.2632318,
+    "seen": 1789838816.5061362,
+    "ast_hash": "473e7ff4642e34c9b9549e1bd5c17115",
     "semantic_hash": ""
   },
   "src/models/__init__.py": {
-    "mtime": 1780750672.546501,
-    "ast_hash": "f4775779df0f593c7cd795df3356e5da",
+    "mtime": 1780815455.2642493,
+    "seen": 1789838816.5061362,
+    "ast_hash": "29f0c669f6c9de5ec6e0ee1f0e6d2858",
     "semantic_hash": ""
   },
   "src/resume_lab.py": {
     "mtime": 1780668669.4227495,
+    "seen": 1789838816.5061362,
     "ast_hash": "59ac20c31767f77f3fa68b64769c2e3d",
     "semantic_hash": ""
   },
   "src/services/__init__.py": {
     "mtime": 1780631085.5630217,
+    "seen": 1789838816.5061362,
     "ast_hash": "68b329da9893e34099c7d8ad5cb9c940",
     "semantic_hash": ""
   },
   "src/services/employee_ai.py": {
     "mtime": 1780679344.9619975,
+    "seen": 1789838816.5061362,
     "ast_hash": "2efcaaea6d3eafdf9f4207b7646efd84",
     "semantic_hash": ""
   },
   "src/services/interview_consistency.py": {
-    "mtime": 1780631085.6559882,
-    "ast_hash": "fec6f7dbeb80bd641384901912a953ab",
+    "mtime": 1781668327.3297,
+    "seen": 1789838816.5061362,
+    "ast_hash": "b2b6066488a488ce810de84805fabaaf",
     "semantic_hash": ""
   },
   "src/services/recruitment_ai.py": {
-    "mtime": 1780668065.7948365,
-    "ast_hash": "e07c28cb469272e45a6cd92d5abf5fa2",
+    "mtime": 1789839174.9572432,
+    "seen": 1789839205.9573853,
+    "ast_hash": "a643110b85e858b8412eb8b535a2015e",
     "semantic_hash": ""
   },
   "src/services/transcription_service.py": {
-    "mtime": 1780743007.9514043,
-    "ast_hash": "a2c89caa0307fb776fc44ffae1449566",
+    "mtime": 1780808502.8184295,
+    "seen": 1789838816.5061362,
+    "ast_hash": "ed8aad1a4e97a6f377459492763656a7",
     "semantic_hash": ""
   },
   "static/assets/rolldown-runtime-Cyuzqnbw.js": {
     "mtime": 1780751925.3572676,
+    "seen": 1789838816.5061362,
     "ast_hash": "47eb6677670791246ef846196dea27ee",
     "semantic_hash": ""
   },
   "static/assets/vendor-axios-BTEV2dRg.js": {
     "mtime": 1780751925.3612652,
+    "seen": 1789838816.5061362,
     "ast_hash": "255e9aa730408e49cd553e0105160154",
     "semantic_hash": ""
   },
   "tasks/interview_task.py": {
     "mtime": 1780742985.9744496,
+    "seen": 1789838816.5061362,
     "ast_hash": "d6b2660a190ac9ac61df26e61e66ac64",
     "semantic_hash": ""
   },
   "tasks/job_task.py": {
-    "mtime": 1780631086.3043656,
-    "ast_hash": "dd1ab452906cc8560fc8162624cd693d",
+    "mtime": 1789839174.9582458,
+    "seen": 1789839205.9573853,
+    "ast_hash": "891bc47d6062aac704c74399f7d21987",
     "semantic_hash": ""
   },
   "tasks/match_task.py": {
     "mtime": 1780392348.9378827,
+    "seen": 1789838816.5061362,
     "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
     "semantic_hash": ""
   },
   "tasks/recruitment_task.py": {
-    "mtime": 1780631086.4201312,
-    "ast_hash": "50e132bc834923a4da16bb88eb646ff0",
+    "mtime": 1789839174.9582458,
+    "seen": 1789839205.9573853,
+    "ast_hash": "f0cc42bdba5328f7a2562a08147be7e9",
     "semantic_hash": ""
   },
   "tasks/resume_task.py": {
-    "mtime": 1780631086.4770398,
-    "ast_hash": "7562fcdba1146d08af0b713eb219beb3",
+    "mtime": 1789839174.9582458,
+    "seen": 1789839205.9573853,
+    "ast_hash": "161707216c01e100ac48839b96f0b5a7",
     "semantic_hash": ""
   },
   "tests/test_api.py": {
     "mtime": 1780743862.6328485,
+    "seen": 1789838816.5061362,
     "ast_hash": "9e42b8e4bb1a75cf896235df5fb36011",
     "semantic_hash": ""
   },
   "tests/test_phase2a.py": {
     "mtime": 1780739591.4361076,
+    "seen": 1789838816.5061362,
     "ast_hash": "f2008b8bd3bf6a9641fdad49a98298d3",
     "semantic_hash": ""
   },
   "tests/test_resume_lab.py": {
     "mtime": 1780631086.6415293,
+    "seen": 1789838816.5061362,
     "ast_hash": "f1a5d4a35a46af1e7044fdea0c502d27",
     "semantic_hash": ""
   },
   "utils/job_search.py": {
     "mtime": 1780631086.6888125,
+    "seen": 1789838816.5061362,
     "ast_hash": "3581db1c64ae23fd2fe55b1a79d1f93c",
     "semantic_hash": ""
   },
   "utils/resume_parser.py": {
     "mtime": 1780631086.7261662,
+    "seen": 1789838816.5061362,
     "ast_hash": "63c70e92cd5077b09ca90fd10c0a77f7",
     "semantic_hash": ""
   },
   "utils/skill_scorer.py": {
     "mtime": 1780631086.7609873,
+    "seen": 1789838816.5061362,
     "ast_hash": "ccd918e4173eb327582c7f39147d7c3c",
     "semantic_hash": ""
   },
   "vercel.json": {
     "mtime": 1780631086.7840881,
+    "seen": 1789838816.5061362,
     "ast_hash": "cc33440a97f0efd20545b223381c2ca0",
     "semantic_hash": ""
   },
   "AGENTS.md": {
     "mtime": 1780727302.4283803,
+    "seen": 1789838816.5061362,
     "ast_hash": "0535e5a3359b93f64ed791b512576043",
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1780641413.9856224,
-    "ast_hash": "3850779a72821b319bdebbe55ebbd860",
-    "semantic_hash": ""
-  },
-  "docs/day3-completion-report.md": {
-    "mtime": 1780631075.9180198,
-    "ast_hash": "f93501e8ac0a3fb3c518b929471e45da",
-    "semantic_hash": ""
-  },
-  "docs/deployment.md": {
-    "mtime": 1780631075.9363065,
-    "ast_hash": "d9990fb9c6fcb3bb0be134190485390c",
-    "semantic_hash": ""
-  },
-  "docs/interview.md": {
-    "mtime": 1780631075.9529176,
-    "ast_hash": "8daa59c1fd20f35dbdb8eecaaa52b055",
-    "semantic_hash": ""
-  },
-  "docs/migration-report.md": {
-    "mtime": 1780631075.9626906,
-    "ast_hash": "63cbec6db68c3c7f54d5d057e054b2a6",
-    "semantic_hash": ""
-  },
-  "docs/pre-day-3-technical-audit.md": {
-    "mtime": 1780631075.9794457,
-    "ast_hash": "1b05cfad4f55652ad2d98d582b6c1182",
-    "semantic_hash": ""
-  },
-  "docs/scope.md": {
-    "mtime": 1780631075.9922307,
-    "ast_hash": "51be2915da47516f2e3c6897a86109b5",
-    "semantic_hash": ""
-  },
-  "docs/supabase-migration-report.md": {
-    "mtime": 1780631076.0139008,
-    "ast_hash": "ab0cc6edca6d4c711587c05e4e57b682",
+    "mtime": 1780835861.1808748,
+    "seen": 1789838816.5061362,
+    "ast_hash": "95cd721f314492b7b88debbfe33af99f",
     "semantic_hash": ""
   },
   "frontend/README.md": {
     "mtime": 1780631076.0395403,
+    "seen": 1789838816.5061362,
     "ast_hash": "a28dc4cb878325f3e9e5649f3e1469ac",
     "semantic_hash": ""
   },
   "frontend/index.html": {
-    "mtime": 1780631076.0600972,
-    "ast_hash": "821819e6fc3cce487db5ae343c6e5be8",
+    "mtime": 1780821299.6919453,
+    "seen": 1789838816.5061362,
+    "ast_hash": "896e4062c601bc424fb3b4b42466b3b1",
     "semantic_hash": ""
   },
   "render.yaml": {
     "mtime": 1780631083.1858087,
+    "seen": 1789838816.5061362,
     "ast_hash": "d96941ee6e5d0ed215f664b8b8490873",
     "semantic_hash": ""
   },
   "requirements.txt": {
-    "mtime": 1780750501.986967,
-    "ast_hash": "32a58d32f4499da1aab9126b5e182328",
+    "mtime": 1780808502.8042433,
+    "seen": 1789838816.5061362,
+    "ast_hash": "fb8961a312ec9da1b52963bc8a9cf796",
     "semantic_hash": ""
   },
   "scope.md": {
@@ -779,1584 +886,754 @@
     "ast_hash": "4dab1854bbbbf366f40793939b9dd095",
     "semantic_hash": ""
   },
-  "script_errors.txt": {
-    "mtime": 1780631083.72213,
-    "ast_hash": "dfe249ddcab83472092ab9a8267340d8",
-    "semantic_hash": ""
-  },
   "static/index.html": {
-    "mtime": 1780751925.3677928,
-    "ast_hash": "530e1883c7d69d636ef222be43d62ce9",
-    "semantic_hash": ""
-  },
-  "docs/screenshots/dashboard-fixes.png": {
-    "mtime": 1780392348.8798907,
-    "ast_hash": "d82e7763fd81fbaccd3f2b24ff424069",
-    "semantic_hash": ""
-  },
-  "docs/screenshots/dashboard-overview.png": {
-    "mtime": 1780392348.8869684,
-    "ast_hash": "52246d70250077fcb47132a955e02909",
-    "semantic_hash": ""
-  },
-  "docs/screenshots/jobify-home.png": {
-    "mtime": 1780392348.8932168,
-    "ast_hash": "3e4034c6862cf5b4c0d8c12b61241584",
-    "semantic_hash": ""
-  },
-  "docs/screenshots/mock-interview.png": {
-    "mtime": 1780392348.8953345,
-    "ast_hash": "9aecbd801bef03349c76e3596503e039",
-    "semantic_hash": ""
-  },
-  "docs/screenshots/resume-lab.png": {
-    "mtime": 1780392348.9019327,
-    "ast_hash": "0c3d6c880d45c8dd22e52e15b1790a21",
-    "semantic_hash": ""
-  },
-  "docs/screenshots/resume-upload.png": {
-    "mtime": 1780392348.9080467,
-    "ast_hash": "3d57e430873401797c52097da5788e81",
+    "mtime": 1780821300.105221,
+    "seen": 1789838816.5061362,
+    "ast_hash": "3875f67ca48ca9f6e9456a3ee1712f6c",
     "semantic_hash": ""
   },
   "frontend/public/favicon.svg": {
     "mtime": 1780518898.6808317,
+    "seen": 1789838816.5061362,
     "ast_hash": "7e840862161341271697daa99a40d76b",
     "semantic_hash": ""
   },
   "frontend/public/icons.svg": {
     "mtime": 1780631076.112974,
+    "seen": 1789838816.5061362,
     "ast_hash": "3b4fcfcf393eca4d264dca4a4663bc37",
     "semantic_hash": ""
   },
   "frontend/src/assets/hero.png": {
     "mtime": 1780518898.7049212,
+    "seen": 1789838816.5061362,
     "ast_hash": "e0c5ac9d667699cb23435162387cc6d1",
     "semantic_hash": ""
   },
   "frontend/src/assets/react.svg": {
     "mtime": 1780518898.7059567,
+    "seen": 1789838816.5061362,
     "ast_hash": "f0402b67b6ce880f65666bb49e841696",
     "semantic_hash": ""
   },
   "frontend/src/assets/vite.svg": {
     "mtime": 1780631076.8452778,
+    "seen": 1789838816.5061362,
     "ast_hash": "9960a24288958394ac50e57ff638b036",
     "semantic_hash": ""
   },
   "static/assets/hero-C1Zt4Rtl.png": {
     "mtime": 1780751925.3657913,
+    "seen": 1789838816.5061362,
     "ast_hash": "e0c5ac9d667699cb23435162387cc6d1",
     "semantic_hash": ""
   },
   "static/favicon.svg": {
     "mtime": 1780518898.6808317,
+    "seen": 1789838816.5061362,
     "ast_hash": "7e840862161341271697daa99a40d76b",
     "semantic_hash": ""
   },
   "static/icons.svg": {
     "mtime": 1780631076.112974,
+    "seen": 1789838816.5061362,
     "ast_hash": "3b4fcfcf393eca4d264dca4a4663bc37",
     "semantic_hash": ""
   },
   "tests/test_proctoring.py": {
-    "mtime": 1780751629.4416802,
-    "ast_hash": "c6571f097d67fe5ea8e641ff01cba234",
+    "mtime": 1780808502.8344722,
+    "seen": 1789838816.5061362,
+    "ast_hash": "6e711d87706f8c6bd637e0f8fc04ac2b",
     "semantic_hash": ""
   },
   "src/services/hiring_intelligence.py": {
-    "mtime": 1780751596.747718,
-    "ast_hash": "2d85a5615beae656337620f6dca972c1",
+    "mtime": 1780808502.8124197,
+    "seen": 1789838816.5061362,
+    "ast_hash": "4935657e91d68cc683deefec229d7c82",
     "semantic_hash": ""
   },
   "tests/test_hiring_intelligence.py": {
     "mtime": 1780751875.3316715,
+    "seen": 1789838816.5061362,
     "ast_hash": "c970a2368c020c7497c066376006777f",
     "semantic_hash": ""
   },
   "frontend/src/api/mock_interview.js": {
     "mtime": 1780676309.016609,
+    "seen": 1789838816.5061362,
     "ast_hash": "c5a7da1e539ff2a23a136b2fb6c075dd",
     "semantic_hash": ""
   },
   "frontend/src/components/interview/InterviewWorkspaceShell.jsx": {
-    "mtime": 1780751448.780748,
-    "ast_hash": "cf6f4d2537ca1db6163aa82347f7d3f0",
+    "mtime": 1780821299.7331307,
+    "seen": 1789838816.5061362,
+    "ast_hash": "183df72e291e89e57356cf2773b3fe1f",
     "semantic_hash": ""
   },
   "frontend/src/components/interview/MockInterviewWorkspace.jsx": {
-    "mtime": 1780676513.0374122,
-    "ast_hash": "d3e2482b9bddcd627771f692deaaafd0",
+    "mtime": 1780821299.7581124,
+    "seen": 1789838816.5061362,
+    "ast_hash": "3b304bbccce986eca51f8a2e3af22efa",
     "semantic_hash": ""
   },
   "frontend/src/pages/interview/MockInterviewPage.jsx": {
-    "mtime": 1780676416.0773869,
-    "ast_hash": "69ee96868bad91e85ab0b44bbfce1fa8",
+    "mtime": 1780821299.8949275,
+    "seen": 1789838816.5061362,
+    "ast_hash": "14e775db04df788b7ecd2b10bf9be0d2",
     "semantic_hash": ""
   },
   "scripts/simulate_interview.py": {
     "mtime": 1780744237.333907,
+    "seen": 1789838816.5061362,
     "ast_hash": "a78286844b19e881cac63367a005095a",
     "semantic_hash": ""
   },
   "src/api/routes/mock_interview.py": {
-    "mtime": 1780743755.5855496,
-    "ast_hash": "d8ec66067569f9ee725279caec4a1efd",
+    "mtime": 1780821299.914132,
+    "seen": 1789838816.5061362,
+    "ast_hash": "c9294a5a201d04a75644e2e9a1b6d585",
     "semantic_hash": ""
   },
   "src/services/interview_core.py": {
-    "mtime": 1780750710.1770432,
-    "ast_hash": "e50507728a7f02bc347040602bb61ca7",
+    "mtime": 1780808502.8134422,
+    "seen": 1789838816.5061362,
+    "ast_hash": "2fe28b6b0724baaa8018bf16921b6c1e",
     "semantic_hash": ""
   },
   "src/services/interview_status.py": {
-    "mtime": 1780750672.4302084,
-    "ast_hash": "8a8f246db224d7bd4907b5432ecd4ca7",
+    "mtime": 1780808502.8144164,
+    "seen": 1789838816.5061362,
+    "ast_hash": "2716135a8def8dfb62d87578bf57b466",
     "semantic_hash": ""
   },
   "src/services/llm_router.py": {
     "mtime": 1780674070.0163388,
+    "seen": 1789838816.5061362,
     "ast_hash": "fe4815e5b0c506ee8c9b4c9c71573f5c",
     "semantic_hash": ""
   },
   "src/services/mock_interview_summary.py": {
     "mtime": 1780679276.2995172,
+    "seen": 1789838816.5061362,
     "ast_hash": "31fad85f794e25f2276cb2b3d9217197",
     "semantic_hash": ""
   },
   "static/assets/vendor-charts-BId0uYQ3.js": {
     "mtime": 1780751925.3622606,
+    "seen": 1789838816.5061362,
     "ast_hash": "977566d0363e05d3b5c2907f98810bec",
     "semantic_hash": ""
   },
   "static/assets/vendor-motion-CNB8hoxS.js": {
     "mtime": 1780751925.3622606,
+    "seen": 1789838816.5061362,
     "ast_hash": "2405bd3b8ea97dc0b1f019ba8c588547",
     "semantic_hash": ""
   },
   "static/assets/vendor-react-C87nq4lf.js": {
     "mtime": 1780751925.3637733,
+    "seen": 1789838816.5061362,
     "ast_hash": "18b845b242520bc3a9f74253b16cd79e",
     "semantic_hash": ""
   },
   "static/assets/vendor-router-Cinwya5U.js": {
     "mtime": 1780751925.3647916,
+    "seen": 1789838816.5061362,
     "ast_hash": "b6ceecbd69100eb62cfd995a18277832",
     "semantic_hash": ""
   },
   "static/assets/vendor-state-Cye4840y.js": {
     "mtime": 1780751925.3647916,
+    "seen": 1789838816.5061362,
     "ast_hash": "0dc2a3ec49012185ea705be7f09e6077",
     "semantic_hash": ""
   },
   "tests/conftest.py": {
-    "mtime": 1780739677.987252,
-    "ast_hash": "6e449b88eda56d3aa30fbbc0fe3e1d94",
-    "semantic_hash": ""
-  },
-  "artifacts/interview_pipeline_performance_review.md": {
-    "mtime": 1780673659.0340545,
-    "ast_hash": "3b0edcff06d8d7d5b049b1e39fbe3a47",
-    "semantic_hash": ""
-  },
-  "artifacts/llm_infrastructure_report.md": {
-    "mtime": 1780674247.9476533,
-    "ast_hash": "06fc59745f0f10f12d3b5aa3d60c851b",
-    "semantic_hash": ""
-  },
-  "artifacts/llm_validation_report.md": {
-    "mtime": 1780675566.5660005,
-    "ast_hash": "77965a132077ff131aeae44504ecd7c1",
-    "semantic_hash": ""
-  },
-  "audit_reports/api_usage_audit.md": {
-    "mtime": 1780750072.8140328,
-    "ast_hash": "1bada99b45d71059fe1a68af86f5fe0d",
-    "semantic_hash": ""
-  },
-  "audit_reports/architecture_report.md": {
-    "mtime": 1780750071.2183726,
-    "ast_hash": "89c352084a126f8b89662c657a6b1bec",
-    "semantic_hash": ""
-  },
-  "audit_reports/backend_audit_report.md": {
-    "mtime": 1780750072.650324,
-    "ast_hash": "ca638f615450c3c4802edeb8c4a48788",
-    "semantic_hash": ""
-  },
-  "audit_reports/bug_catalog.md": {
-    "mtime": 1780750073.4232597,
-    "ast_hash": "0fb0f79c74220c090a40b5096b2bb697",
-    "semantic_hash": ""
-  },
-  "audit_reports/database_audit_report.md": {
-    "mtime": 1780750071.3903782,
-    "ast_hash": "1eb793d1ff9975fd1f182e2869aae23a",
-    "semantic_hash": ""
-  },
-  "audit_reports/executive_summary.md": {
-    "mtime": 1780750073.6217797,
-    "ast_hash": "e0ed1de3b4dcf5c7f18cdfa1f1ba52a4",
-    "semantic_hash": ""
-  },
-  "audit_reports/frontend_audit_report.md": {
-    "mtime": 1780750072.4689076,
-    "ast_hash": "fd6a2f6ad6301e13e2a48b770dbfa854",
-    "semantic_hash": ""
-  },
-  "audit_reports/hr_intelligence_audit.md": {
-    "mtime": 1780750072.2183397,
-    "ast_hash": "09035afbbd0dc0ef979bab182e8a8a95",
-    "semantic_hash": ""
-  },
-  "audit_reports/interview_design_review.md": {
-    "mtime": 1780750071.9755242,
-    "ast_hash": "bb607717c31132e207f01f5ebcf74b97",
-    "semantic_hash": ""
-  },
-  "audit_reports/interview_flow_report.md": {
-    "mtime": 1780750071.5484917,
-    "ast_hash": "f600e9835f7c32eedb3c386099be1f3f",
-    "semantic_hash": ""
-  },
-  "audit_reports/interview_performance_report.md": {
-    "mtime": 1780750071.725005,
-    "ast_hash": "4c174592f1f096af8f75ae3efd444554",
-    "semantic_hash": ""
-  },
-  "audit_reports/security_audit_report.md": {
-    "mtime": 1780750073.0269783,
-    "ast_hash": "4821d63945b314ba66568592e6312503",
-    "semantic_hash": ""
-  },
-  "audit_reports/ux_audit_report.md": {
-    "mtime": 1780750073.221383,
-    "ast_hash": "27102398a402262af6762e09040946e1",
+    "mtime": 1780808502.8324795,
+    "seen": 1789838816.5061362,
+    "ast_hash": "79fcbd6b61e7a41611e2f52d7acf7203",
     "semantic_hash": ""
   },
   "docker-compose.yml": {
     "mtime": 1780736578.2026198,
+    "seen": 1789838816.5061362,
     "ast_hash": "8b730d936538c797f57719c480ef4614",
     "semantic_hash": ""
   },
-  "phase2_reports/api_optimization_report.md": {
-    "mtime": 1780752065.2787385,
-    "ast_hash": "01ee1d3451e5a8487b24a674b40b8251",
+  "frontend/playwright.config.js": {
+    "mtime": 1780808502.7143154,
+    "seen": 1789838816.5061362,
+    "ast_hash": "93808e32f903c9d4773afd8ed37af7dd",
     "semantic_hash": ""
   },
-  "phase2_reports/hr_intelligence_fix_report.md": {
-    "mtime": 1780752065.0315402,
-    "ast_hash": "178378be2483c61389d252e83aef63c6",
+  "frontend/src/api/admin.js": {
+    "mtime": 1780815455.2498915,
+    "seen": 1789838816.5061362,
+    "ast_hash": "8c3e3254bee18f57b031a5a1b1b1d54a",
     "semantic_hash": ""
   },
-  "phase2_reports/implementation_report.md": {
-    "mtime": 1780752064.7872112,
-    "ast_hash": "9ef6daf0ab0a11cd1a821ccd6028f335",
+  "frontend/src/api/rag.js": {
+    "mtime": 1780808502.7208922,
+    "seen": 1789838816.5061362,
+    "ast_hash": "8eb0db1c4ed7db2994283eb3b4e7a227",
     "semantic_hash": ""
   },
-  "phase2_reports/interview_refactor_report.md": {
-    "mtime": 1780752064.9086113,
-    "ast_hash": "2028ebb506ef74029b3c37f69c8b27dc",
+  "frontend/src/components/interview/MockInterviewSummary.jsx": {
+    "mtime": 1780821299.7462163,
+    "seen": 1789838816.5061362,
+    "ast_hash": "6e84b73a5b2e4eed613d4db69153c76c",
     "semantic_hash": ""
   },
-  "phase2_reports/performance_improvement_report.md": {
-    "mtime": 1780752065.1464107,
-    "ast_hash": "1dc00416a540c24e3b8cbc73e7aeb9e1",
+  "frontend/src/context/ThemeContext.jsx": {
+    "mtime": 1780821299.8030329,
+    "seen": 1789838816.5061362,
+    "ast_hash": "e63158b44137eaa7e87060858973cfb7",
     "semantic_hash": ""
   },
-  "phase2_reports/security_fix_report.md": {
-    "mtime": 1780752065.4162898,
-    "ast_hash": "c3118b1654a8c183262e417c90170d6d",
+  "frontend/src/pages/AdminDashboard.jsx": {
+    "mtime": 1780833684.9401762,
+    "seen": 1789838816.5061362,
+    "ast_hash": "8139dccb1f78dce0d7eb6b4883ebf52a",
     "semantic_hash": ""
   },
-  "phase2_reports/testing_report.md": {
-    "mtime": 1780752065.618005,
-    "ast_hash": "093a0178126023ec5727c694b60c050e",
+  "frontend/src/pages/assistant/AssistantPage.jsx": {
+    "mtime": 1780821299.8560495,
+    "seen": 1789838816.5061362,
+    "ast_hash": "a92ad51b5c12bc64cae1224440d9410a",
     "semantic_hash": ""
   },
-  "scratch/routes_list.txt": {
-    "mtime": 1780747571.8393548,
-    "ast_hash": "888a127f88cb605a146de35d2f18921d",
+  "frontend/src/store/layoutStore.js": {
+    "mtime": 1780821299.9040346,
+    "seen": 1789838816.5061362,
+    "ast_hash": "652a003162fdf4d7c692bdc6ec89a711",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\agents\\interview_coach.py": {
-    "mtime": 1780709658.0582833,
-    "ast_hash": "5dd6fe55ba6cd0c7d6873c78ef928407",
+  "frontend/tests/e2e/interview-browser-validation.spec.js": {
+    "mtime": 1780808502.747165,
+    "seen": 1789838816.5061362,
+    "ast_hash": "85640cd7b06711199ddbedba90fa42d1",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\agents\\job_finder.py": {
-    "mtime": 1780709658.0592842,
-    "ast_hash": "2fedc48d4a08b851c1a905fe50ebaab8",
+  "scripts/ingest_company_docs.py": {
+    "mtime": 1780808502.8051786,
+    "seen": 1789838816.5061362,
+    "ast_hash": "c0c773fd542153022c7ab3ac3e58efb6",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\agents\\recruitment_analyst.py": {
-    "mtime": 1780709658.0602844,
-    "ast_hash": "0213784a0f8b7a7c9b37da168ddfbb36",
+  "scripts/seed_star_candidate.py": {
+    "mtime": 1781668327.3267312,
+    "seen": 1789838816.5061362,
+    "ast_hash": "99d6d5e18ec35f29d644ab9f1db0d79a",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\agents\\resume_optimizer.py": {
-    "mtime": 1780709658.0602844,
-    "ast_hash": "d2a8be1c05288150f600d963f39ba66e",
+  "src/api/routes/admin.py": {
+    "mtime": 1780815455.2597072,
+    "seen": 1789838816.5061362,
+    "ast_hash": "09d61f39f91fb87139052d9536393aa3",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\agents\\skill_matcher.py": {
-    "mtime": 1780709658.0612829,
-    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+  "src/api/routes/rag.py": {
+    "mtime": 1780808502.809375,
+    "seen": 1789838816.5061362,
+    "ast_hash": "5c8b8d79a37f86b7400eef72eac70759",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\app.py": {
-    "mtime": 1780709658.0622826,
-    "ast_hash": "20cc0f7c8802144024cd03fd9bec020a",
+  "src/services/rag/__init__.py": {
+    "mtime": 1780808502.8144164,
+    "seen": 1789838816.5061362,
+    "ast_hash": "5fa68c86858cee7250f6aab8c31b4d61",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\check_ids.js": {
-    "mtime": 1780709658.065004,
-    "ast_hash": "3167a28e7e95d40b412e03926c4014d6",
+  "src/services/rag/access_control.py": {
+    "mtime": 1780808502.8144164,
+    "seen": 1789838816.5061362,
+    "ast_hash": "d1052297460701b46e9ed993fa95b552",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\crew.py": {
-    "mtime": 1780759300.9780884,
-    "ast_hash": "5095055ed51aa4e12b885f744faea546",
+  "src/services/rag/chat_service.py": {
+    "mtime": 1780808502.81547,
+    "seen": 1789838816.5061362,
+    "ast_hash": "ba049b95af339f9764df9bc0bdaafb6a",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\eslint.config.js": {
-    "mtime": 1780709658.1230977,
-    "ast_hash": "fa91453358b56681481f75f81d1bfccd",
+  "src/services/rag/chroma_service.py": {
+    "mtime": 1780808502.81547,
+    "seen": 1789838816.5061362,
+    "ast_hash": "55e4f68c67272d91c64b2218516ed971",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\package.json": {
-    "mtime": 1780767867.6366475,
-    "ast_hash": "911f17a7e3230692820063e7d6f14f6e",
+  "src/services/rag/company_docs_ingestion.py": {
+    "mtime": 1780808502.81547,
+    "seen": 1789838816.5061362,
+    "ast_hash": "80e0426e4a4f2e9f0b480c6ef9bec9d1",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\App.jsx": {
-    "mtime": 1780709658.1313615,
-    "ast_hash": "4960f9f8a0a4ad5a4e424a03ef366c65",
+  "src/services/rag/embedding_service.py": {
+    "mtime": 1780808502.816377,
+    "seen": 1789838816.5061362,
+    "ast_hash": "667e5f853828f606921b408f3852b404",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\api\\applications.js": {
-    "mtime": 1780709658.1327345,
-    "ast_hash": "5f1358e5ac96a8f75a724509322dbccb",
+  "src/services/rag/ingestion_service.py": {
+    "mtime": 1780808502.816377,
+    "seen": 1789838816.5061362,
+    "ast_hash": "3d37b2497682d8eba537b2fe6ad2a2f0",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\api\\auth.js": {
-    "mtime": 1780709658.1337438,
-    "ast_hash": "9d52369601ae89651188379482f72026",
+  "src/services/rag/query_router.py": {
+    "mtime": 1780808502.816377,
+    "seen": 1789838816.5061362,
+    "ast_hash": "b856dd6be89096fdca2aa49dc0c36f1d",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\api\\axios.js": {
-    "mtime": 1780765475.4682732,
-    "ast_hash": "20f6d0a39057727f86bef704d3acf43f",
+  "src/services/rag/retrieval_service.py": {
+    "mtime": 1780808502.816377,
+    "seen": 1789838816.5061362,
+    "ast_hash": "728a0bcfb934b8bf9a5ea1326d21471b",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\api\\candidates.js": {
-    "mtime": 1780709658.1357472,
-    "ast_hash": "8c029fa369c9c1c473f6f0aca9f78c2c",
+  "src/services/rag/sync_service.py": {
+    "mtime": 1780808502.8174684,
+    "seen": 1789838816.5061362,
+    "ast_hash": "e61524b208644123c0158179ecfd94bc",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\api\\dashboard.js": {
-    "mtime": 1780709658.1367466,
-    "ast_hash": "4e39e898adb7a37723957b2ad6ebf915",
+  "static/assets/AdminDashboard-C6hbBlAk.js": {
+    "mtime": 1780821299.9258268,
+    "seen": 1789838816.5061362,
+    "ast_hash": "4ad36320be613db11b0a036584a25a96",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\api\\departments.js": {
-    "mtime": 1780709658.1367466,
-    "ast_hash": "1c9ba47ea22a8e4b5fdf2323d554a094",
+  "static/assets/AnalysisDrawer-BfYls0NS.js": {
+    "mtime": 1780821299.9348671,
+    "seen": 1789838816.5061362,
+    "ast_hash": "a335bbdbd56a147e503a09e06d7228a6",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\api\\designations.js": {
-    "mtime": 1780709658.1377423,
-    "ast_hash": "11ea932d0ffd76bfc58c2127bca66647",
+  "static/assets/AssistantPage-DNuoGtwN.js": {
+    "mtime": 1780821299.9459243,
+    "seen": 1789838816.5061362,
+    "ast_hash": "4736635080049c666c35edbb8c08af1c",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\api\\employees.js": {
-    "mtime": 1780709658.1387458,
-    "ast_hash": "e18cddac1f3f39328302909899a32e54",
+  "static/assets/CandidateDashboard-bPj1fMNM.js": {
+    "mtime": 1780821299.957482,
+    "seen": 1789838816.5061362,
+    "ast_hash": "b282cc66c4829919ab4ed3aafa4c836e",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\api\\index.js": {
-    "mtime": 1780709658.1397462,
-    "ast_hash": "b0c8a44f4ddd9080a927a0ec7f061a2a",
+  "static/assets/EmployeeDashboard-CkM9tEHL.js": {
+    "mtime": 1780821299.9682076,
+    "seen": 1789838816.5061362,
+    "ast_hash": "e37dc06138721b5ce3f8e79f8baf8f74",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\api\\interview.js": {
-    "mtime": 1780767332.27955,
-    "ast_hash": "4e258728a364e7ae2d34991ab1eda16f",
+  "static/assets/EmptyState-BnohFyRU.js": {
+    "mtime": 1780821299.9752173,
+    "seen": 1789838816.5061362,
+    "ast_hash": "e93d4ceb7dd3d4fa5f33ceeeaeb78b2f",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\api\\jobs.js": {
-    "mtime": 1780709658.1407435,
-    "ast_hash": "bd54b2dc54fbfe65ddedfdd0b31e08d2",
+  "static/assets/HRDashboard-_juKtDQh.js": {
+    "mtime": 1780821299.9885004,
+    "seen": 1789838816.5061362,
+    "ast_hash": "a20e5353ff6139ba8007d0c168b0d33d",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\api\\lifecycle.js": {
-    "mtime": 1780709658.1417534,
-    "ast_hash": "cd54615f44b16577a3b12018e179d85e",
+  "static/assets/InterviewPage-Dihp1ag7.js": {
+    "mtime": 1780821299.9970255,
+    "seen": 1789838816.5061362,
+    "ast_hash": "fbe138c626898651d1a892063657c09a",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\api\\mock_interview.js": {
-    "mtime": 1780709658.1417534,
-    "ast_hash": "991284477d244ace8353a27c56d41ee5",
+  "static/assets/InterviewReports-CiW2eigy.js": {
+    "mtime": 1780821300.0102482,
+    "seen": 1789838816.5061362,
+    "ast_hash": "f13dcef1cbd56119daccc43844fcc2b3",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\api\\notifications.js": {
-    "mtime": 1780709658.1427662,
-    "ast_hash": "a5553db1a5443dabe08b79c877d33a35",
+  "static/assets/InterviewWorkspaceShell-Dm-nWlOl.js": {
+    "mtime": 1780821300.0245917,
+    "seen": 1789838816.5061362,
+    "ast_hash": "9727c0e213ad6809992e16718f6c3f13",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\api\\onboarding.js": {
-    "mtime": 1780709658.1437633,
-    "ast_hash": "dbd5c5c3a39c7a813c8ede2152d4f185",
+  "static/assets/LoginPage-BwJaHtey.js": {
+    "mtime": 1780821300.0341806,
+    "seen": 1789838816.5061362,
+    "ast_hash": "78b2dd537a95d482bacbbfebf2865869",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\api\\profile.js": {
-    "mtime": 1780709658.1447637,
-    "ast_hash": "48e9cdf0fb6731dc1a2a36a7c9570863",
+  "static/assets/ManagerDashboard-Bvq0fISO.js": {
+    "mtime": 1780821300.0422473,
+    "seen": 1789838816.5061362,
+    "ast_hash": "d89545d4132286e5a68ed2965050eca0",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\api\\promotions.js": {
-    "mtime": 1780709658.1447637,
-    "ast_hash": "bcb696db7e6a95ff9070d26fba8fa9a9",
+  "static/assets/MetricCard-BPed_P7E.js": {
+    "mtime": 1780821300.0488148,
+    "seen": 1789838816.5061362,
+    "ast_hash": "159b0df4629dfc526d21ea1fcdeb4233",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\api\\resume.js": {
-    "mtime": 1780709658.145762,
-    "ast_hash": "440b44dbf2a9ee9de62ea21462a78817",
+  "static/assets/MockInterviewPage-Dn6h8w5H.js": {
+    "mtime": 1780821300.058833,
+    "seen": 1789838816.5061362,
+    "ast_hash": "ba088d48d04df1b2776cb7ff345fe0c6",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\api\\salary.js": {
-    "mtime": 1780709658.146766,
-    "ast_hash": "d90785ff43623ed07645d46f5cee3c32",
+  "static/assets/ProfileCompletionWidget-BxiddYb8.js": {
+    "mtime": 1780821300.0699835,
+    "seen": 1789838816.5061362,
+    "ast_hash": "441be2289b175c2241b62195e6818660",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\api\\tickets.js": {
-    "mtime": 1780709658.146766,
-    "ast_hash": "c3bade8fea568ca7014601d867574100",
+  "static/assets/arrow-right-CkLnT16P.js": {
+    "mtime": 1780808502.8253775,
+    "seen": 1789838816.5061362,
+    "ast_hash": "1d23037f2f5f6346c9ca600e7fa89e9a",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\api\\training.js": {
-    "mtime": 1780709658.1479268,
-    "ast_hash": "f4e05cd6b67e2e9f46721c5790af48ed",
+  "static/assets/axios-D_heFj0H.js": {
+    "mtime": 1780808502.8263822,
+    "seen": 1789838816.5061362,
+    "ast_hash": "716ab8a04dc9894723df004f3fbc6bb4",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\components\\DocumentViewerModal.jsx": {
-    "mtime": 1780709658.1559558,
-    "ast_hash": "1ad0a7b1a22dcd53c82aaeecf5dacac3",
+  "static/assets/chart-column-Cl-yEOgM.js": {
+    "mtime": 1780808502.8263822,
+    "seen": 1789838816.5061362,
+    "ast_hash": "1594e26735c48a22185d1a10f4140dc1",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\components\\EmployeeOnboardingSection.jsx": {
-    "mtime": 1780709658.1559558,
-    "ast_hash": "56aec39a4c268a506f9df1651b740345",
+  "static/assets/check-mfatTEav.js": {
+    "mtime": 1780808502.8263822,
+    "seen": 1789838816.5061362,
+    "ast_hash": "002bcac2951e08d0a6beea99fce4d990",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\components\\EmployeeProfileSection.jsx": {
-    "mtime": 1780709658.156958,
-    "ast_hash": "bb377997bb8bd69641364251ccab6040",
+  "static/assets/chevron-up-6TTEuoLB.js": {
+    "mtime": 1780808502.8263822,
+    "seen": 1789838816.5061362,
+    "ast_hash": "041ff9cdd153274a0613c481e80d37cb",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\components\\EmployeeTrainingSection.jsx": {
-    "mtime": 1780709658.157955,
-    "ast_hash": "e10aa22dc7c700298b282601b8d03293",
+  "static/assets/circle-check-big-BZ8V9aD-.js": {
+    "mtime": 1780808502.8274734,
+    "seen": 1789838816.5061362,
+    "ast_hash": "6a9c60ca7d8b233b52c4c307a292c42e",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\components\\HRMetricsPanel.jsx": {
-    "mtime": 1780709658.1589587,
-    "ast_hash": "531609a922db6618ee777814e283c02a",
+  "static/assets/circle-x-B8EYq4U7.js": {
+    "mtime": 1780808502.8274734,
+    "seen": 1789838816.5061362,
+    "ast_hash": "d9a9c072a1ca5ec1f93e8cb89b06d738",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\components\\HRReviewQueue.jsx": {
-    "mtime": 1780709658.159957,
-    "ast_hash": "a1cd499efb36a9d5032fb8d77d4905a6",
+  "static/assets/clock-DpHI4sxV.js": {
+    "mtime": 1780808502.8274734,
+    "seen": 1789838816.5061362,
+    "ast_hash": "07a799f70bc5042a5eba5f1cc1d96827",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\components\\PendingActionsWidget.jsx": {
-    "mtime": 1780709658.1619544,
-    "ast_hash": "dfa4711565268363af791c26902b4e68",
+  "static/assets/eye-BBAGuox_.js": {
+    "mtime": 1780808502.8274734,
+    "seen": 1789838816.5061362,
+    "ast_hash": "c276f2273c4326df842e5c0299cb3cdb",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\components\\ProfileCompletionWidget.jsx": {
-    "mtime": 1780709658.162959,
-    "ast_hash": "ffcd1c356b5148c750a0a56dff5db627",
+  "static/assets/index-CuMYqcJu.js": {
+    "mtime": 1780821300.0959918,
+    "seen": 1789838816.5061362,
+    "ast_hash": "5457cb7bb065cc4a0eb861419ea891ee",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\components\\ProfileSetupWizard.jsx": {
-    "mtime": 1780709658.1639535,
-    "ast_hash": "5a8a694900c6ea0409d80205b921d756",
+  "static/assets/indian-rupee-DWaf6iKr.js": {
+    "mtime": 1780808502.829475,
+    "seen": 1789838816.5061362,
+    "ast_hash": "40962dee86433f1948343089441273e1",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\components\\charts\\ApplicationTrend.jsx": {
-    "mtime": 1780709658.1649685,
-    "ast_hash": "25ef52df76b031fde58168da3c865be5",
+  "static/assets/loader-circle-qDz4oNrU.js": {
+    "mtime": 1780808502.8304682,
+    "seen": 1789838816.5061362,
+    "ast_hash": "5a4f5b0712680f58ae0afb3aa1ec8129",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\components\\charts\\ScoreDistribution.jsx": {
-    "mtime": 1780709658.1659567,
-    "ast_hash": "2c4a2af3b4024a505e137a1c1e02dea7",
+  "static/assets/plus-B7Q1f3hR.js": {
+    "mtime": 1780808502.8304682,
+    "seen": 1789838816.5061362,
+    "ast_hash": "710cce7cdea5d55b6eb5e5a48857e24b",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\components\\charts\\SkillGapRadial.jsx": {
-    "mtime": 1780709658.1669567,
-    "ast_hash": "f29faf1773b94d4266444655ab87e913",
+  "static/assets/refresh-cw-BPSe2iIy.js": {
+    "mtime": 1780815455.2905164,
+    "seen": 1789838816.5061362,
+    "ast_hash": "b0bd01b5a68c63e6d2d147842f406e40",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\components\\drawers\\AnalysisDrawer.jsx": {
-    "mtime": 1780749347.165555,
-    "ast_hash": "cf41a759a56c08a257f7733af2289740",
+  "static/assets/save-WkDEd3YF.js": {
+    "mtime": 1780815455.291917,
+    "seen": 1789838816.5061362,
+    "ast_hash": "2f7f8d1e528649b6580d09c00d4e357a",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\components\\drawers\\EmployeeProfileDrawer.jsx": {
-    "mtime": 1780709658.1689556,
-    "ast_hash": "50978a776ca102a2733ab2d9fc4db180",
+  "static/assets/send-D29Kloa5.js": {
+    "mtime": 1780808502.8304682,
+    "seen": 1789838816.5061362,
+    "ast_hash": "3c0dc8305bde9d5b5f30e33735ead608",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\components\\drawers\\JobDetailDrawer.jsx": {
-    "mtime": 1780709658.1699536,
-    "ast_hash": "bc975bb3bb933e4f8f3d036a6f1c156a",
+  "static/assets/sparkles-DzGQvqnh.js": {
+    "mtime": 1780808502.8304682,
+    "seen": 1789838816.5061362,
+    "ast_hash": "dc1334d306437933fa6b4984cbfc3b3f",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\components\\drawers\\NotificationDrawer.jsx": {
-    "mtime": 1780709658.1709588,
-    "ast_hash": "63c3f1d8d27a1157a149364a03e25876",
+  "static/assets/trash-2-CJrCg_Ky.js": {
+    "mtime": 1780815455.2929647,
+    "seen": 1789838816.5061362,
+    "ast_hash": "7fda554e4c10062f8554f1d1f3271b9e",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\components\\interview\\CandidateCredibilityCard.jsx": {
-    "mtime": 1780709658.1719534,
-    "ast_hash": "d191a26713838a904d12a3bed192ebb5",
+  "static/assets/triangle-alert-Czp3m-sJ.js": {
+    "mtime": 1780815455.2949429,
+    "seen": 1789838816.5061362,
+    "ast_hash": "8c402919b3fc547668a04957e1731e62",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\components\\interview\\InterviewStatusCard.jsx": {
-    "mtime": 1780709658.1729558,
-    "ast_hash": "768bfc96e033bc4f13a663ee2dccb556",
+  "static/assets/user-C0dV9jj0.js": {
+    "mtime": 1780815455.2959347,
+    "seen": 1789838816.5061362,
+    "ast_hash": "3138581d6617e44e91e3d59f6ec940e3",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\components\\interview\\InterviewSummary.jsx": {
-    "mtime": 1780765475.603277,
-    "ast_hash": "babcbbd0051552202ef2bb89185c228f",
+  "tests/test_interview_stabilization.py": {
+    "mtime": 1780808502.8333797,
+    "seen": 1789838816.5061362,
+    "ast_hash": "01b1a937353ac3abc0b6457fa5be69c2",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\components\\interview\\InterviewWorkspace.jsx": {
-    "mtime": 1780749347.1664858,
-    "ast_hash": "d0e4b9cdb1b145c5c87ea5d59694f3d2",
+  "tests/test_job_lifecycle.py": {
+    "mtime": 1780808502.8333797,
+    "seen": 1789838816.5061362,
+    "ast_hash": "852004066cae4d17866c96d70f797e5d",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\components\\interview\\InterviewWorkspaceShell.jsx": {
-    "mtime": 1780768637.7083888,
-    "ast_hash": "66205b862b53e81e345c00a87a9059bc",
+  "tests/test_rag_access_control.py": {
+    "mtime": 1780808502.8344722,
+    "seen": 1789838816.5061362,
+    "ast_hash": "2e52c2b37de8c2cb8da3a53376f7de74",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\components\\interview\\MockInterviewWorkspace.jsx": {
-    "mtime": 1780709658.17621,
-    "ast_hash": "05a066c5626889e3762143234ec22637",
+  "tests/test_rag_automatic_sync.py": {
+    "mtime": 1780808502.8354797,
+    "seen": 1789838816.5061362,
+    "ast_hash": "760f1149699568d3be5bd62653cd449e",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\components\\layout\\Layout.jsx": {
-    "mtime": 1780767410.1630578,
-    "ast_hash": "5f7e51f1c6f65b84606b471182fcf28c",
+  "tests/test_rag_company_docs.py": {
+    "mtime": 1780808502.8354797,
+    "seen": 1789838816.5061362,
+    "ast_hash": "01281310efe7c9a1132ea99cb6646cff",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\components\\layout\\Sidebar.jsx": {
-    "mtime": 1780749347.168486,
-    "ast_hash": "40919bf41c4417495b67b3a04728fc26",
+  "tests/test_rag_foundation.py": {
+    "mtime": 1780808502.836449,
+    "seen": 1789838816.5061362,
+    "ast_hash": "38e10db7d8bc56eb4e916c9e10753d03",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\components\\layout\\TopBar.jsx": {
-    "mtime": 1780709658.1814203,
-    "ast_hash": "f22760a1785b9c37b5c2a00e78a7e793",
+  "tests/test_rag_query_router.py": {
+    "mtime": 1780808502.836449,
+    "seen": 1789838816.5061362,
+    "ast_hash": "2c11c8df855c357e145b248df74944bf",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\components\\modals\\AddPromotionModal.jsx": {
-    "mtime": 1780709658.1834178,
-    "ast_hash": "96cc677a39efb9b2f6a8bb2354c387de",
+  "tests/test_rag_sync_service.py": {
+    "mtime": 1780808502.836449,
+    "seen": 1789838816.5061362,
+    "ast_hash": "fcf270fe0e8278b83cacffc5a4095206",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\components\\modals\\AddSalaryModal.jsx": {
-    "mtime": 1780709658.1844187,
-    "ast_hash": "8e8037ad036b79d4d584e1033447c2d6",
+  "tests/test_tickets.py": {
+    "mtime": 1781668327.3306897,
+    "seen": 1789838816.5061362,
+    "ast_hash": "ac857fc9d1adb20b5075320125b3ad5a",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\components\\modals\\CreateTicketModal.jsx": {
-    "mtime": 1780709658.1858656,
-    "ast_hash": "5e254bc85db684b7165947c23e69b7e5",
+  "LICENSE.txt": {
+    "mtime": 1780835875.59427,
+    "seen": 1789838816.5061362,
+    "ast_hash": "f183a65a56e0cd63fb9bafd10aff7348",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\components\\modals\\DepartmentModal.jsx": {
-    "mtime": 1780709658.1858656,
-    "ast_hash": "272e081f24731d9982ddffd7ff6331da",
+  "SCOPE.md": {
+    "mtime": 1789839180.724813,
+    "seen": 1789839205.9573853,
+    "ast_hash": "585e07c6bd5f5be3a50151c671ce0705",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\components\\modals\\DesignationModal.jsx": {
-    "mtime": 1780709658.1868923,
-    "ast_hash": "7133b6d1e174549dc408127f10afe3e3",
+  "static/Images/Admin - Employee Knowledge.png": {
+    "mtime": 1780833515.7949345,
+    "seen": 1789838816.5061362,
+    "ast_hash": "05eabf02df7befb4e681ec1d0eca80eb",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\components\\modals\\DocumentDecisionModal.jsx": {
-    "mtime": 1780709658.1878905,
-    "ast_hash": "119c8ad7fa4e3ef1b52d25de224fa0ec",
+  "static/Images/Admin - Employee Management.png": {
+    "mtime": 1780833776.1175404,
+    "seen": 1789838816.5061362,
+    "ast_hash": "9609c47a85e36129d3184809d4476f0a",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\components\\modals\\PostJobModal.jsx": {
-    "mtime": 1780709658.1888883,
-    "ast_hash": "60e64ddb9d7e799e6e0225324b136d34",
+  "static/Images/Admin Dashboard.png": {
+    "mtime": 1780833245.9673111,
+    "seen": 1789838816.5061362,
+    "ast_hash": "1e02cb758a352868120b5a5bfaa58d43",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\components\\ui\\AIScoreDonut.jsx": {
-    "mtime": 1780709658.1898892,
-    "ast_hash": "1ceaeac6339a458b7eee4199bbf857c4",
+  "static/Images/Admin Operations Console.png": {
+    "mtime": 1780833401.3253293,
+    "seen": 1789838816.5061362,
+    "ast_hash": "a6f244834b06ec03179ee707da5b4974",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\components\\ui\\EmptyState.jsx": {
-    "mtime": 1780709658.1908886,
-    "ast_hash": "603aec467c9b7c52e8d82c0f7a04d9c3",
+  "static/Images/Candidate Portal.png": {
+    "mtime": 1780831566.4848118,
+    "seen": 1789838816.5061362,
+    "ast_hash": "ef9132c070a45a7bbf8448f65d042f67",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\components\\ui\\MetricCard.jsx": {
-    "mtime": 1780709658.191962,
-    "ast_hash": "60446af9a8951aa89d3b78e427a9b5b4",
+  "static/Images/Carrer Assistant.png": {
+    "mtime": 1780831733.8939095,
+    "seen": 1789838816.5061362,
+    "ast_hash": "cdebf0eb925972f9af61158aada77524",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\components\\ui\\SkeletonCard.jsx": {
-    "mtime": 1780709658.191962,
-    "ast_hash": "b1884e69c9ae64d6aed7d6125e253c73",
+  "static/Images/Employee - Carrer Timeline.png": {
+    "mtime": 1780833088.1489828,
+    "seen": 1789838816.5061362,
+    "ast_hash": "c772e9fe41d4d9376cfff46404464a61",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\components\\ui\\StatusPill.jsx": {
-    "mtime": 1780709658.1929734,
-    "ast_hash": "147df6867a721163c0fea1b9989bc69f",
+  "static/Images/Employee - Chatbot.png": {
+    "mtime": 1780833160.1441572,
+    "seen": 1789838816.5061362,
+    "ast_hash": "d3b4d733b182c2785dd9f91c6a510cc6",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\hooks\\useInterviewMedia.js": {
-    "mtime": 1780768429.5224192,
-    "ast_hash": "c5b77caafb6f374ec0b8d1dd30139d07",
+  "static/Images/Employee - Tranning.png": {
+    "mtime": 1780833119.4850368,
+    "seen": 1789838816.5061362,
+    "ast_hash": "ba077a7505a5fd2f72f8dbe046fc6c16",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\hooks\\useRecorder.js": {
-    "mtime": 1780767304.0263658,
-    "ast_hash": "2d3dfa518c90ae96f46a7e903dfcd748",
+  "static/Images/Employee Dashboard.png": {
+    "mtime": 1780832973.1122324,
+    "seen": 1789838816.5061362,
+    "ast_hash": "558195936e67a9ca47985e6d4ddfad11",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\main.jsx": {
-    "mtime": 1780709658.196976,
-    "ast_hash": "51fd21c378330142b61bf8d1ef3795ef",
+  "static/Images/Employee Profile.png": {
+    "mtime": 1780833055.6296768,
+    "seen": 1789838816.5061362,
+    "ast_hash": "755a4b42b988ccdcc6e7aac7b807cdcd",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\pages\\CandidateDashboard.jsx": {
-    "mtime": 1780753218.4294531,
-    "ast_hash": "fb78d330f7994914eda831b0609992d9",
+  "static/Images/HR Copilot.png": {
+    "mtime": 1780832407.4895444,
+    "seen": 1789838816.5061362,
+    "ast_hash": "fb01133dc16def48c7e687e4fda31315",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\pages\\EmployeeDashboard.jsx": {
-    "mtime": 1780709658.1999724,
-    "ast_hash": "a6e6bf85da39ec75dbcf98d8bbde276f",
+  "static/Images/HR Dashboard.png": {
+    "mtime": 1780832125.2218652,
+    "seen": 1789838816.5061362,
+    "ast_hash": "5c47b51968225f550cc947270e297924",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\pages\\HRDashboard.jsx": {
-    "mtime": 1780709658.2009697,
-    "ast_hash": "a0f97e7a6960a01a2a2935d00f7e5d56",
+  "static/Images/HR OPERATIONAL REVIEW QUEUE.png": {
+    "mtime": 1780832205.0054176,
+    "seen": 1789838816.5061362,
+    "ast_hash": "1669dbc4eed43ba4264aa8dc2f94d752",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\pages\\LoginPage.jsx": {
-    "mtime": 1780709658.2019725,
-    "ast_hash": "600d5818865fd4f2305dd7e4b59701e2",
+  "static/Images/HR-Doc Verification.png": {
+    "mtime": 1780832742.6206388,
+    "seen": 1789838816.5061362,
+    "ast_hash": "de10e04e4c0abc13d54fe8c56692911f",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\pages\\ManagerDashboard.jsx": {
-    "mtime": 1780709658.2029705,
-    "ast_hash": "d0465918755fdd13524011be793d2a75",
+  "static/Images/HR-Employee Management.png": {
+    "mtime": 1780834001.6215947,
+    "seen": 1789838816.5061362,
+    "ast_hash": "b57333b4f23d716c074f9707f9896234",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\pages\\hr\\DepartmentManagement.jsx": {
-    "mtime": 1780709658.204976,
-    "ast_hash": "1e038995a3eb27459dfa2eb4d1f80d99",
+  "static/Images/HR-Interview Intel.jpeg": {
+    "mtime": 1780835511.4776485,
+    "seen": 1789838816.5061362,
+    "ast_hash": "a22efa1dc567844b617eafa2cf306787",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\pages\\hr\\DesignationManagement.jsx": {
-    "mtime": 1780709658.204976,
-    "ast_hash": "3c58dc81565a2208a9a0cd08a58512a4",
+  "static/Images/HR-Leave Management.png": {
+    "mtime": 1780832899.574197,
+    "seen": 1789838816.5061362,
+    "ast_hash": "c20885fa812fc98640f6f371c5445651",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\pages\\hr\\DocumentVerification.jsx": {
-    "mtime": 1780709658.2059724,
-    "ast_hash": "b195e181bea689b0edae38f426fa9832",
+  "static/Images/HR-OnBoarding.png": {
+    "mtime": 1780832701.4589589,
+    "seen": 1789838816.5061362,
+    "ast_hash": "77f1d61318c5349c9dba75cf15d5c574",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\pages\\hr\\EmployeeDirectory.jsx": {
-    "mtime": 1780709658.2069721,
-    "ast_hash": "57f874e4993cf44da613f7590ad98734",
+  "static/Images/HR-Promotion.png": {
+    "mtime": 1780832771.498857,
+    "seen": 1789838816.5061362,
+    "ast_hash": "1be2e8b1b08c5637ef8db82134802dd5",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\pages\\hr\\GrievanceDashboard.jsx": {
-    "mtime": 1780709658.2079723,
-    "ast_hash": "772860f76712a7f8b9bcd5dc455fd4a0",
+  "static/Images/HR-jobs and candidate.png": {
+    "mtime": 1780832538.8873587,
+    "seen": 1789838816.5061362,
+    "ast_hash": "fb5efdf15a468a81a3265bfaab1f4fae",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\pages\\hr\\InterviewReports.jsx": {
-    "mtime": 1780753218.431451,
-    "ast_hash": "434aa0a5201185cad915b3c7c5d73c9b",
+  "static/Images/Manager Dashboard.png": {
+    "mtime": 1780831917.162389,
+    "seen": 1789838816.5061362,
+    "ast_hash": "5f4069daefc78112902f29d0f39cbc5b",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\pages\\hr\\ManagerTrainingView.jsx": {
-    "mtime": 1780709658.2099695,
-    "ast_hash": "474b0e54156bb57f9ee237589a2003a9",
+  "static/Images/Mock Interview.png": {
+    "mtime": 1780831711.5758736,
+    "seen": 1789838816.5061362,
+    "ast_hash": "c0aa331d1fd46c5a9427fb8d7b696bf3",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\pages\\hr\\OnboardingHub.jsx": {
-    "mtime": 1780709658.2109795,
-    "ast_hash": "be8d65cd06c83d7097cc71b4475be166",
+  "static/Images/Team Training.png": {
+    "mtime": 1780831970.100915,
+    "seen": 1789838816.5061362,
+    "ast_hash": "94c777c8997490b5e648910337c7e67b",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\pages\\hr\\PromotionDashboard.jsx": {
-    "mtime": 1780709658.211976,
-    "ast_hash": "f69bda4363d8de552306788cdd07228f",
+  "static/Images/login page.png": {
+    "mtime": 1780831473.114802,
+    "seen": 1789838816.5061362,
+    "ast_hash": "24f66dfcc66c63c3bed8775d9bf2adc1",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\pages\\hr\\TrainingHub.jsx": {
-    "mtime": 1780709658.2129998,
-    "ast_hash": "69fe351ba0c82c833f5378d7b8715b31",
+  "tests/test_recruitment_ai_fixes.py": {
+    "mtime": 1789839174.9582458,
+    "seen": 1789839205.9573853,
+    "ast_hash": "99bb6e5f2ef250ca8eba7d871a781413",
     "semantic_hash": ""
   },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\pages\\interview\\InterviewPage.jsx": {
-    "mtime": 1780767422.5356357,
-    "ast_hash": "7866978a30db1777276a355bfdebfe19",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\pages\\interview\\MockInterviewPage.jsx": {
-    "mtime": 1780709658.2150128,
-    "ast_hash": "259b42a5e13033869b59b0caf3948b1a",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\store\\authStore.js": {
-    "mtime": 1780709658.2160113,
-    "ast_hash": "692cab7244d2e29b28faa3f9c97572d6",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\utils\\jwt.js": {
-    "mtime": 1780709658.2172918,
-    "ast_hash": "5224102dbe7c4411e15ea0cb6c5e20bb",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\vite.config.js": {
-    "mtime": 1780709658.218304,
-    "ast_hash": "71253b50cad639f0f9bb6a19e4d3fcab",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\scripts\\__init__.py": {
-    "mtime": 1780709658.6805093,
-    "ast_hash": "b5415ac7ee0b332ee183f30bcce0d9e5",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\scripts\\bootstrap_user.py": {
-    "mtime": 1780709658.6815093,
-    "ast_hash": "3a377822a7a9ceda2c31fd12dff5bcea",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\scripts\\init_database.py": {
-    "mtime": 1780709658.6855557,
-    "ast_hash": "e2706e029c23472614883588690df750",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\scripts\\migrate_sqlite_to_postgres.py": {
-    "mtime": 1780709658.688386,
-    "ast_hash": "242f79e0e4d02f02ebf1a0c2857cd74b",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\scripts\\simulate_interview.py": {
-    "mtime": 1780749347.2030313,
-    "ast_hash": "f603c40d931141f0de574656f8eb82c2",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\__init__.py": {
-    "mtime": 1780709658.689507,
-    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\api\\__init__.py": {
-    "mtime": 1780709658.691755,
-    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\api\\dependencies.py": {
-    "mtime": 1780709658.6933663,
-    "ast_hash": "1625f7105c173308ce7c2b60fe5dd5bd",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\api\\routes\\__init__.py": {
-    "mtime": 1780709658.6953554,
-    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\api\\routes\\applications.py": {
-    "mtime": 1780753218.5547924,
-    "ast_hash": "68113a909a2f153eca3d7e9f8f0ab892",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\api\\routes\\auth.py": {
-    "mtime": 1780709658.698929,
-    "ast_hash": "08f1d3e6b0cbfbbabfd2b469b524b686",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\api\\routes\\candidates.py": {
-    "mtime": 1780709658.7000146,
-    "ast_hash": "59dd2664488cc7d998de715e74264683",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\api\\routes\\dashboard.py": {
-    "mtime": 1780753218.555792,
-    "ast_hash": "940fca889c52ffcf294598860387ed8c",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\api\\routes\\departments.py": {
-    "mtime": 1780709658.701735,
-    "ast_hash": "3d0032b246e9019b276e49873cfbe969",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\api\\routes\\designations.py": {
-    "mtime": 1780709658.704187,
-    "ast_hash": "a757f5d8c9e510e654b3e5b601f9a627",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\api\\routes\\employees.py": {
-    "mtime": 1780709658.7061975,
-    "ast_hash": "7db05aeb5996bba37e38927d15056522",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\api\\routes\\interview.py": {
-    "mtime": 1780770564.704995,
-    "ast_hash": "3da85b367049f368796b6386ca2cce9c",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\api\\routes\\jobs.py": {
-    "mtime": 1780709658.7081983,
-    "ast_hash": "f26e4acae9706e5717582642362b060f",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\api\\routes\\lifecycle.py": {
-    "mtime": 1780709658.7102177,
-    "ast_hash": "8d006b26ae6730322fe4da0586aaa399",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\api\\routes\\mock_interview.py": {
-    "mtime": 1780749347.2060018,
-    "ast_hash": "7b17d6f610a5957bb367a009f2f45c18",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\api\\routes\\notifications.py": {
-    "mtime": 1780709658.715373,
-    "ast_hash": "4cc9b6d481a37343e2b8e7ce419bde01",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\api\\routes\\onboarding.py": {
-    "mtime": 1780709658.716386,
-    "ast_hash": "e64050aa63ce708afa6f4d960f49f251",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\api\\routes\\profile.py": {
-    "mtime": 1780709658.7174394,
-    "ast_hash": "6cf43e62212ff77df1d1273bcd243e1e",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\api\\routes\\promotions.py": {
-    "mtime": 1780709658.7174394,
-    "ast_hash": "6dbe452c5365504d379f94f08c46987f",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\api\\routes\\resume.py": {
-    "mtime": 1780709658.71845,
-    "ast_hash": "4cd7c9b19262ddc2474a9e9e28e5cd32",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\api\\routes\\salary.py": {
-    "mtime": 1780709658.72045,
-    "ast_hash": "4d81dd9f0774c38a4c34910f4af6c0fd",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\api\\routes\\tickets.py": {
-    "mtime": 1780709658.7210608,
-    "ast_hash": "18802bff34f7bdae65ac5ee0782a276f",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\api\\routes\\training.py": {
-    "mtime": 1780709658.7221127,
-    "ast_hash": "0f3afc7b8fad1c7e95e5fa86e5bf1c1a",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\config.py": {
-    "mtime": 1780765946.7943485,
-    "ast_hash": "b00ef7d7187f1b2f768f25e7d39553d8",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\core\\__init__.py": {
-    "mtime": 1780709658.7232482,
-    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\core\\exceptions.py": {
-    "mtime": 1780709658.7243843,
-    "ast_hash": "d4b859660150066fbacdef127d579a4b",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\core\\security.py": {
-    "mtime": 1780709658.7249155,
-    "ast_hash": "8001704a72fd11f3155309628dd1c553",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\database\\__init__.py": {
-    "mtime": 1780709658.7255023,
-    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\database\\connection.py": {
-    "mtime": 1780765946.7927153,
-    "ast_hash": "be90da353ef391c4fb1ec6e6f7feb218",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\main.py": {
-    "mtime": 1780709658.7283795,
-    "ast_hash": "2588ec6c7e2be1e4921838bfb8a48d84",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\models\\__init__.py": {
-    "mtime": 1780753218.5635667,
-    "ast_hash": "3bbe5d72662da769a37a97709361f2bd",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\resume_lab.py": {
-    "mtime": 1780709658.7324955,
-    "ast_hash": "88125d36e973867a9acb962dfdfc2a7e",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\services\\__init__.py": {
-    "mtime": 1780709658.7334895,
-    "ast_hash": "81051bcc2cf1bedf378224b0a93e2877",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\services\\employee_ai.py": {
-    "mtime": 1780709658.7344897,
-    "ast_hash": "09edcd67cc227c6a92947e83dc31dab3",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\services\\hiring_intelligence.py": {
-    "mtime": 1780759281.7372906,
-    "ast_hash": "b77a6f1f784eeb80ab582d60c31afc32",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\services\\interview_consistency.py": {
-    "mtime": 1780759126.5117855,
-    "ast_hash": "153d806ab66e84e066c746190d39f3b8",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\services\\interview_core.py": {
-    "mtime": 1780765475.3033085,
-    "ast_hash": "7b0874087afb541a225192fa0be5d461",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\services\\interview_status.py": {
-    "mtime": 1780763517.6205444,
-    "ast_hash": "58560f8de48852ede510b3dd77b00a2a",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\services\\llm_router.py": {
-    "mtime": 1780709658.7374897,
-    "ast_hash": "8895e0d8fd2fc21d53c01d36fe530185",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\services\\mock_interview_summary.py": {
-    "mtime": 1780709658.7384894,
-    "ast_hash": "4e2cba4747175b81d78ce467db3403bb",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\services\\recruitment_ai.py": {
-    "mtime": 1780709658.7384894,
-    "ast_hash": "bd0412c5ad5eaa55b375e813321c410f",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\src\\services\\transcription_service.py": {
-    "mtime": 1780760187.005431,
-    "ast_hash": "18d59afb659609e05391dbe364899f29",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\assets\\activity-t8yNPpFe.js": {
-    "mtime": 1780768687.4939404,
-    "ast_hash": "f5f3c9413b6236255998aa45edb2b068",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\assets\\arrow-right-DukEOPr0.js": {
-    "mtime": 1780768687.4939404,
-    "ast_hash": "2dc4b8fa8bf52f0343189fe2b92e4604",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\assets\\axios-CPhkLlmz.js": {
-    "mtime": 1780768687.494944,
-    "ast_hash": "35d02d481374c2ede3f3a293ef906c3c",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\assets\\check-BX3fuClw.js": {
-    "mtime": 1780768687.494944,
-    "ast_hash": "b8caadde53fdd07171bc7a7e4994eaf8",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\assets\\chevron-up-Cqmx-Enu.js": {
-    "mtime": 1780768687.4959476,
-    "ast_hash": "2ec53efac94b4ee8907084bf480b1234",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\assets\\circle-check-big-ISHrVO0q.js": {
-    "mtime": 1780768687.4959476,
-    "ast_hash": "60883d070ab4bdc852f1b535b6bab5a9",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\assets\\circle-x-BWVBlWIx.js": {
-    "mtime": 1780768687.4969404,
-    "ast_hash": "7c8683ac857458cee3e3582f486a581c",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\assets\\clock-BjD0QOYf.js": {
-    "mtime": 1780768687.4969404,
-    "ast_hash": "ce240a697050ef71c0fdad0b5e66e75b",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\assets\\eye-DW5tjwgk.js": {
-    "mtime": 1780768687.4979417,
-    "ast_hash": "547e80107e2382b9daae85257fa4c4e6",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\assets\\indian-rupee-CCdbNFUr.js": {
-    "mtime": 1780768687.4989405,
-    "ast_hash": "9e169c75d29aca50e34bb19911905637",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\assets\\plus-BPqpMeyB.js": {
-    "mtime": 1780768687.4989405,
-    "ast_hash": "b92dc32fd8ab6754bfbdee4774f9a838",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\assets\\rolldown-runtime-Cyuzqnbw.js": {
-    "mtime": 1780768687.499938,
-    "ast_hash": "47eb6677670791246ef846196dea27ee",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\assets\\send-VY155PK7.js": {
-    "mtime": 1780768687.5009391,
-    "ast_hash": "83cb7b1131ed5a8c326b6b2f039bb291",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\assets\\sparkles-BWEYw5vV.js": {
-    "mtime": 1780768687.5009391,
-    "ast_hash": "f8df2532bce614c88952c8e451d4756d",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\assets\\triangle-alert-Bb0Djm0r.js": {
-    "mtime": 1780768687.5009391,
-    "ast_hash": "f90e7f21a5701ee961685148d13cc5ce",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\assets\\user-ULVmODGu.js": {
-    "mtime": 1780768687.5024464,
-    "ast_hash": "87f14774d50a688ade3ddf4754181ec5",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\assets\\vendor-axios-BTEV2dRg.js": {
-    "mtime": 1780768687.5034604,
-    "ast_hash": "255e9aa730408e49cd553e0105160154",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\assets\\vendor-charts-BId0uYQ3.js": {
-    "mtime": 1780768687.5054574,
-    "ast_hash": "977566d0363e05d3b5c2907f98810bec",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\assets\\vendor-motion-CNB8hoxS.js": {
-    "mtime": 1780768687.506464,
-    "ast_hash": "2405bd3b8ea97dc0b1f019ba8c588547",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\assets\\vendor-react-C87nq4lf.js": {
-    "mtime": 1780768687.507467,
-    "ast_hash": "18b845b242520bc3a9f74253b16cd79e",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\assets\\vendor-router-Cinwya5U.js": {
-    "mtime": 1780768687.5082378,
-    "ast_hash": "b6ceecbd69100eb62cfd995a18277832",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\assets\\vendor-state-Cye4840y.js": {
-    "mtime": 1780768687.5092492,
-    "ast_hash": "0dc2a3ec49012185ea705be7f09e6077",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\tasks\\interview_task.py": {
-    "mtime": 1780749347.2104836,
-    "ast_hash": "28db6ca26adc9e76086245e8461a7b18",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\tasks\\job_task.py": {
-    "mtime": 1780709658.7933974,
-    "ast_hash": "500f3300d4a9bdcfd8d5a1f639a6ba4f",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\tasks\\match_task.py": {
-    "mtime": 1780709658.7933974,
-    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\tasks\\recruitment_task.py": {
-    "mtime": 1780709658.7943962,
-    "ast_hash": "9d79196f66890fb9f9f2ae833b1264c4",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\tasks\\resume_task.py": {
-    "mtime": 1780709658.7954004,
-    "ast_hash": "64b79fd6088c22971cca6ffe41b1f4c3",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\tests\\conftest.py": {
-    "mtime": 1780765475.7018075,
-    "ast_hash": "c58d079e22dc578838771786a394b60e",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\tests\\test_api.py": {
-    "mtime": 1780749347.228348,
-    "ast_hash": "b1113bb80f54fe9e3ac99b8d28db408e",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\tests\\test_hiring_intelligence.py": {
-    "mtime": 1780753218.648589,
-    "ast_hash": "13c166602cdaabd6783c064ec5ae4bd7",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\tests\\test_interview_stabilization.py": {
-    "mtime": 1780770585.8870914,
-    "ast_hash": "ae3432c7d4c9e9b3456e8dd274f81485",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\tests\\test_phase2a.py": {
-    "mtime": 1780749347.230348,
-    "ast_hash": "297d4fc472132712890424b2ca210da7",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\tests\\test_proctoring.py": {
-    "mtime": 1780770697.7524798,
-    "ast_hash": "7c127f03316dbdd0da0d25537ff8d4b6",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\tests\\test_resume_lab.py": {
-    "mtime": 1780709658.8003964,
-    "ast_hash": "a944f6e39a6cd40c0ae3aa09890daa09",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\tests_login.py": {
-    "mtime": 1780765946.7943485,
-    "ast_hash": "63b6d187f1be2c115a576f32c8f43637",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\utils\\job_search.py": {
-    "mtime": 1780709658.801395,
-    "ast_hash": "ca51dc0177565d78749f75520da8a5a0",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\utils\\resume_parser.py": {
-    "mtime": 1780709658.8023944,
-    "ast_hash": "e26731e703357ba91f39855e464b5af2",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\utils\\skill_scorer.py": {
-    "mtime": 1780709658.8023944,
-    "ast_hash": "ca27bba52e64e8e72b87f937832d34af",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\vercel.json": {
-    "mtime": 1780709658.8033972,
-    "ast_hash": "a89df89de832452787d8e45d3849e1af",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\AGENTS.md": {
-    "mtime": 1780749347.160161,
-    "ast_hash": "7e3cee8ae9bdfdadeb935b3d2ee16533",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\README.md": {
-    "mtime": 1780709658.0572734,
-    "ast_hash": "31785318974ac5bf2293312f469f9f0e",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\artifacts\\interview_pipeline_performance_review.md": {
-    "mtime": 1780709658.063535,
-    "ast_hash": "15f638d3352e6de8395a2218c2bd98d9",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\artifacts\\llm_infrastructure_report.md": {
-    "mtime": 1780709658.063535,
-    "ast_hash": "c5e3e75d2bdc43a3ca37bdf71d45d6bb",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\artifacts\\llm_validation_report.md": {
-    "mtime": 1780709658.065004,
-    "ast_hash": "783a674cc98de2a3fc2de8dff7da5ebc",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\audit_reports\\api_usage_audit.md": {
-    "mtime": 1780753218.4123015,
-    "ast_hash": "9663b63be382466ec8bb8f61e1629a9d",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\audit_reports\\architecture_report.md": {
-    "mtime": 1780753218.4133122,
-    "ast_hash": "91541c06b5eeea505349659e1ba21d9b",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\audit_reports\\backend_audit_report.md": {
-    "mtime": 1780753218.4147744,
-    "ast_hash": "ea723e24616004eae29b18642dd1bbc6",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\audit_reports\\bug_catalog.md": {
-    "mtime": 1780753218.4154165,
-    "ast_hash": "71c0660f69726d01f485845023a98bc6",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\audit_reports\\database_audit_report.md": {
-    "mtime": 1780753218.4164183,
-    "ast_hash": "5b20f7125f197336d17b531a82b73a7a",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\audit_reports\\executive_summary.md": {
-    "mtime": 1780753218.4174156,
-    "ast_hash": "bcb8e501588290a7e3290f307f296e0d",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\audit_reports\\frontend_audit_report.md": {
-    "mtime": 1780753218.4174156,
-    "ast_hash": "f4dd9e95d9f0d7721c7cff5ccde51f64",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\audit_reports\\hr_intelligence_audit.md": {
-    "mtime": 1780753218.4184139,
-    "ast_hash": "e14c04ff1f32314907ab942edd430f04",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\audit_reports\\interview_design_review.md": {
-    "mtime": 1780753218.4194212,
-    "ast_hash": "893a3f4ec837fb84482f1123cb52614d",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\audit_reports\\interview_flow_report.md": {
-    "mtime": 1780753218.4204123,
-    "ast_hash": "75c0e93fa8e37dedacf80bcd0efed6e4",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\audit_reports\\interview_performance_report.md": {
-    "mtime": 1780753218.4214149,
-    "ast_hash": "04583e17adcd574e3c84b2b7e59c96af",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\audit_reports\\interview_stabilization_sprint.md": {
-    "mtime": 1780765475.68012,
-    "ast_hash": "40e926065c07090552b721d67a7c7ed3",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\audit_reports\\security_audit_report.md": {
-    "mtime": 1780753218.4214149,
-    "ast_hash": "90108123e6fbac5676f1a66cc38e576e",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\audit_reports\\ux_audit_report.md": {
-    "mtime": 1780753218.4224143,
-    "ast_hash": "8652a44029786c202fafa3e663247738",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\docker-compose.yml": {
-    "mtime": 1780749347.163157,
-    "ast_hash": "8b730d936538c797f57719c480ef4614",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\docs\\day3-completion-report.md": {
-    "mtime": 1780709658.0672972,
-    "ast_hash": "50db893be896370f1ba74a95866035b4",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\docs\\deployment.md": {
-    "mtime": 1780709658.0683925,
-    "ast_hash": "606948dfe4edb08cc577fdd01885dbe9",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\docs\\interview.md": {
-    "mtime": 1780709658.0693924,
-    "ast_hash": "408fe9cc1ec4cf6a0d05aa237c08a2bf",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\docs\\migration-report.md": {
-    "mtime": 1780709658.07039,
-    "ast_hash": "fd9901cf6961ba3f839e4343585f8aa6",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\docs\\pre-day-3-technical-audit.md": {
-    "mtime": 1780709658.07039,
-    "ast_hash": "88a98f906e53be29ac876a6e218640fd",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\docs\\scope.md": {
-    "mtime": 1780709658.0713923,
-    "ast_hash": "8296f5998137ce3f9f3b4a6ca6e5c7f4",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\docs\\supabase-migration-report.md": {
-    "mtime": 1780709658.1206994,
-    "ast_hash": "58cf7aa3e261e78d738d85aaefdc0c29",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\README.md": {
-    "mtime": 1780709658.1230977,
-    "ast_hash": "abfa161e3e5434e3e85394bf03d387a4",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\index.html": {
-    "mtime": 1780709658.1241097,
-    "ast_hash": "7ac4da066a174af62b2b53eec31872da",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\phase2_reports\\api_optimization_report.md": {
-    "mtime": 1780753218.5467935,
-    "ast_hash": "65e0b37c989a0fba3f9d88b7a8e6d0dc",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\phase2_reports\\hr_intelligence_fix_report.md": {
-    "mtime": 1780753218.5467935,
-    "ast_hash": "abc6c2ace4eef5c5f83aa7e284008655",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\phase2_reports\\implementation_report.md": {
-    "mtime": 1780753218.548792,
-    "ast_hash": "4cd3cfae227682babbdc74cfa7e8a941",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\phase2_reports\\interview_refactor_report.md": {
-    "mtime": 1780753218.548792,
-    "ast_hash": "913ac8c024966236b3635e7a9618f84c",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\phase2_reports\\performance_acceleration_report.md": {
-    "mtime": 1780759340.8688579,
-    "ast_hash": "e7125f99c6c05da06b60284722843155",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\phase2_reports\\performance_improvement_report.md": {
-    "mtime": 1780753218.550785,
-    "ast_hash": "69352bfde7cae4928a46edab51ce4d8a",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\phase2_reports\\recorder_config_investigation_report.md": {
-    "mtime": 1780760744.422094,
-    "ast_hash": "513549a298c605641090ab7e5acd29ce",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\phase2_reports\\security_fix_report.md": {
-    "mtime": 1780753218.551775,
-    "ast_hash": "05c63dcf797a68e30454db1c1b815450",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\phase2_reports\\testing_report.md": {
-    "mtime": 1780753218.551775,
-    "ast_hash": "341a409d666367429b9c32cc3d8ea980",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\phase2_reports\\transcription_failure_followup_report.md": {
-    "mtime": 1780760215.2969265,
-    "ast_hash": "7afc5c422891456890f2ca990dff5a0c",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\phase2_reports\\transcription_root_cause_report.md": {
-    "mtime": 1780759667.6634653,
-    "ast_hash": "57b2e73ca161f1b6e426e6afe3215679",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\render.yaml": {
-    "mtime": 1780709658.6653948,
-    "ast_hash": "a56251f90d749536392c173f809d4152",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\requirements.txt": {
-    "mtime": 1780753218.5527737,
-    "ast_hash": "61b948244a30f6cc03fb9db0090b98e7",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\scope.md": {
-    "mtime": 1780749347.1900053,
-    "ast_hash": "e57832302a818c206ffdfc2c72951d69",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\scratch\\routes_list.txt": {
-    "mtime": 1780749347.1970026,
-    "ast_hash": "888a127f88cb605a146de35d2f18921d",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\script_errors.txt": {
-    "mtime": 1780709658.6795087,
-    "ast_hash": "7227bf8dbd71941c6feb809e20ddee83",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\index.html": {
-    "mtime": 1780768687.5126662,
-    "ast_hash": "9f1d818d0849a1144e46c509d2fb9a11",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\docs\\screenshots\\dashboard-fixes.png": {
-    "mtime": 1780709658.079698,
-    "ast_hash": "d82e7763fd81fbaccd3f2b24ff424069",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\docs\\screenshots\\dashboard-overview.png": {
-    "mtime": 1780709658.0906992,
-    "ast_hash": "52246d70250077fcb47132a955e02909",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\docs\\screenshots\\jobify-home.png": {
-    "mtime": 1780709658.0996988,
-    "ast_hash": "3e4034c6862cf5b4c0d8c12b61241584",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\docs\\screenshots\\mock-interview.png": {
-    "mtime": 1780709658.1027002,
-    "ast_hash": "9aecbd801bef03349c76e3596503e039",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\docs\\screenshots\\resume-lab.png": {
-    "mtime": 1780709658.1116974,
-    "ast_hash": "0c3d6c880d45c8dd22e52e15b1790a21",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\docs\\screenshots\\resume-upload.png": {
-    "mtime": 1780709658.1196952,
-    "ast_hash": "3d57e430873401797c52097da5788e81",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\public\\favicon.svg": {
-    "mtime": 1780709658.1285508,
-    "ast_hash": "7e840862161341271697daa99a40d76b",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\public\\icons.svg": {
-    "mtime": 1780709658.1299334,
-    "ast_hash": "21c7473c592c67dc87223d49892c8f0a",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\assets\\hero.png": {
-    "mtime": 1780709658.1519518,
-    "ast_hash": "e0c5ac9d667699cb23435162387cc6d1",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\assets\\react.svg": {
-    "mtime": 1780709658.1529622,
-    "ast_hash": "f0402b67b6ce880f65666bb49e841696",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\src\\assets\\vite.svg": {
-    "mtime": 1780709658.1539528,
-    "ast_hash": "6d5180a782d64c8cf51ba01c2a2184d8",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\assets\\hero-C1Zt4Rtl.png": {
-    "mtime": 1780768687.5102487,
-    "ast_hash": "e0c5ac9d667699cb23435162387cc6d1",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\favicon.svg": {
-    "mtime": 1780709658.1285508,
-    "ast_hash": "7e840862161341271697daa99a40d76b",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\icons.svg": {
-    "mtime": 1780709658.1299334,
-    "ast_hash": "21c7473c592c67dc87223d49892c8f0a",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\playwright.config.js": {
-    "mtime": 1780767881.9824975,
-    "ast_hash": "445ff02d6197246e278d3fe733b1bd3c",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\frontend\\tests\\e2e\\interview-browser-validation.spec.js": {
-    "mtime": 1780768528.651992,
-    "ast_hash": "ddf5346c2f30ea6fd45e06af23c23fe0",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\assets\\AnalysisDrawer-BWQhq9vn.js": {
-    "mtime": 1780768687.4832406,
-    "ast_hash": "858ea664cbe6f53a43144d038192646b",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\assets\\CandidateDashboard-B6Ozr95W.js": {
-    "mtime": 1780768687.484751,
-    "ast_hash": "8fee8a5a678286ee8e48923b67260475",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\assets\\EmployeeDashboard-DC5hY8Uv.js": {
-    "mtime": 1780768687.4859698,
-    "ast_hash": "0932893745f014d76c06285e7390ce0c",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\assets\\EmptyState-BeSs2MgG.js": {
-    "mtime": 1780768687.4865406,
-    "ast_hash": "79a14dad8aae70d6c086f6b8136f7bfe",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\assets\\HRDashboard-Betd4pzE.js": {
-    "mtime": 1780768687.487133,
-    "ast_hash": "da53d6c27f6136537c212feaa4630503",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\assets\\InterviewPage-CMO340kA.js": {
-    "mtime": 1780768687.4882238,
-    "ast_hash": "cd2823c28d68add40116148843d0b09b",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\assets\\InterviewReports-ceApGKhM.js": {
-    "mtime": 1780768687.4889371,
-    "ast_hash": "0f30f6a79bfe418ad8739e02bbe27026",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\assets\\InterviewWorkspaceShell-B0z7q0yi.js": {
-    "mtime": 1780768687.4889371,
-    "ast_hash": "042a24ae3288407f9a746380daed21af",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\assets\\LoginPage-BmWHecwK.js": {
-    "mtime": 1780768687.4899507,
-    "ast_hash": "977149e2524234a3254e311544ebfa33",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\assets\\ManagerDashboard-CMoNidVb.js": {
-    "mtime": 1780768687.490948,
-    "ast_hash": "a3bc6babbbb57d8c71b19019c671a049",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\assets\\MetricCard-B8fj01yz.js": {
-    "mtime": 1780768687.490948,
-    "ast_hash": "8261d21574abd2316c9ad7905d825dbc",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\assets\\MockInterviewPage-ByUaGoTT.js": {
-    "mtime": 1780768687.4919484,
-    "ast_hash": "d430da2d67cfc1ae49ee2125c0728c3f",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\assets\\ProfileCompletionWidget-CmMwOs3a.js": {
-    "mtime": 1780768687.4929273,
-    "ast_hash": "037dbe876b39706cb007fb0587927887",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\static\\assets\\index-C8t6ocaL.js": {
-    "mtime": 1780768687.4832406,
-    "ast_hash": "9edaf4cb9fc9dd2f83e736b8ad815b46",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\audit_reports\\browser_validation_report.md": {
-    "mtime": 1780768664.636686,
-    "ast_hash": "0ba5b8a441bc831cef2b7b2777522ccf",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\ADVAITH G\\Documents\\HRMS\\audit_reports\\interview_question_generation_phase_bug.md": {
-    "mtime": 1780770625.9887598,
-    "ast_hash": "099b63ff792c81a7750e395ed011875c",
+  "PROJECT_DOCUMENTATION.md": {
+    "mtime": 1789839174.9572432,
+    "seen": 1789839205.9573853,
+    "ast_hash": "f5b448c1933f48a03f00e5e5a8bf7503",
     "semantic_hash": ""
   }
 }
