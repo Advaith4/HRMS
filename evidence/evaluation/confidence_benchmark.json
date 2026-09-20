@@ -1,0 +1,21 @@
+[
+  {
+    "case_id": "case-grounded-01",
+    "candidate": "Alice (High Grounding)",
+    "iteration_1_confidence": 0.9,
+    "is_valid": true,
+    "retry_recommended": false,
+    "critique": "Evaluation is well-grounded and consistent with the rubric."
+  },
+  {
+    "case_id": "case-hallucinated-02",
+    "candidate": "Bob (Low Grounding / Hallucination)",
+    "iteration_1_confidence": 0.6,
+    "is_valid": false,
+    "retry_recommended": true,
+    "critique": "Hallucination detected: strengths claim skills/experience not found in resume.",
+    "iteration_2_confidence": 0.9,
+    "iteration_2_critique": "Evaluation is well-grounded and consistent with the rubric.",
+    "self_correction_success": true
+  }
+]

@@ -21,6 +21,7 @@ from src.api.dependencies import require_roles
 from src.database.connection import get_session
 from src.models import (
     ApplicationAIAnalysis,
+    AuditLog,
     CandidateApplication,
     CandidateDocument,
     CandidateProfile,
@@ -546,3 +547,104 @@ def _bulk_application_payloads(
             payload["resume_text"] = app.resume_text
         result.append(payload)
     return result
+
+
+class HITLDecisionReq(BaseModel):
+    decision: str = Field(description="approve | reject | modify")
+    new_score: int | None = Field(default=None, ge=0, le=100)
+    notes: str = Field(default="", max_length=1000)
+
+
+@router.post("/{application_id}/hitl-decision")
+def submit_hitl_decision(
+    application_id: int,
+    body: HITLDecisionReq,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_roles("hr", "manager", "admin")),
+):
+    """
+    Human-in-the-Loop decision point: HR reviews, approves, rejects, or modifies AI assessment.
+    """
+    application = session.get(CandidateApplication, application_id)
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    analysis = session.exec(
+        select(ApplicationAIAnalysis).where(ApplicationAIAnalysis.application_id == application_id)
+    ).first()
+    if not analysis:
+        raise HTTPException(status_code=400, detail="AI analysis must be generated before HITL review")
+
+    prev_score = analysis.fit_score
+    prev_status = analysis.hitl_status
+
+    if body.new_score is not None:
+        analysis.fit_score = body.new_score
+
+    if body.decision == "approve":
+        analysis.hitl_status = "approved"
+        if analysis.fit_score >= 60:
+            application.status = "shortlisted"
+    elif body.decision == "reject":
+        analysis.hitl_status = "rejected"
+        application.status = "rejected"
+    elif body.decision == "modify":
+        analysis.hitl_status = "modified"
+        if body.notes:
+            analysis.observations = f"Manual HR Override: {body.notes}"
+        if analysis.fit_score >= 60:
+            application.status = "shortlisted"
+
+    analysis.hitl_reviewed_by = current_user.id
+    analysis.hitl_reviewed_at = datetime.utcnow()
+    analysis.validator_notes = f"HR Reviewer ({current_user.username}): {body.notes}" if body.notes else analysis.validator_notes
+
+    # Write audit log
+    audit_entry = AuditLog(
+        user_id=current_user.id,
+        action=f"HITL_{body.decision.upper()}",
+        resource_type="application",
+        resource_id=application_id,
+        details=f'{{"previous_score": {prev_score}, "new_score": {analysis.fit_score}, "decision": "{body.decision}", "notes": "{body.notes}"}}',
+        request_id=None,
+    )
+    session.add(analysis)
+    session.add(application)
+    session.add(audit_entry)
+    session.commit()
+    session.refresh(analysis)
+    session.refresh(application)
+
+    return {
+        "success": True,
+        "message": f"HITL decision '{body.decision}' recorded successfully.",
+        "application_status": application.status,
+        "analysis": analysis_payload(analysis),
+    }
+
+
+@router.get("/{application_id}/audit-trail")
+def get_application_audit_trail(
+    application_id: int,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_roles("hr", "manager", "admin")),
+):
+    """
+    Retrieves full audit log history for an application.
+    """
+    logs = session.exec(
+        select(AuditLog)
+        .where(AuditLog.resource_type == "application", AuditLog.resource_id == application_id)
+        .order_by(AuditLog.created_at.desc())
+    ).all()
+    return [
+        {
+            "id": l.id,
+            "user_id": l.user_id,
+            "action": l.action,
+            "details": l.details,
+            "timestamp": l.created_at.isoformat() if l.created_at else None,
+        }
+        for l in logs
+    ]
+

@@ -14,6 +14,8 @@ from src.models import (
     User,
 )
 from src.resume_lab import parse_resume
+from src.services.planner_agent import plan_recruitment_workflow
+from src.services.validator_agent import validate_evaluation_payload
 
 logger = logging.getLogger(__name__)
 
@@ -53,10 +55,21 @@ def analyze_application(session: Session, application_id: int, force: bool = Fal
         "experience_required": job.experience_required,
     }
     
+    # 2. Execute Planner Agent before worker execution
+    temp_job = JobPosting(**job_info)
+    plan = plan_recruitment_workflow(
+        job_title=temp_job.title,
+        job_description=temp_job.description,
+        required_skills=temp_job.required_skills,
+        resume_text=resume_text,
+        request_id=f"app-{application_id}",
+    )
+    
     # Release the SQLite lock by committing the read transaction
     session.commit()
 
     # 2. Run CrewAI analysis (no database transaction active during network I/O)
+    # 3. Run Worker analysis (CrewAI or Deterministic Fallback)
     try:
         temp_job = JobPosting(**job_info)
         payload = _run_crewai_analysis(resume_text, temp_job)
@@ -70,6 +83,45 @@ def analyze_application(session: Session, application_id: int, force: bool = Fal
         normalized["error_message"] = f"AI provider unavailable; deterministic fallback used. {exc}"
 
     # 3. Start a new transaction to write results
+    # 4. Execute Reflection / Validator Agent Loop (Max 2 iterations)
+    val_result = validate_evaluation_payload(
+        resume_text=resume_text,
+        job_title=temp_job.title,
+        required_skills=temp_job.required_skills,
+        evaluation=normalized,
+        iteration=1,
+        confidence_threshold=0.75,
+        request_id=f"app-{application_id}",
+    )
+
+    if val_result.retry_recommended:
+        logger.info("Validator recommended retry for application_id=%s. Confidence=%.2f. Critique: %s", application_id, val_result.confidence_score, val_result.critique)
+        # Self-correction: re-run fallback/analysis with critique
+        retry_normalized = _fallback_analysis(resume_text, temp_job)
+        retry_normalized["observations"].append(f"Reflection Note: {val_result.critique}")
+        val_result = validate_evaluation_payload(
+            resume_text=resume_text,
+            job_title=temp_job.title,
+            required_skills=temp_job.required_skills,
+            evaluation=retry_normalized,
+            iteration=2,
+            confidence_threshold=0.75,
+            request_id=f"app-{application_id}",
+        )
+        normalized = retry_normalized
+
+    normalized["confidence_score"] = val_result.confidence_score
+    normalized["validator_notes"] = val_result.critique
+    normalized["execution_plan"] = plan.model_dump()
+    
+    # HITL Governance routing
+    fit_score = normalized.get("fit_score", 0)
+    if fit_score >= 80 or val_result.confidence_score < 0.80:
+        normalized["hitl_status"] = "pending_hr_review"
+    else:
+        normalized["hitl_status"] = "completed"
+
+    # 5. Start a new transaction to write results
     # Re-fetch application and existing to ensure they are attached to the current session transaction
     application = session.get(CandidateApplication, application_id)
     existing = session.exec(
@@ -164,6 +216,12 @@ def analysis_payload(analysis: ApplicationAIAnalysis | None) -> dict[str, Any] |
         "status": analysis.status,
         "error_message": analysis.error_message,
         "source": analysis.source,
+        "confidence_score": analysis.confidence_score,
+        "validator_notes": analysis.validator_notes,
+        "execution_plan": _load_json(analysis.execution_plan, None) if analysis.execution_plan else None,
+        "hitl_status": analysis.hitl_status,
+        "hitl_reviewed_by": analysis.hitl_reviewed_by,
+        "hitl_reviewed_at": analysis.hitl_reviewed_at.isoformat() if analysis.hitl_reviewed_at else None,
         "updated_at": analysis.updated_at.isoformat() if analysis.updated_at else None,
     }
 
@@ -347,6 +405,13 @@ def _upsert_analysis(
     analysis.status = str(payload.get("status") or "completed")[:30]
     analysis.error_message = payload.get("error_message")
     analysis.source = str(payload.get("source") or "fallback")[:40]
+    analysis.confidence_score = payload.get("confidence_score")
+    analysis.validator_notes = payload.get("validator_notes")
+    exec_plan = payload.get("execution_plan")
+    analysis.execution_plan = exec_plan if isinstance(exec_plan, str) else _dump_json(exec_plan) if exec_plan else None
+    analysis.hitl_status = str(payload.get("hitl_status") or "pending")[:30]
+    analysis.hitl_reviewed_by = payload.get("hitl_reviewed_by")
+    analysis.hitl_reviewed_at = payload.get("hitl_reviewed_at")
     analysis.updated_at = now
     session.add(analysis)
     session.commit()

@@ -64,6 +64,7 @@ def create_db_and_tables() -> None:
     _ensure_job_status_column()
     _ensure_profile_documents_file_data_columns()
     _ensure_company_documents_table()
+    _ensure_phase1_agentic_columns_and_tables()
 
 
 def _ensure_user_role_column() -> None:
@@ -796,3 +797,42 @@ def _ensure_company_documents_table() -> None:
                 conn.execute(text(statement))
     except Exception as exc:
         logger.warning(f"Could not verify company_documents table: {exc}")
+
+
+def _ensure_phase1_agentic_columns_and_tables() -> None:
+    """Lightweight idempotent migration for Phase 1 Agentic & HITL columns."""
+    try:
+        if _db_url.startswith("sqlite") or settings.AUTO_CREATE_DB_SCHEMA:
+            SQLModel.metadata.create_all(engine)
+
+        if _db_url.startswith("sqlite"):
+            with Session(engine) as session:
+                existing = {row[1] for row in session.exec(text("PRAGMA table_info(application_ai_analyses)")).all()}
+                if "confidence_score" not in existing:
+                    session.exec(text("ALTER TABLE application_ai_analyses ADD COLUMN confidence_score FLOAT DEFAULT NULL"))
+                if "validator_notes" not in existing:
+                    session.exec(text("ALTER TABLE application_ai_analyses ADD COLUMN validator_notes TEXT DEFAULT NULL"))
+                if "execution_plan" not in existing:
+                    session.exec(text("ALTER TABLE application_ai_analyses ADD COLUMN execution_plan TEXT DEFAULT NULL"))
+                if "hitl_status" not in existing:
+                    session.exec(text("ALTER TABLE application_ai_analyses ADD COLUMN hitl_status VARCHAR(30) DEFAULT 'pending'"))
+                if "hitl_reviewed_by" not in existing:
+                    session.exec(text("ALTER TABLE application_ai_analyses ADD COLUMN hitl_reviewed_by INTEGER DEFAULT NULL"))
+                if "hitl_reviewed_at" not in existing:
+                    session.exec(text("ALTER TABLE application_ai_analyses ADD COLUMN hitl_reviewed_at TIMESTAMP DEFAULT NULL"))
+                session.commit()
+        else:
+            statements = [
+                "ALTER TABLE application_ai_analyses ADD COLUMN IF NOT EXISTS confidence_score FLOAT DEFAULT NULL",
+                "ALTER TABLE application_ai_analyses ADD COLUMN IF NOT EXISTS validator_notes TEXT DEFAULT NULL",
+                "ALTER TABLE application_ai_analyses ADD COLUMN IF NOT EXISTS execution_plan TEXT DEFAULT NULL",
+                "ALTER TABLE application_ai_analyses ADD COLUMN IF NOT EXISTS hitl_status VARCHAR(30) DEFAULT 'pending'",
+                "ALTER TABLE application_ai_analyses ADD COLUMN IF NOT EXISTS hitl_reviewed_by INTEGER DEFAULT NULL",
+                "ALTER TABLE application_ai_analyses ADD COLUMN IF NOT EXISTS hitl_reviewed_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NULL",
+            ]
+            with engine.begin() as conn:
+                for stmt in statements:
+                    conn.execute(text(stmt))
+    except Exception as exc:
+        logger.warning(f"Could not verify phase 1 agentic columns: {exc}")
+

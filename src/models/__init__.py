@@ -181,8 +181,28 @@ class ApplicationAIAnalysis(SQLModel, table=True):
     status: str = Field(default="pending", max_length=30, index=True)
     error_message: str | None = None
     source: str = Field(default="fallback", max_length=40)
+    confidence_score: float | None = None
+    validator_notes: str | None = None
+    execution_plan: str | None = None
+    hitl_status: str = Field(default="pending", max_length=30)
+    hitl_reviewed_by: int | None = Field(default=None, foreign_key="users.id")
+    hitl_reviewed_at: datetime | None = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class AuditLog(SQLModel, table=True):
+    """Immutable audit trail for compliance, agent executions, and human review decisions."""
+    __tablename__ = "audit_logs"
+
+    id: int | None = Field(default=None, primary_key=True)
+    user_id: int | None = Field(default=None, foreign_key="users.id", index=True)
+    action: str = Field(max_length=80, index=True)
+    resource_type: str = Field(max_length=60, index=True)
+    resource_id: int | None = Field(default=None, index=True)
+    details: str = Field(default="{}")
+    request_id: str | None = Field(default=None, index=True, max_length=64)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 class Employee(SQLModel, table=True):

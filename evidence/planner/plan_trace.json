@@ -1,0 +1,100 @@
+[
+  {
+    "task_id": "plan-plan-ev-Senior_AI_",
+    "job_title": "Senior AI Backend Architect",
+    "estimated_complexity": "high",
+    "requires_ocr": false,
+    "steps": [
+      {
+        "step_number": 1,
+        "agent_name": "PlannerAgent",
+        "task_name": "DecomposeJobAndResumeComplexity",
+        "required_tools": [
+          "TextLengthAnalyzer",
+          "KeywordMatcher"
+        ],
+        "expected_output_type": "ExecutionPlan"
+      },
+      {
+        "step_number": 2,
+        "agent_name": "ResumeAnalystAgent",
+        "task_name": "ExtractCandidateProfileAndEvidence",
+        "required_tools": [
+          "PDFParserTool",
+          "SkillsGapCalculator"
+        ],
+        "expected_output_type": "ParsedResumeData"
+      },
+      {
+        "step_number": 3,
+        "agent_name": "ResumeAnalystAgent",
+        "task_name": "ComputeRubricAlignmentAndScore",
+        "required_tools": [
+          "ATSKeywordScorer",
+          "DeterministicCalculatorTool"
+        ],
+        "expected_output_type": "CandidateEvaluationPayload"
+      },
+      {
+        "step_number": 4,
+        "agent_name": "ValidatorAgent",
+        "task_name": "AuditGroundingAndConfidenceScore",
+        "required_tools": [
+          "HallucinationDetector",
+          "ConfidenceRubricValidator"
+        ],
+        "expected_output_type": "ValidationResult"
+      }
+    ],
+    "rationale": "Evaluated job 'Senior AI Backend Architect' with 6 skills. Resume text length is 89 chars. Routed through standard 4-stage pipeline."
+  },
+  {
+    "task_id": "plan-plan-ev-Junior_Fro",
+    "job_title": "Junior Frontend Developer",
+    "estimated_complexity": "low",
+    "requires_ocr": false,
+    "steps": [
+      {
+        "step_number": 1,
+        "agent_name": "PlannerAgent",
+        "task_name": "DecomposeJobAndResumeComplexity",
+        "required_tools": [
+          "TextLengthAnalyzer",
+          "KeywordMatcher"
+        ],
+        "expected_output_type": "ExecutionPlan"
+      },
+      {
+        "step_number": 2,
+        "agent_name": "ResumeAnalystAgent",
+        "task_name": "ExtractCandidateProfileAndEvidence",
+        "required_tools": [
+          "PDFParserTool",
+          "SkillsGapCalculator"
+        ],
+        "expected_output_type": "ParsedResumeData"
+      },
+      {
+        "step_number": 3,
+        "agent_name": "ResumeAnalystAgent",
+        "task_name": "ComputeRubricAlignmentAndScore",
+        "required_tools": [
+          "ATSKeywordScorer",
+          "DeterministicCalculatorTool"
+        ],
+        "expected_output_type": "CandidateEvaluationPayload"
+      },
+      {
+        "step_number": 4,
+        "agent_name": "ValidatorAgent",
+        "task_name": "AuditGroundingAndConfidenceScore",
+        "required_tools": [
+          "HallucinationDetector",
+          "ConfidenceRubricValidator"
+        ],
+        "expected_output_type": "ValidationResult"
+      }
+    ],
+    "rationale": "Evaluated job 'Junior Frontend Developer' with 5 skills. Resume text length is 66 chars. Routed through standard 4-stage pipeline."
+  }
+]

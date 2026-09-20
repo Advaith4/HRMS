@@ -91,6 +91,7 @@ from src.api.routes import (
 )
 from src.config import settings
 from src.core.exceptions import http_exception_handler, validation_exception_handler
+from src.core.logging_middleware import RequestTracingMiddleware
 from src.database.connection import create_db_and_tables
 
 # ── Logging ───────────────────────────────────────────────────────────────────
@@ -136,6 +137,7 @@ app = FastAPI(
 )
 
 # ── Middleware ────────────────────────────────────────────────────────────────
+app.add_middleware(RequestTracingMiddleware)
 # GZip compression for all responses ≥ 512 bytes (JS, JSON, HTML)
 app.add_middleware(GZipMiddleware, minimum_size=512)
 
