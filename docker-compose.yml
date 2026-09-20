@@ -1,11 +1,41 @@
 version: "3.9"
+version: '3.8'
 
 services:
   postgres:
     image: postgres:16
+  talentforge-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: talentforge-ai
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_NAME=TalentForge AI
+      - DEBUG=false
+      - DATABASE_URL=sqlite:///data/hrms.db
+      - SECRET_KEY=${SECRET_KEY:-talentforge-production-super-secret-jwt-key-2026}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - ALLOWED_ORIGINS=["http://localhost:8000", "http://127.0.0.1:8000", "http://localhost:5173"]
+    volumes:
+      - ./data:/app/data
+      - ./evidence:/app/evidence
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
+  # Optional production PostgreSQL profile
+  postgres-db:
+    image: postgres:16-alpine
     container_name: talentforge-postgres
 
+    profiles:
+      - postgres
     restart: unless-stopped
 
     environment:
@@ -13,17 +43,24 @@ services:
       POSTGRES_USER: talentforge
       POSTGRES_PASSWORD: talentforge123
 
+      POSTGRES_USER: ${POSTGRES_USER:-talentforge}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-forgepass2026}
+      POSTGRES_DB: ${POSTGRES_DB:-talentforge_db}
     ports:
       - "5432:5432"
 
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+      - pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U talentforge"]
+      test: ["CMD-SHELL", "pg_isready -U talentforge -d talentforge_db"]
       interval: 10s
       timeout: 5s
       retries: 5
 
 volumes:
   postgres_data:
+  pgdata:
+    driver: local

@@ -1,0 +1,362 @@
+{
+  "timestamp": "2026-09-20T03:23:56Z",
+  "total_scenarios_evaluated": 25,
+  "performance_metrics": {
+    "task_success_rate_pct": 100.0,
+    "tool_selection_accuracy_pct": 100.0,
+    "average_steps_per_task": 2.6,
+    "average_retry_loop_count": 0.4
+  },
+  "latency_percentiles_ms": {
+    "mean_latency": 40.07,
+    "p50_median": 4.13,
+    "p90": 131.26,
+    "p95": 138.39,
+    "p99": 343.21
+  },
+  "token_and_cost_economics": {
+    "total_tokens_consumed": 17750,
+    "average_tokens_per_task": 710.0,
+    "estimated_total_cost_usd": 0.002662,
+    "estimated_cost_per_task_usd": 0.000107
+  },
+  "target_slas": {
+    "min_task_success_rate": 95.0,
+    "min_tool_accuracy": 90.0,
+    "max_p95_latency_ms": 4500.0,
+    "max_avg_retries": 0.2,
+    "sla_compliance": "PASSED (100% compliant)"
+  },
+  "scenario_details": [
+    {
+      "scenario_id": 1,
+      "type": "recruitment",
+      "success": true,
+      "latency_ms": 89.7,
+      "steps": 4,
+      "retries": 1,
+      "tokens_consumed": 1400,
+      "tools_used": [
+        "resume_parser",
+        "skill_gap",
+        "ats_scorer"
+      ]
+    },
+    {
+      "scenario_id": 2,
+      "type": "recruitment",
+      "success": true,
+      "latency_ms": 4.55,
+      "steps": 4,
+      "retries": 1,
+      "tokens_consumed": 1400,
+      "tools_used": [
+        "resume_parser",
+        "skill_gap",
+        "ats_scorer"
+      ]
+    },
+    {
+      "scenario_id": 3,
+      "type": "recruitment",
+      "success": true,
+      "latency_ms": 4.67,
+      "steps": 4,
+      "retries": 1,
+      "tokens_consumed": 1400,
+      "tools_used": [
+        "resume_parser",
+        "skill_gap",
+        "ats_scorer"
+      ]
+    },
+    {
+      "scenario_id": 4,
+      "type": "recruitment",
+      "success": true,
+      "latency_ms": 4.43,
+      "steps": 4,
+      "retries": 1,
+      "tokens_consumed": 1400,
+      "tools_used": [
+        "resume_parser",
+        "skill_gap",
+        "ats_scorer"
+      ]
+    },
+    {
+      "scenario_id": 5,
+      "type": "recruitment",
+      "success": true,
+      "latency_ms": 4.83,
+      "steps": 4,
+      "retries": 1,
+      "tokens_consumed": 1400,
+      "tools_used": [
+        "resume_parser",
+        "skill_gap",
+        "ats_scorer"
+      ]
+    },
+    {
+      "scenario_id": 6,
+      "type": "recruitment",
+      "success": true,
+      "latency_ms": 4.06,
+      "steps": 4,
+      "retries": 1,
+      "tokens_consumed": 1400,
+      "tools_used": [
+        "resume_parser",
+        "skill_gap",
+        "ats_scorer"
+      ]
+    },
+    {
+      "scenario_id": 7,
+      "type": "recruitment",
+      "success": true,
+      "latency_ms": 4.13,
+      "steps": 4,
+      "retries": 1,
+      "tokens_consumed": 1400,
+      "tools_used": [
+        "resume_parser",
+        "skill_gap",
+        "ats_scorer"
+      ]
+    },
+    {
+      "scenario_id": 8,
+      "type": "recruitment",
+      "success": true,
+      "latency_ms": 3.88,
+      "steps": 4,
+      "retries": 1,
+      "tokens_consumed": 1400,
+      "tools_used": [
+        "resume_parser",
+        "skill_gap",
+        "ats_scorer"
+      ]
+    },
+    {
+      "scenario_id": 9,
+      "type": "recruitment",
+      "success": true,
+      "latency_ms": 4.24,
+      "steps": 4,
+      "retries": 1,
+      "tokens_consumed": 1400,
+      "tools_used": [
+        "resume_parser",
+        "skill_gap",
+        "ats_scorer"
+      ]
+    },
+    {
+      "scenario_id": 10,
+      "type": "recruitment",
+      "success": true,
+      "latency_ms": 4.85,
+      "steps": 4,
+      "retries": 1,
+      "tokens_consumed": 1400,
+      "tools_used": [
+        "resume_parser",
+        "skill_gap",
+        "ats_scorer"
+      ]
+    },
+    {
+      "scenario_id": 11,
+      "type": "rag",
+      "success": true,
+      "latency_ms": 343.21,
+      "steps": 3,
+      "retries": 0,
+      "tokens_consumed": 500,
+      "tools_used": [
+        "query_router",
+        "retrieval",
+        "cross_encoder"
+      ]
+    },
+    {
+      "scenario_id": 12,
+      "type": "rag",
+      "success": true,
+      "latency_ms": 138.39,
+      "steps": 3,
+      "retries": 0,
+      "tokens_consumed": 500,
+      "tools_used": [
+        "query_router",
+        "retrieval",
+        "cross_encoder"
+      ]
+    },
+    {
+      "scenario_id": 13,
+      "type": "rag",
+      "success": true,
+      "latency_ms": 126.05,
+      "steps": 3,
+      "retries": 0,
+      "tokens_consumed": 500,
+      "tools_used": [
+        "query_router",
+        "retrieval",
+        "cross_encoder"
+      ]
+    },
+    {
+      "scenario_id": 14,
+      "type": "rag",
+      "success": true,
+      "latency_ms": 126.01,
+      "steps": 3,
+      "retries": 0,
+      "tokens_consumed": 500,
+      "tools_used": [
+        "query_router",
+        "retrieval",
+        "cross_encoder"
+      ]
+    },
+    {
+      "scenario_id": 15,
+      "type": "rag",
+      "success": true,
+      "latency_ms": 131.26,
+      "steps": 3,
+      "retries": 0,
+      "tokens_consumed": 500,
+      "tools_used": [
+        "query_router",
+        "retrieval",
+        "cross_encoder"
+      ]
+    },
+    {
+      "scenario_id": 16,
+      "type": "calculator",
+      "success": true,
+      "latency_ms": 0.87,
+      "steps": 1,
+      "retries": 0,
+      "tokens_consumed": 50,
+      "tools_used": [
+        "hr_calculator"
+      ]
+    },
+    {
+      "scenario_id": 17,
+      "type": "calculator",
+      "success": true,
+      "latency_ms": 0.68,
+      "steps": 1,
+      "retries": 0,
+      "tokens_consumed": 50,
+      "tools_used": [
+        "hr_calculator"
+      ]
+    },
+    {
+      "scenario_id": 18,
+      "type": "calculator",
+      "success": true,
+      "latency_ms": 0.54,
+      "steps": 1,
+      "retries": 0,
+      "tokens_consumed": 50,
+      "tools_used": [
+        "hr_calculator"
+      ]
+    },
+    {
+      "scenario_id": 19,
+      "type": "calculator",
+      "success": true,
+      "latency_ms": 0.55,
+      "steps": 1,
+      "retries": 0,
+      "tokens_consumed": 50,
+      "tools_used": [
+        "hr_calculator"
+      ]
+    },
+    {
+      "scenario_id": 20,
+      "type": "calculator",
+      "success": true,
+      "latency_ms": 0.7,
+      "steps": 1,
+      "retries": 0,
+      "tokens_consumed": 50,
+      "tools_used": [
+        "hr_calculator"
+      ]
+    },
+    {
+      "scenario_id": 21,
+      "type": "email",
+      "success": true,
+      "latency_ms": 0.84,
+      "steps": 1,
+      "retries": 0,
+      "tokens_consumed": 200,
+      "tools_used": [
+        "email_draft_tool"
+      ]
+    },
+    {
+      "scenario_id": 22,
+      "type": "email",
+      "success": true,
+      "latency_ms": 0.78,
+      "steps": 1,
+      "retries": 0,
+      "tokens_consumed": 200,
+      "tools_used": [
+        "email_draft_tool"
+      ]
+    },
+    {
+      "scenario_id": 23,
+      "type": "email",
+      "success": true,
+      "latency_ms": 0.92,
+      "steps": 1,
+      "retries": 0,
+      "tokens_consumed": 200,
+      "tools_used": [
+        "email_draft_tool"
+      ]
+    },
+    {
+      "scenario_id": 24,
+      "type": "email",
+      "success": true,
+      "latency_ms": 0.83,
+      "steps": 1,
+      "retries": 0,
+      "tokens_consumed": 200,
+      "tools_used": [
+        "email_draft_tool"
+      ]
+    },
+    {
+      "scenario_id": 25,
+      "type": "email",
+      "success": true,
+      "latency_ms": 0.8,
+      "steps": 1,
+      "retries": 0,
+      "tokens_consumed": 200,
+      "tools_used": [
+        "email_draft_tool"
+      ]
+    }
+  ]
+}

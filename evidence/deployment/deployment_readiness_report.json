@@ -1,0 +1,27 @@
+{
+  "status": "READY_FOR_DEPLOYMENT",
+  "containerization": {
+    "multi_stage": true,
+    "frontend_builder": "node:20-alpine",
+    "backend_builder": "python:3.10-slim",
+    "runtime_base": "python:3.10-slim",
+    "non_root_user": "appuser (UID 1000)",
+    "exposed_port": 8000,
+    "healthcheck": "http://localhost:8000/health"
+  },
+  "probes": {
+    "liveness": "/health (HTTP 200)",
+    "readiness": "/ready (HTTP 200 DB/Chroma ping, 503 degraded fallback)"
+  },
+  "orchestration": {
+    "compose_file": "docker-compose.yml",
+    "persistence_volumes": [
+      "./data:/app/data",
+      "./evidence:/app/evidence"
+    ],
+    "profiles": [
+      "default",
+      "postgres"
+    ]
+  }
+}

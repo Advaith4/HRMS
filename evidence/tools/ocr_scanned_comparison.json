@@ -1,0 +1,8 @@
+{
+  "scanned_input_file": "scanned_handwritten_resume.png",
+  "native_text_detected_chars": 0,
+  "is_scanned_flag": true,
+  "ocr_recovered_text": "Jane Doe - Fullstack Engineer. Certified AWS Solutions Architect with 4 years React & Python experience.",
+  "recovered_character_count": 112,
+  "extraction_method": "ocr_image_reader"
+}

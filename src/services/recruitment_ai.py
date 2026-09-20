@@ -1,3 +1,4 @@
+import concurrent.futures
 import json
 import logging
 import re
@@ -16,10 +17,50 @@ from src.models import (
 from src.resume_lab import parse_resume
 from src.services.planner_agent import plan_recruitment_workflow
 from src.services.validator_agent import validate_evaluation_payload
+from src.services.workflow_state import evaluate_routing_decision, RoutingDecision
+from src.tools.recruitment_tools import resume_parser_tool, skill_gap_tool, ats_scorer_tool
 
 logger = logging.getLogger(__name__)
 
 RECOMMENDATIONS = ("Strongly Recommended", "Recommended", "Consider", "Reject")
+
+
+def extract_features_parallel(resume_text: str, job: JobPosting, request_id: str = "req-features") -> dict[str, Any]:
+    """
+    Executes independent feature extraction subtasks in parallel using a ThreadPoolExecutor.
+    Runs ResumeParserTool, SkillGapAnalyzerTool, and ATSScorerTool concurrently.
+    """
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        fut_parse = executor.submit(resume_parser_tool.run, request_id=request_id, resume_text=resume_text)
+        parsed_out = fut_parse.result()
+
+        fut_gap = executor.submit(
+            skill_gap_tool.run,
+            request_id=request_id,
+            required_skills=job.required_skills,
+            detected_skills=parsed_out.skills,
+            resume_text=resume_text,
+        )
+        fut_ats = executor.submit(
+            ats_scorer_tool.run,
+            request_id=request_id,
+            job_title=job.title,
+            required_skills=job.required_skills,
+            experience_required=job.experience_required or "",
+            resume_text=resume_text,
+            detected_skills=parsed_out.skills,
+            experience_items_count=len(parsed_out.experience) + len(parsed_out.projects),
+            has_education=bool(parsed_out.education),
+        )
+
+        gap_out = fut_gap.result()
+        ats_out = fut_ats.result()
+
+    return {
+        "parsed": parsed_out.model_dump(),
+        "skill_gap": gap_out.model_dump(),
+        "ats_score": ats_out.model_dump(),
+    }
 
 
 def analyze_application(session: Session, application_id: int, force: bool = False) -> ApplicationAIAnalysis:
@@ -65,11 +106,15 @@ def analyze_application(session: Session, application_id: int, force: bool = Fal
         request_id=f"app-{application_id}",
     )
     
+    # 3. Parallel Feature Extraction (Subtasks A, B, C)
+    parallel_features = extract_features_parallel(resume_text, temp_job, request_id=f"app-{application_id}")
+
     # Release the SQLite lock by committing the read transaction
     session.commit()
 
     # 2. Run CrewAI analysis (no database transaction active during network I/O)
     # 3. Run Worker analysis (CrewAI or Deterministic Fallback)
+    # 4. Run Worker analysis (CrewAI or Deterministic Fallback)
     try:
         temp_job = JobPosting(**job_info)
         payload = _run_crewai_analysis(resume_text, temp_job)
@@ -84,6 +129,7 @@ def analyze_application(session: Session, application_id: int, force: bool = Fal
 
     # 3. Start a new transaction to write results
     # 4. Execute Reflection / Validator Agent Loop (Max 2 iterations)
+    # 5. Execute Reflection / Validator Agent Loop (Max 2 iterations)
     val_result = validate_evaluation_payload(
         resume_text=resume_text,
         job_title=temp_job.title,
@@ -114,14 +160,23 @@ def analyze_application(session: Session, application_id: int, force: bool = Fal
     normalized["validator_notes"] = val_result.critique
     normalized["execution_plan"] = plan.model_dump()
     
-    # HITL Governance routing
+    # 6. Evaluate State-Based Conditional Routing Decision
     fit_score = normalized.get("fit_score", 0)
-    if fit_score >= 80 or val_result.confidence_score < 0.80:
+    routing = evaluate_routing_decision(
+        fit_score=fit_score,
+        confidence_score=val_result.confidence_score,
+        hallucination_detected=val_result.hallucination_detected,
+    )
+    
+    if routing == RoutingDecision.DIRECT_INTERVIEW_FAST_TRACK:
+        normalized["hitl_status"] = "fast_track_interview"
+    elif routing == RoutingDecision.HR_REVIEW_REQUIRED:
         normalized["hitl_status"] = "pending_hr_review"
     else:
         normalized["hitl_status"] = "completed"
 
     # 5. Start a new transaction to write results
+    # 7. Start a new transaction to write results
     # Re-fetch application and existing to ensure they are attached to the current session transaction
     application = session.get(CandidateApplication, application_id)
     existing = session.exec(

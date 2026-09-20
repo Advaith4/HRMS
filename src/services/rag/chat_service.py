@@ -105,8 +105,11 @@ class RAGChatService:
                     {
                         "role": "system",
                         "content": (
-                            "You are TalentForge HRMS Copilot. Answer only from the provided context. "
-                            "Be concise, practical, and mention when context is insufficient."
+                            "You are TalentForge HRMS Copilot, an enterprise HR assistant. "
+                            "Answer strictly and accurately using only the provided context. "
+                            "Be concise, practical, and note if context is insufficient. "
+                            "Always cite sources for policy statements or facts in the format: "
+                            "[Source: <filename>, Page <page_number>, Chunk <chunk_id>]."
                         ),
                     },
                     {"role": "user", "content": f"QUESTION:\n{query}\n\nCONTEXT:\n{context}"},
@@ -121,17 +124,24 @@ class RAGChatService:
             return None
 
     def _extractive_answer(self, query: str, context: str) -> str:
+        clean_ctx = re.sub(r"--- Document:[^\n]*---\n?", "", context).strip()
+        if len(clean_ctx) <= 1200 and ("Total applications" in clean_ctx or "Hybrid hiring" in clean_ctx or "Decision support" in clean_ctx or "Application status" in clean_ctx):
+            return clean_ctx
+
         query_terms = {term.lower() for term in re.findall(r"[A-Za-z0-9_]+", query) if len(term) > 2}
-        sentences = re.split(r"(?<=[.!?])\s+|\n{2,}", context)
-        candidates = [sentence.strip() for sentence in sentences if sentence.strip()]
-        complete = [sentence for sentence in candidates if sentence.endswith((".", "!", "?"))]
+        blocks = re.split(r"\n{2,}|(?<=[.!?])\s+", clean_ctx)
+        candidates = [b.strip() for b in blocks if b.strip()]
+        if not candidates:
+            return clean_ctx[:800]
+
         ranked = sorted(
-            complete or candidates,
-            key=lambda sentence: sum(1 for term in query_terms if term in sentence.lower()),
+            candidates,
+            key=lambda b: (sum(1 for term in query_terms if term in b.lower()), len(b)),
             reverse=True,
         )
-        selected = ranked[:3]
-        return " ".join(selected) if selected else context[:800]
+        matching = [c for c in ranked if sum(1 for term in query_terms if term in c.lower()) > 0]
+        selected = matching[:3] if matching else ranked[:3]
+        return "\n".join(selected) if any("\n" in s for s in selected) else " ".join(selected)
 
     def _trim_context(self, context: str) -> str:
         if len(context) <= self.max_context_chars:

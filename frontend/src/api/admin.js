@@ -59,3 +59,19 @@ export const reindexAdminKnowledge = async (category, filename) => {
   const response = await api.post(`/api/admin/knowledge/${category}/${filename}/reindex`)
   return response.data
 }
+
+export const getAdminLLMOpsMetrics = async () => {
+  const response = await api.get('/api/admin/llmops/metrics')
+  return response.data
+}
+
+export const getAdminLLMOpsTraces = async (params = {}) => {
+  const response = await api.get('/api/admin/llmops/traces', { params })
+  return response.data
+}
+
+export const getAdminErrorTaxonomy = async () => {
+  const response = await api.get('/api/admin/llmops/error-taxonomy')
+  return response.data
+}
+

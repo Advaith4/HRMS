@@ -1,0 +1,428 @@
+{
+  "timestamp": "2026-09-20T03:15:07Z",
+  "dataset_size": 20,
+  "cohort_breakdown": {
+    "strong_match_count": 5,
+    "underqualified_count": 5,
+    "borderline_count": 5,
+    "adversarial_edge_count": 5
+  },
+  "binary_classification": {
+    "confusion_matrix": {
+      "true_positive": 11,
+      "false_positive": 2,
+      "true_negative": 7,
+      "false_negative": 0
+    },
+    "metrics": {
+      "accuracy": 0.9,
+      "precision": 0.8462,
+      "recall_sensitivity": 1.0,
+      "specificity": 0.7778,
+      "f1_score": 0.9167,
+      "cohens_kappa": 0.7938
+    },
+    "target_slas": {
+      "min_accuracy": 0.85,
+      "min_precision": 0.8,
+      "min_recall": 0.8,
+      "min_f1": 0.8,
+      "status": "PASSED (All SLAs Exceeded)"
+    }
+  },
+  "multiclass_classification": {
+    "exact_recommendation_accuracy": 0.75,
+    "confusion_matrix_4x4": {
+      "Strongly Recommended": {
+        "Strongly Recommended": 5,
+        "Recommended": 0,
+        "Consider": 0,
+        "Reject": 0
+      },
+      "Recommended": {
+        "Strongly Recommended": 1,
+        "Recommended": 0,
+        "Consider": 0,
+        "Reject": 0
+      },
+      "Consider": {
+        "Strongly Recommended": 1,
+        "Recommended": 2,
+        "Consider": 3,
+        "Reject": 0
+      },
+      "Reject": {
+        "Strongly Recommended": 0,
+        "Recommended": 0,
+        "Consider": 1,
+        "Reject": 7
+      }
+    }
+  },
+  "adversarial_robustness": {
+    "prompt_injection_neutralized": true,
+    "ocr_noise_recovered": true
+  },
+  "individual_case_results": [
+    {
+      "case_id": "GOLD_RES_001",
+      "cohort": "strong_match",
+      "candidate_name": "Arun Kumar",
+      "target_role": "Senior Python Backend Engineer",
+      "predicted_score": 100,
+      "expected_score_range": [
+        85,
+        100
+      ],
+      "predicted_recommendation": "Strongly Recommended",
+      "ground_truth_recommendation": "Strongly Recommended",
+      "predicted_binary": "ADVANCE",
+      "ground_truth_binary": "ADVANCE",
+      "binary_correct": true,
+      "score_in_range": true,
+      "latency_ms": 2.45
+    },
+    {
+      "case_id": "GOLD_RES_002",
+      "cohort": "strong_match",
+      "candidate_name": "Priya Sharma",
+      "target_role": "Senior Frontend React Engineer",
+      "predicted_score": 100,
+      "expected_score_range": [
+        85,
+        100
+      ],
+      "predicted_recommendation": "Strongly Recommended",
+      "ground_truth_recommendation": "Strongly Recommended",
+      "predicted_binary": "ADVANCE",
+      "ground_truth_binary": "ADVANCE",
+      "binary_correct": true,
+      "score_in_range": true,
+      "latency_ms": 1.0
+    },
+    {
+      "case_id": "GOLD_RES_003",
+      "cohort": "strong_match",
+      "candidate_name": "David Miller",
+      "target_role": "Lead DevOps & Cloud Engineer",
+      "predicted_score": 100,
+      "expected_score_range": [
+        85,
+        100
+      ],
+      "predicted_recommendation": "Strongly Recommended",
+      "ground_truth_recommendation": "Strongly Recommended",
+      "predicted_binary": "ADVANCE",
+      "ground_truth_binary": "ADVANCE",
+      "binary_correct": true,
+      "score_in_range": true,
+      "latency_ms": 0.88
+    },
+    {
+      "case_id": "GOLD_RES_004",
+      "cohort": "strong_match",
+      "candidate_name": "Siddharth Rao",
+      "target_role": "Senior Data Engineer",
+      "predicted_score": 94,
+      "expected_score_range": [
+        82,
+        98
+      ],
+      "predicted_recommendation": "Strongly Recommended",
+      "ground_truth_recommendation": "Strongly Recommended",
+      "predicted_binary": "ADVANCE",
+      "ground_truth_binary": "ADVANCE",
+      "binary_correct": true,
+      "score_in_range": true,
+      "latency_ms": 0.78
+    },
+    {
+      "case_id": "GOLD_RES_005",
+      "cohort": "strong_match",
+      "candidate_name": "Ananya Roy",
+      "target_role": "Full Stack AI Application Engineer",
+      "predicted_score": 100,
+      "expected_score_range": [
+        85,
+        100
+      ],
+      "predicted_recommendation": "Strongly Recommended",
+      "ground_truth_recommendation": "Strongly Recommended",
+      "predicted_binary": "ADVANCE",
+      "ground_truth_binary": "ADVANCE",
+      "binary_correct": true,
+      "score_in_range": true,
+      "latency_ms": 0.74
+    },
+    {
+      "case_id": "GOLD_RES_006",
+      "cohort": "underqualified",
+      "candidate_name": "Rohan Gupta",
+      "target_role": "Senior Python Backend Engineer",
+      "predicted_score": 30,
+      "expected_score_range": [
+        5,
+        30
+      ],
+      "predicted_recommendation": "Reject",
+      "ground_truth_recommendation": "Reject",
+      "predicted_binary": "REJECT",
+      "ground_truth_binary": "REJECT",
+      "binary_correct": true,
+      "score_in_range": true,
+      "latency_ms": 0.78
+    },
+    {
+      "case_id": "GOLD_RES_007",
+      "cohort": "underqualified",
+      "candidate_name": "Meera Patel",
+      "target_role": "Lead DevOps & Cloud Engineer",
+      "predicted_score": 25,
+      "expected_score_range": [
+        0,
+        25
+      ],
+      "predicted_recommendation": "Reject",
+      "ground_truth_recommendation": "Reject",
+      "predicted_binary": "REJECT",
+      "ground_truth_binary": "REJECT",
+      "binary_correct": true,
+      "score_in_range": true,
+      "latency_ms": 0.58
+    },
+    {
+      "case_id": "GOLD_RES_008",
+      "cohort": "underqualified",
+      "candidate_name": "Karan Malhotra",
+      "target_role": "Senior Frontend React Engineer",
+      "predicted_score": 30,
+      "expected_score_range": [
+        0,
+        25
+      ],
+      "predicted_recommendation": "Reject",
+      "ground_truth_recommendation": "Reject",
+      "predicted_binary": "REJECT",
+      "ground_truth_binary": "REJECT",
+      "binary_correct": true,
+      "score_in_range": false,
+      "latency_ms": 0.58
+    },
+    {
+      "case_id": "GOLD_RES_009",
+      "cohort": "underqualified",
+      "candidate_name": "Dr. Sunita Sen",
+      "target_role": "Senior Data Engineer",
+      "predicted_score": 25,
+      "expected_score_range": [
+        0,
+        25
+      ],
+      "predicted_recommendation": "Reject",
+      "ground_truth_recommendation": "Reject",
+      "predicted_binary": "REJECT",
+      "ground_truth_binary": "REJECT",
+      "binary_correct": true,
+      "score_in_range": true,
+      "latency_ms": 0.67
+    },
+    {
+      "case_id": "GOLD_RES_010",
+      "cohort": "underqualified",
+      "candidate_name": "Vikram Joshi",
+      "target_role": "Full Stack AI Application Engineer",
+      "predicted_score": 25,
+      "expected_score_range": [
+        0,
+        25
+      ],
+      "predicted_recommendation": "Reject",
+      "ground_truth_recommendation": "Reject",
+      "predicted_binary": "REJECT",
+      "ground_truth_binary": "REJECT",
+      "binary_correct": true,
+      "score_in_range": true,
+      "latency_ms": 0.63
+    },
+    {
+      "case_id": "GOLD_RES_011",
+      "cohort": "borderline",
+      "candidate_name": "Nikhil Varma",
+      "target_role": "Senior Python Backend Engineer",
+      "predicted_score": 92,
+      "expected_score_range": [
+        55,
+        78
+      ],
+      "predicted_recommendation": "Strongly Recommended",
+      "ground_truth_recommendation": "Consider",
+      "predicted_binary": "ADVANCE",
+      "ground_truth_binary": "ADVANCE",
+      "binary_correct": true,
+      "score_in_range": false,
+      "latency_ms": 0.69
+    },
+    {
+      "case_id": "GOLD_RES_012",
+      "cohort": "borderline",
+      "candidate_name": "Shweta Nair",
+      "target_role": "Senior Frontend React Engineer",
+      "predicted_score": 78,
+      "expected_score_range": [
+        55,
+        78
+      ],
+      "predicted_recommendation": "Recommended",
+      "ground_truth_recommendation": "Consider",
+      "predicted_binary": "ADVANCE",
+      "ground_truth_binary": "ADVANCE",
+      "binary_correct": true,
+      "score_in_range": true,
+      "latency_ms": 0.63
+    },
+    {
+      "case_id": "GOLD_RES_013",
+      "cohort": "borderline",
+      "candidate_name": "Rajesh Nambiar",
+      "target_role": "Lead DevOps & Cloud Engineer",
+      "predicted_score": 48,
+      "expected_score_range": [
+        50,
+        75
+      ],
+      "predicted_recommendation": "Consider",
+      "ground_truth_recommendation": "Consider",
+      "predicted_binary": "ADVANCE",
+      "ground_truth_binary": "ADVANCE",
+      "binary_correct": true,
+      "score_in_range": false,
+      "latency_ms": 0.62
+    },
+    {
+      "case_id": "GOLD_RES_014",
+      "cohort": "borderline",
+      "candidate_name": "Aakash Mehta",
+      "target_role": "Full Stack AI Application Engineer",
+      "predicted_score": 76,
+      "expected_score_range": [
+        55,
+        78
+      ],
+      "predicted_recommendation": "Recommended",
+      "ground_truth_recommendation": "Consider",
+      "predicted_binary": "ADVANCE",
+      "ground_truth_binary": "ADVANCE",
+      "binary_correct": true,
+      "score_in_range": true,
+      "latency_ms": 0.65
+    },
+    {
+      "case_id": "GOLD_RES_015",
+      "cohort": "borderline",
+      "candidate_name": "Deepa Balan",
+      "target_role": "Senior Data Engineer",
+      "predicted_score": 60,
+      "expected_score_range": [
+        50,
+        72
+      ],
+      "predicted_recommendation": "Consider",
+      "ground_truth_recommendation": "Consider",
+      "predicted_binary": "ADVANCE",
+      "ground_truth_binary": "ADVANCE",
+      "binary_correct": true,
+      "score_in_range": true,
+      "latency_ms": 0.54
+    },
+    {
+      "case_id": "GOLD_RES_016",
+      "cohort": "adversarial_edge",
+      "candidate_name": "Tariq Mansoor",
+      "target_role": "Senior Python Backend Engineer",
+      "predicted_score": 89,
+      "expected_score_range": [
+        65,
+        88
+      ],
+      "predicted_recommendation": "Strongly Recommended",
+      "ground_truth_recommendation": "Recommended",
+      "predicted_binary": "ADVANCE",
+      "ground_truth_binary": "ADVANCE",
+      "binary_correct": true,
+      "score_in_range": false,
+      "latency_ms": 0.55
+    },
+    {
+      "case_id": "GOLD_RES_017",
+      "cohort": "adversarial_edge",
+      "candidate_name": "Malicious Tester",
+      "target_role": "Lead DevOps & Cloud Engineer",
+      "predicted_score": 9,
+      "expected_score_range": [
+        0,
+        30
+      ],
+      "predicted_recommendation": "Reject",
+      "ground_truth_recommendation": "Reject",
+      "predicted_binary": "REJECT",
+      "ground_truth_binary": "REJECT",
+      "binary_correct": true,
+      "score_in_range": true,
+      "latency_ms": 0.56
+    },
+    {
+      "case_id": "GOLD_RES_018",
+      "cohort": "adversarial_edge",
+      "candidate_name": "Overlapping Timelines",
+      "target_role": "Senior Frontend React Engineer",
+      "predicted_score": 67,
+      "expected_score_range": [
+        15,
+        45
+      ],
+      "predicted_recommendation": "Consider",
+      "ground_truth_recommendation": "Reject",
+      "predicted_binary": "ADVANCE",
+      "ground_truth_binary": "REJECT",
+      "binary_correct": false,
+      "score_in_range": false,
+      "latency_ms": 0.42
+    },
+    {
+      "case_id": "GOLD_RES_019",
+      "cohort": "adversarial_edge",
+      "candidate_name": "Sparse Applicant",
+      "target_role": "Senior Python Backend Engineer",
+      "predicted_score": 23,
+      "expected_score_range": [
+        5,
+        30
+      ],
+      "predicted_recommendation": "Reject",
+      "ground_truth_recommendation": "Reject",
+      "predicted_binary": "REJECT",
+      "ground_truth_binary": "REJECT",
+      "binary_correct": true,
+      "score_in_range": true,
+      "latency_ms": 1.03
+    },
+    {
+      "case_id": "GOLD_RES_020",
+      "cohort": "adversarial_edge",
+      "candidate_name": "Buzzword Cloud",
+      "target_role": "Senior Data Engineer",
+      "predicted_score": 68,
+      "expected_score_range": [
+        25,
+        55
+      ],
+      "predicted_recommendation": "Consider",
+      "ground_truth_recommendation": "Consider",
+      "predicted_binary": "ADVANCE",
+      "ground_truth_binary": "REJECT",
+      "binary_correct": false,
+      "score_in_range": false,
+      "latency_ms": 0.97
+    }
+  ]
+}

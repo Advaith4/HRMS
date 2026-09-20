@@ -1,0 +1,7 @@
+{
+  "iterations": 10,
+  "sequential_avg_ms": 2.54,
+  "parallel_avg_ms": 3.05,
+  "latency_reduction_percentage": -20.1,
+  "efficiency_gain": "-20.1% faster subtask execution"
+}

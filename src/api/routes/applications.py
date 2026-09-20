@@ -32,6 +32,7 @@ from src.models import (
     EmployeeOnboardingTask,
     EmployeeProfile,
     HRNotification,
+    HumanEvaluation,
     InterviewSession,
     JobPosting,
     OnboardingTask,
@@ -647,4 +648,106 @@ def get_application_audit_trail(
         }
         for l in logs
     ]
+
+
+class HumanEvaluationCreateRequest(BaseModel):
+    correctness: int = Field(ge=1, le=5, description="1-5 Likert score for factual correctness")
+    helpfulness: int = Field(ge=1, le=5, description="1-5 Likert score for recruiter decision utility")
+    completeness: int = Field(ge=1, le=5, description="1-5 Likert score for evaluation thoroughness")
+    safety_groundedness: int = Field(ge=1, le=5, description="1-5 Likert score for hallucination freedom")
+    feedback_notes: str | None = Field(default="", max_length=2000)
+    decision_override: str = Field(default="agreed", max_length=40)
+
+
+@router.post("/{application_id}/human-evaluation")
+def submit_human_evaluation(
+    application_id: int,
+    body: HumanEvaluationCreateRequest,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_roles("hr", "manager", "admin")),
+):
+    """
+    Submits 1-5 Likert Human-in-the-Loop evaluation for candidate screening.
+    """
+    app_record = session.get(CandidateApplication, application_id)
+    if not app_record:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    composite = round((body.correctness + body.helpfulness + body.completeness + body.safety_groundedness) / 4.0, 2)
+    evaluation = HumanEvaluation(
+        application_id=application_id,
+        reviewer_id=current_user.id,
+        correctness=body.correctness,
+        helpfulness=body.helpfulness,
+        completeness=body.completeness,
+        safety_groundedness=body.safety_groundedness,
+        composite_rating=composite,
+        feedback_notes=body.feedback_notes or "",
+        decision_override=body.decision_override or "agreed",
+        created_at=datetime.utcnow(),
+    )
+    session.add(evaluation)
+    session.commit()
+    session.refresh(evaluation)
+    return {
+        "success": True,
+        "message": "Human evaluation submitted successfully.",
+        "evaluation": evaluation,
+    }
+
+
+@router.get("/human-evaluation/summary")
+def get_human_evaluation_summary(
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_roles("hr", "manager", "admin")),
+):
+    """
+    Aggregated statistics across all human evaluations in the system.
+    """
+    evals = session.exec(select(HumanEvaluation)).all()
+    if not evals:
+        return {
+            "total_evaluations": 0,
+            "average_correctness": 0.0,
+            "average_helpfulness": 0.0,
+            "average_completeness": 0.0,
+            "average_safety_groundedness": 0.0,
+            "average_composite_rating": 0.0,
+            "agreement_rate_pct": 100.0,
+        }
+    n = len(evals)
+    avg_corr = sum(e.correctness for e in evals) / n
+    avg_help = sum(e.helpfulness for e in evals) / n
+    avg_comp = sum(e.completeness for e in evals) / n
+    avg_safe = sum(e.safety_groundedness for e in evals) / n
+    avg_composite = sum(e.composite_rating for e in evals) / n
+    agreed = sum(1 for e in evals if e.decision_override == "agreed")
+    agreement_rate = (agreed / n) * 100.0
+
+    return {
+        "total_evaluations": n,
+        "average_correctness": round(avg_corr, 2),
+        "average_helpfulness": round(avg_help, 2),
+        "average_completeness": round(avg_comp, 2),
+        "average_safety_groundedness": round(avg_safe, 2),
+        "average_composite_rating": round(avg_composite, 2),
+        "agreement_rate_pct": round(agreement_rate, 2),
+    }
+
+
+@router.get("/{application_id}/human-evaluation")
+def get_application_human_evaluations(
+    application_id: int,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_roles("hr", "manager", "admin")),
+):
+    """
+    Retrieves human evaluation feedback history for a specific application.
+    """
+    evals = session.exec(
+        select(HumanEvaluation)
+        .where(HumanEvaluation.application_id == application_id)
+        .order_by(HumanEvaluation.created_at.desc())
+    ).all()
+    return evals
 

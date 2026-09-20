@@ -34,6 +34,7 @@ import {
   ClipboardList,
   MessageCircle,
   Bot,
+  Activity,
 } from 'lucide-react'
 
 // ─── HR grouped nav definition ───────────────────────────────────────────────
@@ -182,6 +183,12 @@ const ADMIN_NAV = [
     path: '/dashboard/admin?tab=knowledge',
     label: 'Employee Knowledge',
     icon: BookOpen,
+  },
+  {
+    type: 'item',
+    path: '/dashboard/admin?tab=llmops',
+    label: 'LLMOps & Observability',
+    icon: Activity,
   },
 ]
 

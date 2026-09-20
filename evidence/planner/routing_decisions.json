@@ -1,0 +1,30 @@
+[
+  {
+    "scenario": "High Score & High Grounded Confidence",
+    "fit_score": 92,
+    "confidence": 0.92,
+    "decision": "DIRECT_INTERVIEW_FAST_TRACK",
+    "action": "Automatically advance candidate to Fast-Track Interview"
+  },
+  {
+    "scenario": "Moderate Score / Qualified with Gaps",
+    "fit_score": 72,
+    "confidence": 0.85,
+    "decision": "HR_REVIEW_REQUIRED",
+    "action": "Route to HR Dashboard for Human-in-the-Loop review"
+  },
+  {
+    "scenario": "High Score with Low Confidence / Hallucination Detected",
+    "fit_score": 90,
+    "confidence": 0.6,
+    "decision": "RETRY_REFLECTION",
+    "action": "Trigger Validator reflection self-correction retry"
+  },
+  {
+    "scenario": "Low Skill Match & Underqualified",
+    "fit_score": 42,
+    "confidence": 0.9,
+    "decision": "REJECT_RECOMMENDED",
+    "action": "Archive application and recommend polite rejection"
+  }
+]

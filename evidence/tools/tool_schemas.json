@@ -1,0 +1,238 @@
+[
+  {
+    "tool_name": "ResumeParserTool",
+    "description": "Extracts structured sections (skills, work history, education, projects) from resume text.",
+    "input_schema": {
+      "properties": {
+        "resume_text": {
+          "description": "Raw text content of the candidate's resume",
+          "title": "Resume Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "resume_text"
+      ],
+      "title": "ResumeParserInput",
+      "type": "object"
+    },
+    "output_schema": {
+      "properties": {
+        "skills": {
+          "description": "Extracted skills",
+          "items": {
+            "type": "string"
+          },
+          "title": "Skills",
+          "type": "array"
+        },
+        "experience": {
+          "description": "Extracted work experience entries",
+          "items": {
+            "type": "string"
+          },
+          "title": "Experience",
+          "type": "array"
+        },
+        "education": {
+          "description": "Extracted education details",
+          "items": {
+            "type": "string"
+          },
+          "title": "Education",
+          "type": "array"
+        },
+        "projects": {
+          "description": "Extracted project summaries",
+          "items": {
+            "type": "string"
+          },
+          "title": "Projects",
+          "type": "array"
+        },
+        "summary": {
+          "default": "",
+          "description": "Candidate executive summary",
+          "title": "Summary",
+          "type": "string"
+        }
+      },
+      "title": "ResumeParserOutput",
+      "type": "object"
+    }
+  },
+  {
+    "tool_name": "SkillGapAnalyzerTool",
+    "description": "Calculates exact skill match overlap, missing competencies, and fulfillment percentage.",
+    "input_schema": {
+      "properties": {
+        "required_skills": {
+          "description": "Comma-separated or listed required skills from job posting",
+          "title": "Required Skills",
+          "type": "string"
+        },
+        "detected_skills": {
+          "description": "List of detected skills from resume",
+          "items": {
+            "type": "string"
+          },
+          "title": "Detected Skills",
+          "type": "array"
+        },
+        "resume_text": {
+          "default": "",
+          "description": "Full resume text for fallback lexical search",
+          "title": "Resume Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "required_skills"
+      ],
+      "title": "SkillGapInput",
+      "type": "object"
+    },
+    "output_schema": {
+      "properties": {
+        "matched_skills": {
+          "description": "Required skills confirmed in candidate resume",
+          "items": {
+            "type": "string"
+          },
+          "title": "Matched Skills",
+          "type": "array"
+        },
+        "missing_skills": {
+          "description": "Required skills not detected in resume",
+          "items": {
+            "type": "string"
+          },
+          "title": "Missing Skills",
+          "type": "array"
+        },
+        "match_percentage": {
+          "description": "Percentage of required skills fulfilled",
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "title": "Match Percentage",
+          "type": "number"
+        }
+      },
+      "required": [
+        "match_percentage"
+      ],
+      "title": "SkillGapOutput",
+      "type": "object"
+    }
+  },
+  {
+    "tool_name": "ATSScorerTool",
+    "description": "Performs deterministic, rubric-weighted ATS scoring across skills, experience, education, and domain relevance.",
+    "input_schema": {
+      "properties": {
+        "job_title": {
+          "description": "Job title",
+          "title": "Job Title",
+          "type": "string"
+        },
+        "required_skills": {
+          "description": "Job required skills",
+          "title": "Required Skills",
+          "type": "string"
+        },
+        "experience_required": {
+          "default": "",
+          "description": "Target years or experience level",
+          "title": "Experience Required",
+          "type": "string"
+        },
+        "resume_text": {
+          "description": "Candidate resume text",
+          "title": "Resume Text",
+          "type": "string"
+        },
+        "detected_skills": {
+          "description": "Detected skills list",
+          "items": {
+            "type": "string"
+          },
+          "title": "Detected Skills",
+          "type": "array"
+        },
+        "experience_items_count": {
+          "default": 0,
+          "description": "Number of detected work/project items",
+          "title": "Experience Items Count",
+          "type": "integer"
+        },
+        "has_education": {
+          "default": false,
+          "description": "True if education is detected",
+          "title": "Has Education",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "job_title",
+        "required_skills",
+        "resume_text"
+      ],
+      "title": "ATSScorerInput",
+      "type": "object"
+    },
+    "output_schema": {
+      "properties": {
+        "fit_score": {
+          "description": "Overall ATS composite score",
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Fit Score",
+          "type": "integer"
+        },
+        "skill_score": {
+          "description": "Skills alignment component (max 45)",
+          "maximum": 45,
+          "minimum": 0,
+          "title": "Skill Score",
+          "type": "integer"
+        },
+        "experience_score": {
+          "description": "Experience depth component (max 25)",
+          "maximum": 25,
+          "minimum": 0,
+          "title": "Experience Score",
+          "type": "integer"
+        },
+        "education_score": {
+          "description": "Education component (max 10)",
+          "maximum": 10,
+          "minimum": 0,
+          "title": "Education Score",
+          "type": "integer"
+        },
+        "relevance_score": {
+          "description": "Title & domain relevance component (max 20)",
+          "maximum": 20,
+          "minimum": 0,
+          "title": "Relevance Score",
+          "type": "integer"
+        },
+        "recommendation": {
+          "description": "Strongly Recommended | Recommended | Consider | Reject",
+          "title": "Recommendation",
+          "type": "string"
+        }
+      },
+      "required": [
+        "fit_score",
+        "skill_score",
+        "experience_score",
+        "education_score",
+        "relevance_score",
+        "recommendation"
+      ],
+      "title": "ATSScorerOutput",
+      "type": "object"
+    }
+  }
+]

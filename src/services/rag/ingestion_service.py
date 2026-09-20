@@ -1,12 +1,18 @@
+"""
+src/services/rag/ingestion_service.py
+Enterprise Ingestion Service with Recursive Character Chunking and Rich Metadata Enrichment.
+"""
 import hashlib
 import logging
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from docx import Document as DocxDocument
 from pypdf import PdfReader
 
 from src.services.rag.chroma_service import ChromaService
+from src.services.rag.chunking import RecursiveCharacterChunker
 from src.services.rag.embedding_service import EmbeddingService
 
 logger = logging.getLogger(__name__)
@@ -26,8 +32,8 @@ class IngestionService:
         self,
         chroma_service: ChromaService | None = None,
         embedding_service: EmbeddingService | None = None,
-        chunk_size: int = 1000,
-        chunk_overlap: int = 200,
+        chunk_size: int = 512,
+        chunk_overlap: int = 64,
     ):
         if chunk_size <= 0:
             raise ValueError("chunk_size must be greater than 0")
@@ -37,64 +43,131 @@ class IngestionService:
         self.embeddings = embedding_service or EmbeddingService()
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
+        self.chunker = RecursiveCharacterChunker(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
 
     def ingest_file(
         self,
         file_path: str | Path,
         collection: str,
         source_id: str | None = None,
-        metadata: dict | None = None,
+        metadata: dict[str, Any] | None = None,
         replace_existing: bool = True,
     ) -> IngestionResult:
         path = Path(file_path)
         if not path.exists() or not path.is_file():
             raise FileNotFoundError(f"RAG source file not found: {path}")
-        text = self.extract_text(path)
-        chunks = self.chunk_text(text)
-        embeddings = self.embeddings.embed_texts(chunks)
+
+        # 1. Multi-Page Extraction & Chunking with Page Tracking
+        page_chunks = []
+        suffix = path.suffix.lower()
+
+        if suffix == ".pdf":
+            try:
+                reader = PdfReader(str(path))
+                for page_idx, page in enumerate(reader.pages, start=1):
+                    page_text = page.extract_text() or ""
+                    if page_text.strip():
+                        chunks = self.chunker.split_text(page_text, page_number=page_idx)
+                        page_chunks.extend(chunks)
+            except Exception as exc:
+                logger.warning("PDF page extraction failed for %s: %s. Falling back to whole-file.", path, exc)
+                full_text = self.extract_text(path)
+                page_chunks = self.chunker.split_text(full_text, page_number=1)
+        else:
+            full_text = self.extract_text(path)
+            page_chunks = self.chunker.split_text(full_text, page_number=1)
+
+        if not page_chunks:
+            logger.warning("No chunks generated for document: %s", path)
+            return IngestionResult(collection=collection, source=str(path), chunks_stored=0)
+
+        # 2. Embeddings & Enriched Metadata
+        chunk_texts = [c.text for c in page_chunks]
+        embeddings = self.embeddings.embed_texts(chunk_texts)
+        
+        full_content = " ".join(chunk_texts)
+        content_hash = hashlib.sha256(full_content.encode("utf-8")).hexdigest()
+        sid = str(source_id or path.stem)
+
         base_metadata = {
             "source": str(path),
             "filename": path.name,
-            "source_id": source_id or path.stem,
+            "source_id": sid,
+            "category": (metadata or {}).get("category", "policy"),
+            "access_role": (metadata or {}).get("access_role", "employee"),
+            "content_hash": content_hash,
         }
         if metadata:
             base_metadata.update(metadata)
-        content_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
-        base_metadata["content_hash"] = content_hash
-        ids = [f"{collection}:{base_metadata['source_id']}:chunk:{index}" for index in range(len(chunks))]
-        metadatas = [{**base_metadata, "chunk_index": index} for index in range(len(chunks))]
+
+        ids = []
+        metadatas = []
+        for idx, chunk in enumerate(page_chunks):
+            cid = f"{collection}:{sid}:chunk:{idx + 1}"
+            ids.append(cid)
+            metadatas.append({
+                **base_metadata,
+                "chunk_id": cid,
+                "chunk_index": idx + 1,
+                "page_number": chunk.page_number,
+                "char_start": chunk.char_start,
+                "char_end": chunk.char_end,
+            })
+
+        # 3. Upsert to Chroma
         if replace_existing:
-            self.chroma.delete_where(collection, {"source_id": str(base_metadata["source_id"])})
-        self.chroma.upsert_documents(collection, ids, chunks, embeddings, metadatas)
-        logger.info("Ingested %s into %s with %s chunk(s)", path, collection, len(chunks))
-        return IngestionResult(collection=collection, source=str(path), chunks_stored=len(chunks))
+            self.chroma.delete_where(collection, {"source_id": sid})
+
+        self.chroma.upsert_documents(collection, ids, chunk_texts, embeddings, metadatas)
+        logger.info("Ingested %s into %s with %s chunk(s)", path, collection, len(chunk_texts))
+        return IngestionResult(collection=collection, source=str(path), chunks_stored=len(chunk_texts))
 
     def ingest_text(
         self,
         text: str,
         collection: str,
         source_id: str,
-        metadata: dict | None = None,
+        metadata: dict[str, Any] | None = None,
         replace_existing: bool = True,
     ) -> IngestionResult:
-        chunks = self.chunk_text(text)
-        embeddings = self.embeddings.embed_texts(chunks)
+        page_chunks = self.chunker.split_text(text, page_number=1)
+        if not page_chunks:
+            return IngestionResult(collection=collection, source=source_id, chunks_stored=0)
+
+        chunk_texts = [c.text for c in page_chunks]
+        embeddings = self.embeddings.embed_texts(chunk_texts)
+        content_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+
         base_metadata = {
             "source": f"db:{source_id}",
             "filename": source_id,
             "source_id": source_id,
+            "category": (metadata or {}).get("category", "general"),
+            "access_role": (metadata or {}).get("access_role", "employee"),
+            "content_hash": content_hash,
         }
         if metadata:
             base_metadata.update(metadata)
-        content_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
-        base_metadata["content_hash"] = content_hash
-        ids = [f"{collection}:{base_metadata['source_id']}:chunk:{index}" for index in range(len(chunks))]
-        metadatas = [{**base_metadata, "chunk_index": index} for index in range(len(chunks))]
+
+        ids = [f"{collection}:{source_id}:chunk:{i + 1}" for i in range(len(chunk_texts))]
+        metadatas = [
+            {
+                **base_metadata,
+                "chunk_id": ids[i],
+                "chunk_index": i + 1,
+                "page_number": page_chunks[i].page_number,
+                "char_start": page_chunks[i].char_start,
+                "char_end": page_chunks[i].char_end,
+            }
+            for i in range(len(chunk_texts))
+        ]
+
         if replace_existing:
-            self.chroma.delete_where(collection, {"source_id": str(base_metadata["source_id"])})
-        self.chroma.upsert_documents(collection, ids, chunks, embeddings, metadatas)
-        logger.info("Ingested text source_id=%s into %s with %s chunk(s)", source_id, collection, len(chunks))
-        return IngestionResult(collection=collection, source=source_id, chunks_stored=len(chunks))
+            self.chroma.delete_where(collection, {"source_id": str(source_id)})
+
+        self.chroma.upsert_documents(collection, ids, chunk_texts, embeddings, metadatas)
+        logger.info("Ingested text source_id=%s into %s with %s chunk(s)", source_id, collection, len(chunk_texts))
+        return IngestionResult(collection=collection, source=source_id, chunks_stored=len(chunk_texts))
 
     def extract_text(self, path: Path) -> str:
         suffix = path.suffix.lower()
@@ -109,29 +182,6 @@ class IngestionService:
         return "\n".join(paragraph.text for paragraph in document.paragraphs)
 
     def chunk_text(self, text: str) -> list[str]:
-        normalized = " ".join((text or "").split())
-        if not normalized:
-            return []
-        words = normalized.split()
-        chunks: list[str] = []
-        current: list[str] = []
-        current_len = 0
-        for word in words:
-            next_len = current_len + len(word) + (1 if current else 0)
-            if current and next_len > self.chunk_size:
-                chunks.append(" ".join(current))
-                overlap_words: list[str] = []
-                overlap_len = 0
-                for old_word in reversed(current):
-                    candidate_len = overlap_len + len(old_word) + (1 if overlap_words else 0)
-                    if candidate_len > self.chunk_overlap:
-                        break
-                    overlap_words.insert(0, old_word)
-                    overlap_len = candidate_len
-                current = overlap_words
-                current_len = len(" ".join(current))
-            current.append(word)
-            current_len += len(word) + (1 if current_len else 0)
-        if current:
-            chunks.append(" ".join(current))
-        return chunks
+        """Backward-compatible helper returning plain text chunk list."""
+        chunks = self.chunker.split_text(text)
+        return [c.text for c in chunks]

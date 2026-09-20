@@ -58,12 +58,15 @@ def _disable_broken_local_proxies() -> None:
 
 _disable_broken_local_proxies()
 
+from datetime import datetime, timezone
 import appdirs
 from fastapi import FastAPI
+from fastapi import FastAPI, Response, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy import text
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from src.api.routes import (
@@ -93,6 +96,8 @@ from src.config import settings
 from src.core.exceptions import http_exception_handler, validation_exception_handler
 from src.core.logging_middleware import RequestTracingMiddleware
 from src.database.connection import create_db_and_tables
+from src.database.connection import create_db_and_tables, engine
+from src.services.rag.chroma_service import ChromaService
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -155,9 +160,59 @@ app.add_exception_handler(StarletteHTTPException, http_exception_handler)
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
 
 
+# ── Health & Readiness Probes (Cloud / Kubernetes) ───────────────────────────
+@app.get("/health", tags=["system"])
 @app.get("/api/health", include_in_schema=False)
 def health_check():
     return {"status": "ok"}
+    """Liveness probe: fast non-blocking response confirming process is alive."""
+    return {
+        "status": "ok",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "service": "talentforge-ai",
+        "version": "2.0.0",
+    }
+
+
+@app.get("/ready", tags=["system"])
+@app.get("/api/ready", tags=["system"])
+def readiness_check(response: Response):
+    """Readiness probe: verifies all dependent subsystems (Database, Vector DB, AI Gateway)."""
+    components = {
+        "database": "unknown",
+        "vector_store": "unknown",
+        "llm_gateway": "ready" if getattr(settings, "GROQ_API_KEY", None) else "fallback_mode",
+    }
+    healthy = True
+
+    # 1. Database Ping
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        components["database"] = "connected"
+    except Exception as exc:
+        logger.error("Readiness check DB error: %s", exc)
+        components["database"] = f"error: {exc!s}"
+        healthy = False
+
+    # 2. ChromaDB Vector Store Ping
+    try:
+        chroma = ChromaService()
+        chroma.client.heartbeat()
+        components["vector_store"] = "connected"
+    except Exception as exc:
+        logger.warning("Readiness check ChromaDB warning: %s", exc)
+        components["vector_store"] = f"warning: {exc!s}"
+
+    status_str = "ready" if healthy else "degraded"
+    if not healthy:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+
+    return {
+        "status": status_str,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "components": components,
+    }
 
 
 # ── API Routers ───────────────────────────────────────────────────────────────
@@ -194,6 +249,10 @@ class SPAStaticFiles(StaticFiles):
         except StarletteHTTPException as exc:
             if exc.status_code == 404 and not (
                 path.startswith("api") or path.startswith("docs")
+                path.startswith("api")
+                or path.startswith("docs")
+                or path.startswith("health")
+                or path.startswith("ready")
             ):
                 return await super().get_response("index.html", scope)
             raise exc

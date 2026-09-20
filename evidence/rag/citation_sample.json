@@ -1,0 +1,44 @@
+[
+  {
+    "query": "How many days of paid sick leave are employees entitled to annually, and is a medical certificate required?",
+    "synthesized_response": "Employees are entitled to 12 days of paid sick leave per calendar year. A medical certificate from a registered medical practitioner is mandatory for sick leave extending beyond 2 consecutive days. [Source: Leave_and_Attendance_Policy_2026.pdf, Page 2, Chunk eval_doc_0_p2_c1]",
+    "extracted_citations": [
+      {
+        "source_file": "Leave_and_Attendance_Policy_2026.pdf",
+        "page_number": 2,
+        "chunk_id": "eval_doc_0_p2_c1",
+        "rerank_score": 0.787,
+        "role_required": "employee",
+        "snippet": "Employees are entitled to 12 days of paid sick leave per calendar year. A medical certificate from a registered medical practitioner is mandatory for sick leave extending beyond 2 consecutive days."
+      }
+    ]
+  },
+  {
+    "query": "What is the standard probation period for new hires, and how can it be extended?",
+    "synthesized_response": "The standard probation period is 6 months from the date of joining. If performance does not meet expectations, management may extend probation by up to 3 additional months following a formal performance review. [Source: Employee_Handbook_2026.pdf, Page 4, Chunk eval_doc_1_p4_c1]",
+    "extracted_citations": [
+      {
+        "source_file": "Employee_Handbook_2026.pdf",
+        "page_number": 4,
+        "chunk_id": "eval_doc_1_p4_c1",
+        "rerank_score": 0.3306,
+        "role_required": "employee",
+        "snippet": "The standard probation period is 6 months from the date of joining. If performance does not meet expectations, management may extend probation by up to 3 additional months following a formal performan..."
+      }
+    ]
+  },
+  {
+    "query": "What is the total sum insured for the Group Health Insurance policy and who is covered?",
+    "synthesized_response": "The Group Medical Insurance provides a sum insured of INR 5,00,000 per family per year, covering the employee, spouse, up to two dependent children, and dependent parents. [Source: Compensation_and_Benefits_Guide_2026.pdf, Page 3, Chunk eval_doc_2_p3_c1]",
+    "extracted_citations": [
+      {
+        "source_file": "Compensation_and_Benefits_Guide_2026.pdf",
+        "page_number": 3,
+        "chunk_id": "eval_doc_2_p3_c1",
+        "rerank_score": 0.3497,
+        "role_required": "employee",
+        "snippet": "The Group Medical Insurance provides a sum insured of INR 5,00,000 per family per year, covering the employee, spouse, up to two dependent children, and dependent parents."
+      }
+    ]
+  }
+]

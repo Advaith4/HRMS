@@ -625,3 +625,21 @@ class OnboardingRequiredDocument(SQLModel, table=True):
     template_id: int = Field(foreign_key="onboarding_templates.id", index=True)
     document_type: str = Field(max_length=80)
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class HumanEvaluation(SQLModel, table=True):
+    """Structured 1-5 Likert Human-in-the-Loop evaluation for AI decisions."""
+    __tablename__ = "human_evaluations"
+
+    id: int | None = Field(default=None, primary_key=True)
+    application_id: int = Field(foreign_key="candidate_applications.id", index=True)
+    reviewer_id: int = Field(foreign_key="users.id", index=True)
+    correctness: int = Field(ge=1, le=5, description="1-5 Likert scale for factual correctness")
+    helpfulness: int = Field(ge=1, le=5, description="1-5 Likert scale for recruiter decision utility")
+    completeness: int = Field(ge=1, le=5, description="1-5 Likert scale for evaluation thoroughness")
+    safety_groundedness: int = Field(ge=1, le=5, description="1-5 Likert scale for hallucination freedom")
+    composite_rating: float = Field(default=0.0, description="Average Likert score (1.0 - 5.0)")
+    feedback_notes: str | None = Field(default="", max_length=2000)
+    decision_override: str = Field(default="agreed", max_length=40)  # agreed, overridden_pass, overridden_reject
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+

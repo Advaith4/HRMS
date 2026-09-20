@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
 from src.api.dependencies import require_roles
+from src.core.llmops_metrics import LLMOpsMetricsAggregator
 from src.database.connection import get_session
 from src.models import USER_ROLES, User
 from src.models import USER_ROLES, CompanyDocument, User
@@ -349,3 +350,59 @@ def reindex_knowledge(category: str, filename: str, session: Session = Depends(g
         raise HTTPException(status_code=500, detail=f"Chroma RAG re-index failed: {e!s}")
 
     return {"message": "Knowledge article re-indexed successfully"}
+
+
+# ── LLMOps Observability & Error Taxonomy Endpoints ──────────────────────────
+@router.get("/llmops/metrics")
+def get_llmops_metrics(
+    session: Session = Depends(get_session),
+    _current_user: User = Depends(admin_required),
+):
+    """
+    Returns full LLMOps telemetry metrics including latency distributions (P50-P99),
+    Error Taxonomy E101-E106 counts, token economics, and per-agent throughput.
+    """
+    aggregator = LLMOpsMetricsAggregator()
+    return aggregator.compute_metrics(session=session)
+
+
+@router.get("/llmops/traces")
+def get_llmops_traces(
+    agent: str | None = None,
+    tool: str | None = None,
+    status: str | None = None,
+    error_code: str | None = None,
+    search: str | None = None,
+    offset: int = 0,
+    limit: int = 50,
+    _current_user: User = Depends(admin_required),
+):
+    """
+    Returns paginated audit trace records with filtering by agent, tool, status,
+    error code, and text search.
+    """
+    aggregator = LLMOpsMetricsAggregator()
+    return aggregator.query_traces(
+        agent=agent,
+        tool=tool,
+        status=status,
+        error_code=error_code,
+        search=search,
+        offset=offset,
+        limit=limit,
+    )
+
+
+@router.get("/llmops/error-taxonomy")
+def get_error_taxonomy(
+    session: Session = Depends(get_session),
+    _current_user: User = Depends(admin_required),
+):
+    """
+    Returns the Error Taxonomy (E101-E106) breakdown, descriptions, remediation strategies,
+    and runtime occurrences.
+    """
+    aggregator = LLMOpsMetricsAggregator()
+    metrics = aggregator.compute_metrics(session=session)
+    return metrics.get("error_taxonomy", {})
+

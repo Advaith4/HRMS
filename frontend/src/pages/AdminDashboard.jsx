@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Users, FileText, BookOpen, Search, Shield, Save, Edit2, Trash2, RefreshCw, Plus, X, Power, Check, Info } from 'lucide-react'
+import { Users, FileText, BookOpen, Search, Shield, Save, Edit2, Trash2, RefreshCw, Plus, X, Power, Check, Info, Activity } from 'lucide-react'
 import {
   getAdminUsers,
   updateAdminUser,
@@ -17,6 +18,7 @@ import {
   reindexAdminKnowledge
 } from '../api'
 import toast from 'react-hot-toast'
+import { LLMOpsDashboard } from './LLMOpsDashboard'
 
 const USER_ROLES = ['candidate', 'employee', 'hr', 'manager', 'admin']
 
@@ -60,6 +62,8 @@ export const AdminDashboard = () => {
       } else if (activeTab === 'knowledge') {
         const data = await getAdminKnowledge()
         setKnowledge(data)
+      } else if (activeTab === 'llmops') {
+        // Handled by LLMOpsDashboard component
       }
     } catch (err) {
       console.error('Failed to load admin data:', err)
@@ -233,6 +237,8 @@ export const AdminDashboard = () => {
           { id: 'users', label: 'User Management', icon: Users },
           { id: 'policies', label: 'Company Policies', icon: FileText },
           { id: 'knowledge', label: 'Employee Knowledge', icon: BookOpen }
+          { id: 'knowledge', label: 'Employee Knowledge', icon: BookOpen },
+          { id: 'llmops', label: 'LLMOps & Observability', icon: Activity }
         ].map((tab) => {
           const Icon = tab.icon
           const isActive = activeTab === tab.id
@@ -260,6 +266,13 @@ export const AdminDashboard = () => {
       <div className="space-y-6">
         {/* Search and Action Bar */}
         <div className="flex items-center justify-between gap-4">
+      {/* Main Content View */}
+      {activeTab === 'llmops' ? (
+        <LLMOpsDashboard />
+      ) : (
+        <div className="space-y-6">
+          {/* Search and Action Bar */}
+          <div className="flex items-center justify-between gap-4">
           <div className="relative flex-1 max-w-md">
             <input
               type="text"
@@ -506,6 +519,7 @@ export const AdminDashboard = () => {
           </div>
         )}
       </div>
+      )}
 
       {/* DOCUMENT CREATE/EDIT MODAL OVERLAY */}
       <AnimatePresence>

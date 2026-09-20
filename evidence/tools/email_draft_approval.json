@@ -1,0 +1,19 @@
+{
+  "draft": {
+    "draft_id": "draft-7f0303cf",
+    "recipient_email": "alice.vance@example.com",
+    "subject": "Interview Invitation: Lead AI Engineer at TalentForge AI",
+    "body": "Dear Alice Vance,\n\nThank you for applying for the Lead AI Engineer position at TalentForge AI. We were impressed by your background and would love to invite you to the next stage of our interview process.\n\nPlease join your AI screening room using this link: https://talentforge.ai/interview/room-ai-987\n\nBest regards,\nTalent Acquisition Team\nTalentForge AI",
+    "status": "draft",
+    "requires_hr_approval": true
+  },
+  "governance": {
+    "requires_hr_approval": true,
+    "dispatch_allowed_before_approval": false,
+    "authorized_roles": [
+      "hr",
+      "manager",
+      "admin"
+    ]
+  }
+}

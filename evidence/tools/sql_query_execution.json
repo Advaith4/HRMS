@@ -1,0 +1,30 @@
+{
+  "columns": [
+    "id",
+    "username",
+    "role",
+    "is_active"
+  ],
+  "rows": [
+    {
+      "id": 2,
+      "username": "arun",
+      "role": "manager",
+      "is_active": true
+    },
+    {
+      "id": 8,
+      "username": "candidate",
+      "role": "candidate",
+      "is_active": true
+    },
+    {
+      "id": 4,
+      "username": "admin",
+      "role": "admin",
+      "is_active": true
+    }
+  ],
+  "row_count": 3,
+  "executed_query": "SELECT id, username, role, is_active FROM users LIMIT 3"
+}

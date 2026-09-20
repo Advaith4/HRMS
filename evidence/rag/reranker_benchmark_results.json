@@ -1,0 +1,276 @@
+{
+  "timestamp": "2026-09-20T03:01:29Z",
+  "total_queries_evaluated": 15,
+  "pipeline_comparison": {
+    "stage_1_vector_only": {
+      "metrics": {
+        "mean_precision_at_5": 0.2,
+        "mean_recall_at_5": 1.0,
+        "mean_hit_rate_at_5": 1.0,
+        "mean_mrr": 0.75,
+        "mean_latency_ms": 4.04,
+        "p95_latency_ms": 27.98
+      },
+      "query_details": [
+        {
+          "query_id": "EVAL_RAG_001",
+          "precision_at_5": 0.2,
+          "recall_at_5": 1.0,
+          "hit_rate_at_5": 1,
+          "mrr": 1.0,
+          "latency_ms": 27.98
+        },
+        {
+          "query_id": "EVAL_RAG_002",
+          "precision_at_5": 0.2,
+          "recall_at_5": 1.0,
+          "hit_rate_at_5": 1,
+          "mrr": 1.0,
+          "latency_ms": 2.3
+        },
+        {
+          "query_id": "EVAL_RAG_003",
+          "precision_at_5": 0.2,
+          "recall_at_5": 1.0,
+          "hit_rate_at_5": 1,
+          "mrr": 1.0,
+          "latency_ms": 2.13
+        },
+        {
+          "query_id": "EVAL_RAG_004",
+          "precision_at_5": 0.2,
+          "recall_at_5": 1.0,
+          "hit_rate_at_5": 1,
+          "mrr": 1.0,
+          "latency_ms": 1.77
+        },
+        {
+          "query_id": "EVAL_RAG_005",
+          "precision_at_5": 0.2,
+          "recall_at_5": 1.0,
+          "hit_rate_at_5": 1,
+          "mrr": 0.25,
+          "latency_ms": 2.2
+        },
+        {
+          "query_id": "EVAL_RAG_006",
+          "precision_at_5": 0.2,
+          "recall_at_5": 1.0,
+          "hit_rate_at_5": 1,
+          "mrr": 0.5,
+          "latency_ms": 1.86
+        },
+        {
+          "query_id": "EVAL_RAG_007",
+          "precision_at_5": 0.2,
+          "recall_at_5": 1.0,
+          "hit_rate_at_5": 1,
+          "mrr": 0.5,
+          "latency_ms": 1.85
+        },
+        {
+          "query_id": "EVAL_RAG_008",
+          "precision_at_5": 0.2,
+          "recall_at_5": 1.0,
+          "hit_rate_at_5": 1,
+          "mrr": 1.0,
+          "latency_ms": 1.66
+        },
+        {
+          "query_id": "EVAL_RAG_009",
+          "precision_at_5": 0.2,
+          "recall_at_5": 1.0,
+          "hit_rate_at_5": 1,
+          "mrr": 1.0,
+          "latency_ms": 1.78
+        },
+        {
+          "query_id": "EVAL_RAG_010",
+          "precision_at_5": 0.2,
+          "recall_at_5": 1.0,
+          "hit_rate_at_5": 1,
+          "mrr": 0.5,
+          "latency_ms": 1.78
+        },
+        {
+          "query_id": "EVAL_RAG_011",
+          "precision_at_5": 0.2,
+          "recall_at_5": 1.0,
+          "hit_rate_at_5": 1,
+          "mrr": 0.5,
+          "latency_ms": 1.82
+        },
+        {
+          "query_id": "EVAL_RAG_012",
+          "precision_at_5": 0.2,
+          "recall_at_5": 1.0,
+          "hit_rate_at_5": 1,
+          "mrr": 0.5,
+          "latency_ms": 6.37
+        },
+        {
+          "query_id": "EVAL_RAG_013",
+          "precision_at_5": 0.2,
+          "recall_at_5": 1.0,
+          "hit_rate_at_5": 1,
+          "mrr": 0.5,
+          "latency_ms": 2.13
+        },
+        {
+          "query_id": "EVAL_RAG_014",
+          "precision_at_5": 0.2,
+          "recall_at_5": 1.0,
+          "hit_rate_at_5": 1,
+          "mrr": 1.0,
+          "latency_ms": 1.89
+        },
+        {
+          "query_id": "EVAL_RAG_015",
+          "precision_at_5": 0.2,
+          "recall_at_5": 1.0,
+          "hit_rate_at_5": 1,
+          "mrr": 1.0,
+          "latency_ms": 3.1
+        }
+      ]
+    },
+    "stage_2_cross_encoder_reranked": {
+      "metrics": {
+        "mean_precision_at_5": 0.2133,
+        "mean_recall_at_5": 1.0,
+        "mean_hit_rate_at_5": 1.0,
+        "mean_mrr": 0.9333,
+        "mean_latency_ms": 2.43,
+        "p95_latency_ms": 3.5
+      },
+      "query_details": [
+        {
+          "query_id": "EVAL_RAG_001",
+          "precision_at_5": 0.2,
+          "recall_at_5": 1.0,
+          "hit_rate_at_5": 1,
+          "mrr": 1.0,
+          "latency_ms": 2.68
+        },
+        {
+          "query_id": "EVAL_RAG_002",
+          "precision_at_5": 0.2,
+          "recall_at_5": 1.0,
+          "hit_rate_at_5": 1,
+          "mrr": 1.0,
+          "latency_ms": 2.45
+        },
+        {
+          "query_id": "EVAL_RAG_003",
+          "precision_at_5": 0.2,
+          "recall_at_5": 1.0,
+          "hit_rate_at_5": 1,
+          "mrr": 1.0,
+          "latency_ms": 2.75
+        },
+        {
+          "query_id": "EVAL_RAG_004",
+          "precision_at_5": 0.2,
+          "recall_at_5": 1.0,
+          "hit_rate_at_5": 1,
+          "mrr": 1.0,
+          "latency_ms": 2.47
+        },
+        {
+          "query_id": "EVAL_RAG_005",
+          "precision_at_5": 0.2,
+          "recall_at_5": 1.0,
+          "hit_rate_at_5": 1,
+          "mrr": 1.0,
+          "latency_ms": 2.12
+        },
+        {
+          "query_id": "EVAL_RAG_006",
+          "precision_at_5": 0.2,
+          "recall_at_5": 1.0,
+          "hit_rate_at_5": 1,
+          "mrr": 1.0,
+          "latency_ms": 2.57
+        },
+        {
+          "query_id": "EVAL_RAG_007",
+          "precision_at_5": 0.4,
+          "recall_at_5": 1.0,
+          "hit_rate_at_5": 1,
+          "mrr": 1.0,
+          "latency_ms": 2.12
+        },
+        {
+          "query_id": "EVAL_RAG_008",
+          "precision_at_5": 0.2,
+          "recall_at_5": 1.0,
+          "hit_rate_at_5": 1,
+          "mrr": 0.5,
+          "latency_ms": 2.38
+        },
+        {
+          "query_id": "EVAL_RAG_009",
+          "precision_at_5": 0.2,
+          "recall_at_5": 1.0,
+          "hit_rate_at_5": 1,
+          "mrr": 1.0,
+          "latency_ms": 2.05
+        },
+        {
+          "query_id": "EVAL_RAG_010",
+          "precision_at_5": 0.2,
+          "recall_at_5": 1.0,
+          "hit_rate_at_5": 1,
+          "mrr": 1.0,
+          "latency_ms": 2.14
+        },
+        {
+          "query_id": "EVAL_RAG_011",
+          "precision_at_5": 0.2,
+          "recall_at_5": 1.0,
+          "hit_rate_at_5": 1,
+          "mrr": 1.0,
+          "latency_ms": 2.11
+        },
+        {
+          "query_id": "EVAL_RAG_012",
+          "precision_at_5": 0.2,
+          "recall_at_5": 1.0,
+          "hit_rate_at_5": 1,
+          "mrr": 1.0,
+          "latency_ms": 2.55
+        },
+        {
+          "query_id": "EVAL_RAG_013",
+          "precision_at_5": 0.2,
+          "recall_at_5": 1.0,
+          "hit_rate_at_5": 1,
+          "mrr": 0.5,
+          "latency_ms": 2.1
+        },
+        {
+          "query_id": "EVAL_RAG_014",
+          "precision_at_5": 0.2,
+          "recall_at_5": 1.0,
+          "hit_rate_at_5": 1,
+          "mrr": 1.0,
+          "latency_ms": 2.42
+        },
+        {
+          "query_id": "EVAL_RAG_015",
+          "precision_at_5": 0.2,
+          "recall_at_5": 1.0,
+          "hit_rate_at_5": 1,
+          "mrr": 1.0,
+          "latency_ms": 3.5
+        }
+      ]
+    },
+    "performance_delta": {
+      "precision_improvement_pct": 6.65,
+      "mrr_improvement_pct": 24.44,
+      "hit_rate_at_5": "100.0%",
+      "average_reranker_overhead_ms": -1.61
+    }
+  }
+}

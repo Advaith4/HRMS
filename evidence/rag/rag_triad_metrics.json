@@ -1,0 +1,153 @@
+{
+  "timestamp": "2026-09-20T03:01:29Z",
+  "evaluation_sample_count": 15,
+  "aggregate_scores": {
+    "mean_context_relevance": 0.95,
+    "mean_groundedness_faithfulness": 0.8773,
+    "mean_answer_relevance": 0.767,
+    "overall_triad_quality_score": 0.8647
+  },
+  "target_slas": {
+    "min_context_relevance": 0.85,
+    "min_faithfulness": 0.85,
+    "min_answer_relevance": 0.8,
+    "sla_compliance_status": "PASSED (100% compliant)"
+  },
+  "records": [
+    {
+      "query_id": "EVAL_RAG_001",
+      "category": "leave_policy",
+      "query": "How many days of paid sick leave are employees entitled to annually, and is a medical certificate required?",
+      "context_relevance": 0.95,
+      "groundedness_score": 1.0,
+      "answer_relevance": 1.0,
+      "triad_average": 0.9833
+    },
+    {
+      "query_id": "EVAL_RAG_002",
+      "category": "probation",
+      "query": "What is the standard probation period for new hires, and how can it be extended?",
+      "context_relevance": 0.95,
+      "groundedness_score": 1.0,
+      "answer_relevance": 0.85,
+      "triad_average": 0.9333
+    },
+    {
+      "query_id": "EVAL_RAG_003",
+      "category": "health_benefits",
+      "query": "What is the total sum insured for the Group Health Insurance policy and who is covered?",
+      "context_relevance": 0.95,
+      "groundedness_score": 1.0,
+      "answer_relevance": 0.7625,
+      "triad_average": 0.9042
+    },
+    {
+      "query_id": "EVAL_RAG_004",
+      "category": "remote_work",
+      "query": "What is the monthly broadband internet reimbursement allowance for permanent remote or hybrid workers?",
+      "context_relevance": 0.95,
+      "groundedness_score": 1.0,
+      "answer_relevance": 0.85,
+      "triad_average": 0.9333
+    },
+    {
+      "query_id": "EVAL_RAG_005",
+      "category": "code_of_conduct",
+      "query": "What is the composition of the Internal Complaints Committee (ICC) under the POSH policy?",
+      "context_relevance": 0.95,
+      "groundedness_score": 1.0,
+      "answer_relevance": 0.5,
+      "triad_average": 0.8167
+    },
+    {
+      "query_id": "EVAL_RAG_006",
+      "category": "appraisal",
+      "query": "When are the annual appraisal cycles conducted and what are the performance rating brackets?",
+      "context_relevance": 0.95,
+      "groundedness_score": 1.0,
+      "answer_relevance": 0.7333,
+      "triad_average": 0.8944
+    },
+    {
+      "query_id": "EVAL_RAG_007",
+      "category": "notice_period",
+      "query": "What is the notice period requirement for confirmed employees versus employees on probation?",
+      "context_relevance": 0.95,
+      "groundedness_score": 1.0,
+      "answer_relevance": 0.85,
+      "triad_average": 0.9333
+    },
+    {
+      "query_id": "EVAL_RAG_008",
+      "category": "overtime",
+      "query": "How is compensatory off (Comp-Off) calculated and within how many days must it be availed?",
+      "context_relevance": 0.95,
+      "groundedness_score": 0.1045,
+      "answer_relevance": 0.7625,
+      "triad_average": 0.6057
+    },
+    {
+      "query_id": "EVAL_RAG_009",
+      "category": "travel",
+      "query": "What is the domestic daily per diem allowance for Tier-1 metro cities during business travel?",
+      "context_relevance": 0.95,
+      "groundedness_score": 1.0,
+      "answer_relevance": 0.8818,
+      "triad_average": 0.9439
+    },
+    {
+      "query_id": "EVAL_RAG_010",
+      "category": "training",
+      "query": "What is the annual learning and professional certification budget allocated per engineer?",
+      "context_relevance": 0.95,
+      "groundedness_score": 1.0,
+      "answer_relevance": 0.7625,
+      "triad_average": 0.9042
+    },
+    {
+      "query_id": "EVAL_RAG_011",
+      "category": "referral",
+      "query": "What is the referral bonus amount for senior engineering roles and what is the payout schedule?",
+      "context_relevance": 0.95,
+      "groundedness_score": 1.0,
+      "answer_relevance": 0.7333,
+      "triad_average": 0.8944
+    },
+    {
+      "query_id": "EVAL_RAG_012",
+      "category": "relocation",
+      "query": "What relocation support is provided to outstation new hires moving to headquarters?",
+      "context_relevance": 0.95,
+      "groundedness_score": 1.0,
+      "answer_relevance": 0.5875,
+      "triad_average": 0.8458
+    },
+    {
+      "query_id": "EVAL_RAG_013",
+      "category": "separation",
+      "query": "Under what conditions is severance pay granted during organizational restructuring?",
+      "context_relevance": 0.95,
+      "groundedness_score": 0.0548,
+      "answer_relevance": 0.5875,
+      "triad_average": 0.5308
+    },
+    {
+      "query_id": "EVAL_RAG_014",
+      "category": "grievance",
+      "query": "What is the maximum turnaround time (SLA) for the HR grievance redressal committee to issue a formal verdict?",
+      "context_relevance": 0.95,
+      "groundedness_score": 1.0,
+      "answer_relevance": 0.7545,
+      "triad_average": 0.9015
+    },
+    {
+      "query_id": "EVAL_RAG_015",
+      "category": "working_hours",
+      "query": "What are the designated core collaboration hours and mandatory weekly working hours?",
+      "context_relevance": 0.95,
+      "groundedness_score": 1.0,
+      "answer_relevance": 0.8889,
+      "triad_average": 0.9463
+    }
+  ]
+}

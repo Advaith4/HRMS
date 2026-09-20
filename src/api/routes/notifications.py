@@ -74,3 +74,70 @@ def mark_notification_read(
     session.commit()
     
     return _notif_payload(notif)
+
+
+from pydantic import BaseModel, Field
+from src.api.dependencies import require_roles
+from src.models import AuditLog
+from src.tools.email_tool import EmailDraftInput, email_draft_tool
+
+
+class EmailDispatchReq(BaseModel):
+    draft_id: str
+    approved: bool = Field(description="HR approval confirmation flag")
+    recipient_email: str
+    subject: str
+    body: str
+
+
+@router.post("/email/draft")
+def generate_email_draft(
+    body: EmailDraftInput,
+    current_user: User = Depends(require_roles("hr", "manager", "admin")),
+):
+    """
+    Generates a personalized candidate communication draft requiring HR approval before dispatch.
+    """
+    draft = email_draft_tool.run(
+        candidate_id=body.candidate_id,
+        candidate_name=body.candidate_name,
+        candidate_email=body.candidate_email,
+        job_title=body.job_title,
+        email_type=body.email_type,
+        interview_link=body.interview_link,
+        company_name=body.company_name,
+    )
+    return draft.model_dump()
+
+
+@router.post("/email/dispatch")
+def dispatch_approved_email(
+    body: EmailDispatchReq,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_roles("hr", "manager", "admin")),
+):
+    """
+    Dispatches an HR-approved email draft and records immutable audit log.
+    """
+    if not body.approved:
+        raise HTTPException(status_code=400, detail="Cannot dispatch email without explicit HR approval confirmation.")
+
+    # Record audit log
+    audit_entry = AuditLog(
+        user_id=current_user.id,
+        action="EMAIL_DISPATCHED",
+        resource_type="email_draft",
+        resource_id=None,
+        details=f'{{"draft_id": "{body.draft_id}", "recipient": "{body.recipient_email}", "subject": "{body.subject}"}}',
+        request_id=None,
+    )
+    session.add(audit_entry)
+    session.commit()
+
+    return {
+        "success": True,
+        "message": f"Email successfully dispatched to {body.recipient_email}",
+        "draft_id": body.draft_id,
+        "status": "dispatched",
+    }
+

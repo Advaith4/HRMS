@@ -1,0 +1,17 @@
+[
+  {
+    "result": 88.4,
+    "operation": "weighted_average",
+    "formula": "sum(values * weights) / sum(weights) = 88.4"
+  },
+  {
+    "result": 97.5,
+    "operation": "gpa_normalization",
+    "formula": "(3.9 / 4.0) * 100 = 97.5%"
+  },
+  {
+    "result": 66.67,
+    "operation": "percentile_rank",
+    "formula": "(4 candidates below / 6 total) * 100 = 66.67%"
+  }
+]

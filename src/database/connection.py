@@ -65,6 +65,7 @@ def create_db_and_tables() -> None:
     _ensure_profile_documents_file_data_columns()
     _ensure_company_documents_table()
     _ensure_phase1_agentic_columns_and_tables()
+    _ensure_human_evaluations_table()
 
 
 def _ensure_user_role_column() -> None:
@@ -835,4 +836,32 @@ def _ensure_phase1_agentic_columns_and_tables() -> None:
                     conn.execute(text(stmt))
     except Exception as exc:
         logger.warning(f"Could not verify phase 1 agentic columns: {exc}")
+
+
+def _ensure_human_evaluations_table() -> None:
+    """Ensure human_evaluations table exists across SQLite and Postgres."""
+    try:
+        if _db_url.startswith("sqlite") or settings.AUTO_CREATE_DB_SCHEMA:
+            SQLModel.metadata.create_all(engine)
+        else:
+            statement = """
+            CREATE TABLE IF NOT EXISTS human_evaluations (
+                id SERIAL PRIMARY KEY,
+                application_id INTEGER NOT NULL REFERENCES candidate_applications(id),
+                reviewer_id INTEGER NOT NULL REFERENCES users(id),
+                correctness INTEGER NOT NULL,
+                helpfulness INTEGER NOT NULL,
+                completeness INTEGER NOT NULL,
+                safety_groundedness INTEGER NOT NULL,
+                composite_rating FLOAT DEFAULT 0.0,
+                feedback_notes VARCHAR(2000) DEFAULT '',
+                decision_override VARCHAR(40) DEFAULT 'agreed',
+                created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+            with engine.begin() as conn:
+                conn.execute(text(statement))
+    except Exception as exc:
+        logger.warning(f"Could not verify human_evaluations table: {exc}")
+
 

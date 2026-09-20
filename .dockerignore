@@ -1,5 +1,11 @@
 venv
 __pycache__
+.git
+.gitignore
+.env
+.venv
+venv/
+__pycache__/
 *.pyc
 *.pyo
 *.pyd
@@ -9,3 +15,14 @@ data
 *.db
 out.json
 *.log
+.pytest_cache/
+.coverage
+htmlcov/
+tests/
+frontend/node_modules/
+frontend/dist/
+data/test_*.db
+evidence/screenshots/
+.opencode/
+.agents/
+.codex/
