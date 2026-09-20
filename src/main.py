@@ -164,7 +164,6 @@ app.add_exception_handler(RequestValidationError, validation_exception_handler)
 @app.get("/health", tags=["system"])
 @app.get("/api/health", include_in_schema=False)
 def health_check():
-    return {"status": "ok"}
     """Liveness probe: fast non-blocking response confirming process is alive."""
     return {
         "status": "ok",
@@ -248,7 +247,6 @@ class SPAStaticFiles(StaticFiles):
             return await super().get_response(path, scope)
         except StarletteHTTPException as exc:
             if exc.status_code == 404 and not (
-                path.startswith("api") or path.startswith("docs")
                 path.startswith("api")
                 or path.startswith("docs")
                 or path.startswith("health")
