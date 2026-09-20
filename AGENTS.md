@@ -2,9 +2,11 @@
 
 ## Stack & Entrypoints
 - **Backend:** FastAPI at `src.main:app` (uvicorn). 20 routers registered in `src/main.py:144-162`.
+- **Backend:** FastAPI at `src.main:app` (uvicorn). 21 routers registered in `src/main.py`.
 - **Frontend:** React 19 + Vite SPA at `frontend/`, `npm run dev` (port 5173), `npm run build` (outputs to `../static/`).
 - **Database:** SQLModel (SQLite dev, PostgreSQL prod). Tables auto-created on startup via `SQLModel.metadata.create_all` + idempotent `_ensure_*` ALTER TABLE functions in `src/database/connection.py`.
 - **AI:** CrewAI + Groq (`llama-3.1-8b-instant`). Deterministic fallback if LLM unavailable.
+- **AI:** CrewAI + Groq (`llama-3.1-8b-instant`), ChromaDB RAG for company docs/policies and hiring intelligence. Deterministic fallback if LLM unavailable.
 
 ## Quickstart
 ```bash
@@ -35,19 +37,25 @@ pytest tests/test_api.py::test_register_and_login_returns_role -v
 ```
 src/
   main.py              # FastAPI factory, lifespan, 20 router includes, SPAStaticFiles fallback
+  main.py              # FastAPI factory, lifespan, 21 router includes, SPAStaticFiles fallback
   config.py            # Pydantic Settings from .env (extra="allow")
   resume_lab.py        # PDF text repair, section parsing, LLM analysis validation (pure functions)
   database/connection.py # Engine + idempotent migration functions (_ensure_*)
   models/__init__.py   # 30+ SQLModel tables (User, Resume, CandidateApplication, InterviewSession, etc.)
   api/routes/          # 20 routers: auth, resume, jobs, applications, candidates, employees,
+  models/__init__.py   # 30+ SQLModel tables (User, Resume, CandidateApplication, CandidateDocument,
+                       #   EmployeeDocument, CompanyDocument, InterviewSession, etc.)
+  api/routes/          # 21 routers: auth, resume, jobs, applications, candidates, employees,
                        #   dashboard, interview, mock_interview, departments, designations,
                        #   lifecycle, tickets, salary, promotions, notifications,
                        #   onboarding, training, profile
+                       #   onboarding, training, profile, rag, admin
   api/dependencies.py  # JWT guards (get_current_user, require_roles)
   core/security.py     # JWT encode/decode, bcrypt hash/verify
   services/
     recruitment_ai.py  # CrewAI orchestration + fallback scorer for application analysis
     employee_ai.py     # Skill gap analysis + AI HR chatbot (policy-aware)
+    rag/               # ChromaDB vector store, embedding service, ingestion, retrieval, query router
 agents/                # CrewAI agent definitions
 tasks/                 # CrewAI task definitions
 crew.py                # Legacy — do not reference
@@ -58,6 +66,7 @@ static/                # Built frontend assets (served by FastAPI at /)
 - **`src/main.py` strips bad `127.0.0.1:9` proxy vars** at import time (Windows breakage for Groq/Jooble API).
 - **CrewAI storage isolation:** `CREAI_STORAGE_DIR=talentforge_local`, `appdirs` monkeypatched to `data/.crewai_storage/` (see `src/main.py:88-99`).
 - **DB migrations** are all at startup via `_ensure_*` functions (idempotent ALTER TABLE). Add new ones in `create_db_and_tables()` in `src/database/connection.py`.
+- **Documents & Knowledge Storage:** `CandidateDocument`, `EmployeeDocument` store file data as binary blobs in DB; `CompanyDocument` stores policies/knowledge articles in DB, indexed into ChromaDB via `IngestionService.ingest_text()`.
 - **AI analysis runs as FastAPI `BackgroundTasks`** — HTTP response returns <1s, score appears asynchronously.
 - **No Python lint/typecheck tools** (no ruff, mypy, flake8). Only pytest.
 - **Frontend `npm run lint`** runs eslint. No pre-commit hooks.
